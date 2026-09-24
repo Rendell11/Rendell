@@ -515,6 +515,10 @@ try {
     $sms_history = [];
 }
 
+// Per-resident breakdown (targeted · sent · failed · no number) for each broadcast
+require_once __DIR__ . '/../backend/sms_recipient_log.php';
+$sms_counts = sms_breakdown_counts($pdo, array_merge(array_column($logs, 'LogID'), array_column($sms_history, 'LogID')));
+
 if (!function_exists('render_sms_log_entry')) {
     function render_sms_log_entry(array $log): string
     {
@@ -524,6 +528,8 @@ if (!function_exists('render_sms_log_entry')) {
         $type = $log['Type'] ?? null;
         $severity = $log['Severity'] ?? 'Medium';
         $isDeactivated = isset($log['AlertStatus']) && $log['AlertStatus'] !== 'active';
+        global $sms_counts;
+        $bd = $sms_counts[(int) ($log['LogID'] ?? 0)] ?? null;
 
         $label = $alertId
             ? 'Disaster #' . htmlspecialchars($alertId) . ($type ? ' · ' . htmlspecialchars(strtoupper($type)) : '')
@@ -553,9 +559,30 @@ if (!function_exists('render_sms_log_entry')) {
             </div>
             <div class="flex justify-between text-[9px] font-bold uppercase">
                 <span class="text-slate-400"><?= $progress ?>% Sent
-                    (<?= (int) $log['sent_count'] ?>/<?= (int) $log['total_recipients'] ?>)</span>
+                    (<?= (int) $log['sent_count'] ?>/<?= (int) $log['total_recipients'] ?> with a number)</span>
                 <span style="color: var(--accent-600);" class="font-black"><?= htmlspecialchars($log['status']) ?></span>
             </div>
+            <?php if ($bd): ?>
+                <div class="grid grid-cols-4 gap-2 mt-3">
+                    <?php foreach ([
+                        ['Targeted', $bd['targeted'], 'bg-slate-50 text-slate-700'],
+                        ['Sent', $bd['sent'], 'bg-emerald-50 text-emerald-700'],
+                        ['Failed', $bd['failed'], 'bg-rose-50 text-rose-700'],
+                        ['No number', $bd['no_number'], 'bg-amber-50 text-amber-700'],
+                    ] as [$lbl, $num, $cls]): ?>
+                        <div class="rounded-xl px-2 py-1.5 text-center <?= $cls ?>">
+                            <p class="text-sm font-black leading-tight"><?= (int) $num ?></p>
+                            <p class="text-[8px] font-bold uppercase tracking-wider opacity-70"><?= $lbl ?></p>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+                <button type="button"
+                    onclick="openSmsBreakdown(<?= (int) $log['LogID'] ?>)"
+                    class="mt-3 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-slate-200 text-[10px] font-black uppercase text-slate-500 hover:border-indigo-300 hover:text-indigo-600 transition-all">
+                    <span class="material-symbols-outlined" style="font-size:15px">table_view</span>
+                    View breakdown by purok / area
+                </button>
+            <?php endif; ?>
         </div>
         <?php
         return ob_get_clean();
@@ -2202,7 +2229,7 @@ try {
     <div id="smsLiveModal"
         class="fixed inset-0 z-[100] hidden bg-slate-900/80 flex items-center justify-center p-6">
         <div
-            class="bg-white rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden max-h-[90vh] flex flex-col">
+            class="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden max-h-[90vh] flex flex-col">
             <div class="px-8 pt-8 pb-4 flex items-center justify-between border-b border-slate-100 flex-shrink-0">
                 <div>
                     <h3 class="text-xl font-black tracking-tight text-slate-900" id="smsLiveModalTitle">SMS Notification
@@ -2247,6 +2274,27 @@ try {
                     <?php foreach ($sms_history as $log):
                         echo render_sms_log_entry($log); endforeach; ?>
                 <?php endif; ?>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ── SMS Breakdown Modal (per purok / area + residents not reached) ──────────── -->
+    <div id="smsBreakdownModal" class="fixed inset-0 z-[110] hidden bg-slate-900/80 flex items-center justify-center p-4">
+        <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-3xl overflow-hidden max-h-[92vh] flex flex-col">
+            <div class="px-8 md:px-10 pt-8 md:pt-10 pb-6 flex items-start justify-between border-b border-slate-100 flex-shrink-0">
+                <div class="min-w-0">
+                    <p class="text-xs text-primary font-bold uppercase tracking-widest mb-1" id="sbd_kicker">SMS Breakdown</p>
+                    <h3 class="text-2xl font-black tracking-tight text-slate-900 leading-tight truncate" id="sbd_title">—</h3>
+                    <p class="text-xs text-slate-400 font-semibold mt-1" id="sbd_meta">—</p>
+                </div>
+                <button onclick="closeModal('smsBreakdownModal')"
+                    class="p-2 hover:bg-orange-50 rounded-full text-slate-400 hover:text-primary transition-colors shrink-0 ml-4">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="px-8 md:px-10 py-6 overflow-y-auto space-y-6" id="sbd_body">
+                <div class="py-10 flex justify-center"><div class="w-6 h-6 border-4 border-slate-200 border-t-slate-500 rounded-full animate-spin"></div></div>
             </div>
         </div>
     </div>
@@ -2456,6 +2504,82 @@ try {
         function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 
         // ─── SMS Live ↔ History toggle ─────────────────────────────────────────────
+
+        // ─── SMS breakdown: who was targeted / sent / failed / had no number, per area ──
+        function sbdEsc(v) { return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+        async function openSmsBreakdown(logId) {
+            const body = document.getElementById('sbd_body');
+            body.innerHTML = '<div class="py-10 flex justify-center"><div class="w-6 h-6 border-4 border-slate-200 border-t-slate-500 rounded-full animate-spin"></div></div>';
+            document.getElementById('sbd_title').textContent = '—';
+            document.getElementById('sbd_meta').textContent = '—';
+            openModal('smsBreakdownModal');
+            try {
+                const res = await fetch('../backend/get_sms_breakdown.php?log_id=' + encodeURIComponent(logId));
+                const d = await res.json();
+                if (!d.success) throw new Error(d.error || 'Could not load the breakdown.');
+                const l = d.log, t = d.totals;
+                document.getElementById('sbd_kicker').textContent = 'SMS Breakdown · Disaster #' + (l.AlertID || '—') + (l.Type ? ' · ' + l.Type : '');
+                document.getElementById('sbd_title').textContent = l.Title || 'Disaster alert';
+                document.getElementById('sbd_meta').textContent = 'Sent ' + new Date(String(l.created_at).replace(' ', 'T')).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+                const pct = t.targeted ? Math.round(t.sent / t.targeted * 100) : 0;
+                const card = (label, n, cls, note) => `
+                    <div class="rounded-2xl border border-slate-100 p-4 ${cls}">
+                        <p class="text-[10px] font-bold uppercase tracking-widest opacity-70">${label}</p>
+                        <p class="text-2xl font-black mt-1">${n}</p>
+                        <p class="text-[10px] font-semibold opacity-70 mt-0.5">${note}</p>
+                    </div>`;
+                const areaRows = d.areas.map(a => {
+                    const p = a.targeted ? Math.round(a.sent / a.targeted * 100) : 0;
+                    return `<tr class="hover:bg-slate-50/50">
+                        <td class="px-5 py-3 text-xs font-bold text-slate-700">${sbdEsc(a.area)}</td>
+                        <td class="px-4 py-3 text-xs font-bold text-slate-700 text-right">${a.targeted}</td>
+                        <td class="px-4 py-3 text-xs font-bold text-emerald-600 text-right">${a.sent}</td>
+                        <td class="px-4 py-3 text-xs font-bold text-rose-600 text-right">${a.failed}</td>
+                        <td class="px-4 py-3 text-xs font-bold text-amber-600 text-right">${a.no_number}</td>
+                        <td class="px-5 py-3 w-32"><div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden"><div class="h-full bg-emerald-500" style="width:${p}%"></div></div>
+                            <p class="text-[9px] font-bold text-slate-400 mt-1">${p}% reached</p></td>
+                    </tr>`;
+                }).join('');
+                const reasonCls = { no_number: 'bg-amber-50 text-amber-700 border-amber-100', invalid: 'bg-rose-50 text-rose-600 border-rose-100', failed: 'bg-rose-50 text-rose-600 border-rose-100' };
+                const missed = d.not_reached.map(r => `<tr>
+                        <td class="px-5 py-2.5 text-xs font-bold text-slate-700">${sbdEsc(r.name)}</td>
+                        <td class="px-4 py-2.5 text-xs text-slate-500 font-semibold">${sbdEsc(r.area)}</td>
+                        <td class="px-4 py-2.5 text-xs text-slate-500 font-mono">${sbdEsc(r.contact || '—')}</td>
+                        <td class="px-5 py-2.5"><span class="px-2 py-0.5 text-[9px] font-bold rounded-md uppercase border ${reasonCls[r.status] || ''}" title="${sbdEsc(r.detail)}">${sbdEsc(r.reason)}</span></td>
+                    </tr>`).join('');
+
+                body.innerHTML = `
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        ${card('Targeted', t.targeted, 'bg-white text-slate-800', 'Residents in the chosen audience')}
+                        ${card('Sent', t.sent, 'bg-emerald-50 text-emerald-700', pct + '% of targeted residents')}
+                        ${card('Failed', t.failed, 'bg-rose-50 text-rose-700', 'Gateway rejected / invalid no.')}
+                        ${card('No number', t.no_number, 'bg-amber-50 text-amber-700', 'No contact number on file')}
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">By Purok / Area</p>
+                        <div class="rounded-2xl border border-slate-100 overflow-hidden"><table class="w-full text-left">
+                            <thead><tr class="bg-slate-50/50 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                <th class="px-5 py-3">Purok / Area</th><th class="px-4 py-3 text-right">Targeted</th><th class="px-4 py-3 text-right">Sent</th>
+                                <th class="px-4 py-3 text-right">Failed</th><th class="px-4 py-3 text-right">No number</th><th class="px-5 py-3">Reached</th></tr></thead>
+                            <tbody class="divide-y divide-slate-50">${areaRows || '<tr><td colspan="6" class="px-5 py-6 text-center text-xs text-slate-400">No data</td></tr>'}</tbody>
+                        </table></div>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Residents not reached (${d.not_reached.length})
+                            <span class="normal-case tracking-normal font-semibold text-slate-400">— contact them another way (house visit, PA system, barangay tanod)</span></p>
+                        <div class="rounded-2xl border border-slate-100 overflow-hidden max-h-72 overflow-y-auto"><table class="w-full text-left">
+                            <thead class="sticky top-0"><tr class="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                <th class="px-5 py-3">Resident</th><th class="px-4 py-3">Purok / Area</th><th class="px-4 py-3">Contact</th><th class="px-5 py-3">Reason</th></tr></thead>
+                            <tbody class="divide-y divide-slate-50">${missed || '<tr><td colspan="4" class="px-5 py-6 text-center text-xs font-bold text-emerald-600">Everyone targeted was reached.</td></tr>'}</tbody>
+                        </table></div>
+                    </div>`;
+            } catch (err) {
+                body.innerHTML = `<div class="py-8 text-center text-sm font-bold text-rose-600">${sbdEsc(err.message)}</div>`;
+            }
+        }
+
         function toggleSMSHistory() {
             const liveList = document.getElementById('smsLiveList');
             const historyList = document.getElementById('smsHistoryList');
@@ -2555,7 +2679,7 @@ try {
 
         // Close disaster-related modals on backdrop click
         window.addEventListener('click', function (event) {
-            ['issueAlertModal', 'activeDisasterModal', 'smsLiveModal',
+            ['issueAlertModal', 'activeDisasterModal', 'smsLiveModal', 'smsBreakdownModal',
                 'editAlertModal', 'deactivateModal', 'viewAlertModal'].forEach(function (id) {
                     if (event.target === document.getElementById(id)) closeModal(id);
                 });

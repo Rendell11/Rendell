@@ -847,6 +847,26 @@ CREATE TABLE IF NOT EXISTS `sms_configurations` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ----------------------------------------------------------------------------
+-- Table: sms_recipient_logs  (one row per resident targeted by a disaster SMS:
+-- sent / failed / invalid / no_number — used by SMS Live → View breakdown)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `sms_recipient_logs` (
+  `id`             int unsigned NOT NULL AUTO_INCREMENT,
+  `log_id`         int          DEFAULT NULL,
+  `alert_id`       int          DEFAULT NULL,
+  `resident_id`    int unsigned DEFAULT NULL,
+  `resident_name`  varchar(255) DEFAULT NULL,
+  `area_label`     varchar(255) DEFAULT NULL,
+  `contact_number` varchar(30)  DEFAULT NULL,
+  `status`         enum('sent','failed','invalid','no_number') NOT NULL,
+  `detail`         varchar(255) DEFAULT NULL,
+  `created_at`     timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_srl_log` (`log_id`),
+  KEY `idx_srl_alert` (`alert_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ============================================================================
