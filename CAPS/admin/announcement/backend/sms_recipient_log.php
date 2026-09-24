@@ -164,13 +164,24 @@ if (!function_exists('sms_breakdown_counts')) {
         try {
             sms_recipient_log_ensure($pdo);
             $ph = implode(',', array_fill(0, count($logIds), '?'));
-            $stmt = $pdo->prepare("SELECT log_id, status, delivery, COUNT(*) AS n FROM sms_recipient_logs WHERE log_id IN ($ph) GROUP BY log_id, status, delivery");
+            $stmt = $pdo->prepare(
+                "SELECT log_id, status, delivery, (message_id IS NOT NULL) AS has_id, COUNT(*) AS n, MAX(detail) AS sample_detail
+                   FROM sms_recipient_logs WHERE log_id IN ($ph) GROUP BY log_id, status, delivery, has_id"
+            );
             $stmt->execute($logIds);
             $out = [];
             foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
                 $id = (int) $row['log_id'];
-                $out[$id] = $out[$id] ?? sms_empty_totals();
-                sms_add_to_totals($out[$id], $row['status'], $row['delivery'], (int) $row['n']);
+                $out[$id] = $out[$id] ?? sms_empty_totals() + ['phone_failed' => 0, 'phone_reason' => '', 'checkable' => 0];
+                $n = (int) $row['n'];
+                sms_add_to_totals($out[$id], $row['status'], $row['delivery'], $n);
+                if ($row['delivery'] === 'failed') {
+                    // accepted by the gateway, then the gateway phone could not send (no load / no signal)
+                    $out[$id]['phone_failed'] += $n;
+                    $out[$id]['phone_reason'] = (string) $row['sample_detail'];
+                } elseif ($row['status'] === 'sent' && $row['delivery'] !== 'confirmed' && $row['has_id']) {
+                    $out[$id]['checkable'] += $n;
+                }
             }
             return $out;
         } catch (Throwable $e) {
@@ -196,6 +207,7 @@ if (!function_exists('sms_breakdown_detail')) {
         $notReached = [];
         $pendingRows = [];
         $phoneFailed = 0;
+        $phoneReason = '';
         $lastChecked = null;
         $checkable = 0;
         foreach ($rows as $r) {
@@ -224,6 +236,7 @@ if (!function_exists('sms_breakdown_detail')) {
             }
             if ($r['delivery'] === 'failed') {
                 $phoneFailed++;
+                $phoneReason = $r['detail'];
             }
             $notReached[] = [
                 'name' => $r['resident_name'],
@@ -245,6 +258,7 @@ if (!function_exists('sms_breakdown_detail')) {
             'pending' => $pendingRows,
             'checkable' => $checkable,
             'phone_failed' => $phoneFailed,
+            'phone_reason' => $phoneReason,
             'last_checked' => $lastChecked,
             'has_detail' => (bool) $rows,
         ];

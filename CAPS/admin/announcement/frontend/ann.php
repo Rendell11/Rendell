@@ -611,7 +611,8 @@ if (!function_exists('render_sms_log_entry')) {
 
         ob_start();
         ?>
-        <div class="rounded-[24px] border border-slate-100 p-6 bg-white">
+        <div class="rounded-[24px] border border-slate-100 p-6 bg-white" data-sms-log="<?= (int) ($log['LogID'] ?? 0) ?>"
+            data-checkable="<?= (int) ($bd['checkable'] ?? 0) ?>">
             <div class="flex justify-between items-start mb-4 gap-3">
                 <div class="min-w-0">
                     <h4 class="text-xs font-black text-rose-600 uppercase tracking-widest"><?= $label ?></h4>
@@ -637,18 +638,28 @@ if (!function_exists('render_sms_log_entry')) {
                 <span style="color: var(--accent-600);" class="font-black"><?= htmlspecialchars($log['status']) ?></span>
             </div>
             <?php if ($bd): ?>
-                <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mt-5">
+                <!-- Accepted by the gateway, but the gateway phone could not send (e.g. SIM has no load) -->
+                <div class="sms-phone-fail mt-5 rounded-2xl border border-rose-100 bg-rose-50 p-4 flex gap-3 <?= $bd['phone_failed'] ? '' : 'hidden' ?>">
+                    <span class="material-symbols-outlined text-rose-600">signal_cellular_connected_no_internet_0_bar</span>
+                    <div class="min-w-0">
+                        <p class="text-xs font-black text-rose-700 uppercase"><span data-k="phone_failed"><?= (int) $bd['phone_failed'] ?></span> SMS not sent — failed on the gateway phone</p>
+                        <p class="text-xs text-rose-600 font-semibold mt-0.5">Possibly <b>no load / promo</b>, no signal, or the phone is off. Reload the SIM, then re-send or reach these residents another way.</p>
+                        <p class="text-[10px] text-rose-500 font-semibold mt-1 truncate" data-k="phone_reason"><?= htmlspecialchars($bd['phone_reason']) ?></p>
+                    </div>
+                </div>
+                <p class="sms-check-status text-[10px] font-bold uppercase tracking-widest text-sky-600 mt-4 hidden"></p>
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mt-4">
                     <?php foreach ([
                         ['Targeted', $bd['targeted'], 'bg-white text-slate-800', 'Residents in the audience'],
                         ['Confirmed sent', $bd['confirmed'], 'bg-emerald-50 text-emerald-700', ($bd['targeted'] ? round($bd['confirmed'] / $bd['targeted'] * 100) : 0) . '% of targeted'],
                         ['Awaiting', $bd['pending'], 'bg-sky-50 text-sky-700', 'Accepted, not yet confirmed'],
-                        ['Failed', $bd['failed'], 'bg-rose-50 text-rose-700', 'Rejected / no load / invalid'],
+                        ['Failed', $bd['failed'], 'bg-rose-50 text-rose-700', $bd['phone_failed'] ? $bd['phone_failed'] . ' no load / phone failed' : 'Rejected / no load / invalid'],
                         ['No number', $bd['no_number'], 'bg-amber-50 text-amber-700', 'No contact number'],
                     ] as [$lbl, $num, $cls, $note]): ?>
-                        <div class="rounded-2xl border border-slate-100 p-4 <?= $cls ?>">
+                        <div class="rounded-2xl border border-slate-100 p-4 <?= $cls ?>" data-card="<?= $lbl ?>">
                             <p class="text-[10px] font-bold uppercase tracking-widest opacity-70"><?= $lbl ?></p>
-                            <p class="text-2xl font-black mt-1"><?= (int) $num ?></p>
-                            <p class="text-[10px] font-semibold opacity-70 mt-0.5"><?= $note ?></p>
+                            <p class="text-2xl font-black mt-1" data-num><?= (int) $num ?></p>
+                            <p class="text-[10px] font-semibold opacity-70 mt-0.5" data-note><?= $note ?></p>
                         </div>
                     <?php endforeach; ?>
                 </div>
@@ -2661,7 +2672,61 @@ try {
 
     <script>
         // ─── Issue Alert Modal (moved from Disaster module) ───────────────────────────
-        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+            if (id === 'smsLiveModal') refreshSmsLiveDelivery();
+        }
+
+        // SMS Live: ask the gateway whether accepted SMS were really sent by the gateway phone,
+        // so a SIM with no load shows up as Failed right on the card (not only in the breakdown).
+        let smsLiveChecking = false;
+        async function refreshSmsLiveDelivery() {
+            if (smsLiveChecking) return;
+            smsLiveChecking = true;
+            const ids = [...new Set([...document.querySelectorAll('[data-sms-log]')]
+                .filter(el => +el.dataset.checkable > 0).map(el => el.dataset.smsLog))].slice(0, 10);
+            for (const id of ids) {
+                const cards = document.querySelectorAll(`[data-sms-log="${id}"]`);
+                cards.forEach(c => { const s = c.querySelector('.sms-check-status'); if (s) { s.textContent = 'Checking delivery with the gateway phone…'; s.classList.remove('hidden'); } });
+                try {
+                    const res = await fetch('../backend/check_sms_delivery.php', { method: 'POST', body: new URLSearchParams({ log_id: id, csrf_token: CSRF_TOKEN }) });
+                    const d = await res.json();
+                    if (!d.success) throw new Error(d.error);
+                    cards.forEach(c => updateSmsLiveCard(c, d));
+                } catch (err) {
+                    cards.forEach(c => { const s = c.querySelector('.sms-check-status'); if (s) s.textContent = 'Could not check delivery: ' + (err.message || 'gateway unreachable'); });
+                }
+            }
+            smsLiveChecking = false;
+        }
+
+        function updateSmsLiveCard(c, d) {
+            const t = d.totals;
+            const set = (lbl, n, note) => {
+                const card = c.querySelector(`[data-card="${lbl}"]`);
+                if (!card) return;
+                card.querySelector('[data-num]').textContent = n;
+                if (note) card.querySelector('[data-note]').textContent = note;
+            };
+            set('Targeted', t.targeted);
+            set('Confirmed sent', t.confirmed, (t.targeted ? Math.round(t.confirmed / t.targeted * 100) : 0) + '% of targeted');
+            set('Awaiting', t.pending);
+            set('Failed', t.failed, d.phone_failed ? d.phone_failed + ' no load / phone failed' : null);
+            set('No number', t.no_number);
+            const warn = c.querySelector('.sms-phone-fail');
+            if (warn) {
+                warn.classList.toggle('hidden', !d.phone_failed);
+                warn.querySelector('[data-k="phone_failed"]').textContent = d.phone_failed;
+                warn.querySelector('[data-k="phone_reason"]').textContent = d.phone_reason || '';
+            }
+            c.dataset.checkable = d.checkable;
+            const s = c.querySelector('.sms-check-status');
+            if (s) {
+                if (d.check && d.check.error) s.textContent = d.check.error;
+                else if (t.pending > 0) s.textContent = t.pending + ' still waiting for the gateway phone — reopen SMS Live to check again';
+                else s.classList.add('hidden');
+            }
+        }
 
         // "New Announcement" button — the create form is its own page (new_ann.php),
         // the same way Edit opens edit_ann.php. This function was referenced by the
@@ -2706,6 +2771,7 @@ try {
                 if (logId !== sbdLogId) return; // modal switched to another broadcast meanwhile
                 if (!d.success) throw new Error(d.error || 'Could not check the delivery status.');
                 renderSmsBreakdown(d);
+                document.querySelectorAll(`[data-sms-log="${logId}"]`).forEach(card => updateSmsLiveCard(card, d));
                 const c = d.check;
                 if (c.error) showToast('error', c.error);
                 else if (c.failed > 0) showToast('error', c.failed + ' SMS could not be sent by the gateway phone (e.g. no load / no signal).');
@@ -2764,7 +2830,8 @@ try {
                 <div class="rounded-2xl border border-rose-100 bg-rose-50 p-4 flex gap-3">
                     <span class="material-symbols-outlined text-rose-600">signal_cellular_connected_no_internet_0_bar</span>
                     <div><p class="text-xs font-black text-rose-700 uppercase">${d.phone_failed} SMS failed on the gateway phone</p>
-                    <p class="text-xs text-rose-600 font-semibold mt-0.5">The gateway accepted them but the phone could not send. Usually the SIM has no load / promo, no signal, or the phone is off. Reload the SIM, then re-send the alert or reach these residents another way.</p></div>
+                    <p class="text-xs text-rose-600 font-semibold mt-0.5">The gateway accepted them but the phone could not send. Usually the SIM has no load / promo, no signal, or the phone is off. Reload the SIM, then re-send the alert or reach these residents another way.</p>
+                    ${d.phone_reason ? `<p class="text-[10px] text-rose-500 font-semibold mt-1">${sbdEsc(d.phone_reason)}</p>` : ''}</div>
                 </div>` : '';
             const pendingBanner = t.pending > 0 ? `
                 <div class="rounded-2xl border border-sky-100 bg-sky-50 p-4 flex flex-col md:flex-row md:items-center gap-3">
