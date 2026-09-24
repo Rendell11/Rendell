@@ -2434,6 +2434,11 @@ try {
     <script>
         // ─── Issue Alert Modal (moved from Disaster module) ───────────────────────────
         function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+
+        // "New Announcement" button — the create form is its own page (new_ann.php),
+        // the same way Edit opens edit_ann.php. This function was referenced by the
+        // button but never defined, so clicking it did nothing.
+        function openCreateAnnouncementModal() { window.location.href = 'new_ann.php'; }
         function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 
         // ─── SMS Live ↔ History toggle ─────────────────────────────────────────────
