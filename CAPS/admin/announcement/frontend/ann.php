@@ -537,49 +537,50 @@ if (!function_exists('render_sms_log_entry')) {
 
         ob_start();
         ?>
-        <div class="p-5">
-            <div class="flex justify-between items-start mb-2 gap-2">
+        <div class="rounded-[24px] border border-slate-100 p-6 bg-white">
+            <div class="flex justify-between items-start mb-4 gap-3">
                 <div class="min-w-0">
-                    <h4 class="text-[9px] font-black text-rose-600 uppercase tracking-wider"><?= $label ?></h4>
+                    <h4 class="text-xs font-black text-rose-600 uppercase tracking-widest"><?= $label ?></h4>
                     <?php if ($title): ?>
-                        <p class="text-[10px] font-bold text-slate-600 truncate mt-0.5"><?= htmlspecialchars($title) ?></p>
+                        <p class="text-lg font-black text-slate-800 truncate mt-1 tracking-tight"><?= htmlspecialchars($title) ?></p>
                     <?php endif; ?>
                 </div>
                 <div class="flex flex-col items-end gap-1 flex-shrink-0">
-                    <span class="text-[9px] font-medium text-slate-400"><?= format_time_ago((int) $log['mins_ago']) ?></span>
+                    <span class="text-xs font-semibold text-slate-400"><?= format_time_ago((int) $log['mins_ago']) ?></span>
                     <?php if ($isDeactivated): ?>
                         <span
                             class="px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest bg-slate-100 text-slate-400">Deactivated</span>
                     <?php endif; ?>
                 </div>
             </div>
-            <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mb-2">
+            <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden mb-2">
                 <div class="h-full bar-fill transition-all duration-1000"
                     style="width: <?= $progress ?>%; background: var(--accent-600);"></div>
             </div>
-            <div class="flex justify-between text-[9px] font-bold uppercase">
+            <div class="flex justify-between text-[11px] font-bold uppercase">
                 <span class="text-slate-400"><?= $progress ?>% Sent
                     (<?= (int) $log['sent_count'] ?>/<?= (int) $log['total_recipients'] ?> with a number)</span>
                 <span style="color: var(--accent-600);" class="font-black"><?= htmlspecialchars($log['status']) ?></span>
             </div>
             <?php if ($bd): ?>
-                <div class="grid grid-cols-4 gap-2 mt-3">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5">
                     <?php foreach ([
-                        ['Targeted', $bd['targeted'], 'bg-slate-50 text-slate-700'],
-                        ['Sent', $bd['sent'], 'bg-emerald-50 text-emerald-700'],
-                        ['Failed', $bd['failed'], 'bg-rose-50 text-rose-700'],
-                        ['No number', $bd['no_number'], 'bg-amber-50 text-amber-700'],
-                    ] as [$lbl, $num, $cls]): ?>
-                        <div class="rounded-xl px-2 py-1.5 text-center <?= $cls ?>">
-                            <p class="text-sm font-black leading-tight"><?= (int) $num ?></p>
-                            <p class="text-[8px] font-bold uppercase tracking-wider opacity-70"><?= $lbl ?></p>
+                        ['Targeted', $bd['targeted'], 'bg-white text-slate-800', 'Residents in the audience'],
+                        ['Sent', $bd['sent'], 'bg-emerald-50 text-emerald-700', ($bd['targeted'] ? round($bd['sent'] / $bd['targeted'] * 100) : 0) . '% of targeted'],
+                        ['Failed', $bd['failed'], 'bg-rose-50 text-rose-700', 'Rejected / invalid no.'],
+                        ['No number', $bd['no_number'], 'bg-amber-50 text-amber-700', 'No contact number'],
+                    ] as [$lbl, $num, $cls, $note]): ?>
+                        <div class="rounded-2xl border border-slate-100 p-4 <?= $cls ?>">
+                            <p class="text-[10px] font-bold uppercase tracking-widest opacity-70"><?= $lbl ?></p>
+                            <p class="text-2xl font-black mt-1"><?= (int) $num ?></p>
+                            <p class="text-[10px] font-semibold opacity-70 mt-0.5"><?= $note ?></p>
                         </div>
                     <?php endforeach; ?>
                 </div>
                 <button type="button"
                     onclick="openSmsBreakdown(<?= (int) $log['LogID'] ?>)"
-                    class="mt-3 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-slate-200 text-[10px] font-black uppercase text-slate-500 hover:border-indigo-300 hover:text-indigo-600 transition-all">
-                    <span class="material-symbols-outlined" style="font-size:15px">table_view</span>
+                    class="mt-4 w-full flex items-center justify-center gap-2 py-3 rounded-2xl border border-slate-200 text-xs font-black uppercase text-slate-500 hover:border-indigo-300 hover:text-indigo-600 transition-all">
+                    <span class="material-symbols-outlined" style="font-size:18px">table_view</span>
                     View breakdown by purok / area
                 </button>
             <?php endif; ?>
@@ -596,19 +597,19 @@ if (!function_exists('format_time_ago')) {
             return 'Just now';
         if ($mins < 60)
             return $mins . 'm ago';
-        $hours = floor($mins / 60);
+        $hours = (int) floor($mins / 60);
         if ($hours < 24)
             return $hours . ($hours === 1 ? ' hour ago' : ' hours ago');
-        $days = floor($hours / 24);
+        $days = (int) floor($hours / 24);
         if ($days < 7)
             return $days . ($days === 1 ? ' day ago' : ' days ago');
-        $weeks = floor($days / 7);
+        $weeks = (int) floor($days / 7);
         if ($weeks < 5)
             return $weeks . ($weeks === 1 ? ' week ago' : ' weeks ago');
-        $months = floor($days / 30);
+        $months = (int) floor($days / 30);
         if ($months < 12)
             return $months . ($months === 1 ? ' month ago' : ' months ago');
-        $years = floor($days / 365);
+        $years = (int) floor($days / 365);
         return $years . ($years === 1 ? ' year ago' : ' years ago');
     }
 }
@@ -2227,13 +2228,12 @@ try {
 
     <!-- ── SMS Live Modal (card "!" — live SMS status per disaster) ────────────────── -->
     <div id="smsLiveModal"
-        class="fixed inset-0 z-[100] hidden bg-slate-900/80 flex items-center justify-center p-6">
+        class="fixed inset-0 z-[100] hidden bg-slate-900/80 flex items-center justify-center p-4">
         <div
-            class="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden max-h-[90vh] flex flex-col">
-            <div class="px-8 pt-8 pb-4 flex items-center justify-between border-b border-slate-100 flex-shrink-0">
+            class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-3xl overflow-hidden max-h-[92vh] flex flex-col">
+            <div class="px-8 md:px-10 pt-8 md:pt-10 pb-6 flex items-start justify-between border-b border-slate-100 flex-shrink-0">
                 <div>
-                    <h3 class="text-xl font-black tracking-tight text-slate-900" id="smsLiveModalTitle">SMS Notification
-                        Live Status</h3>
+                    <h3 class="text-2xl font-black tracking-tight text-slate-900" id="smsLiveModalTitle">SMS Notification Live Status</h3>
                     <p class="text-xs text-primary font-bold uppercase tracking-widest mt-1"
                         id="smsLiveModalSubtitle">Per-disaster send progress</p>
                 </div>
@@ -2251,10 +2251,10 @@ try {
             </div>
 
             <!-- Live view (recent broadcasts) -->
-            <div id="smsLiveList" class="divide-y divide-slate-50 overflow-y-auto">
+            <div id="smsLiveList" class="px-8 md:px-10 py-6 space-y-4 overflow-y-auto">
                 <?php if (empty($logs)): ?>
-                    <div class="p-6 text-center opacity-30">
-                        <span class="material-symbols-outlined text-slate-400" style="font-size:24px">sms</span>
+                    <div class="py-12 text-center opacity-40">
+                        <span class="material-symbols-outlined text-slate-400" style="font-size:36px">sms</span>
                         <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-2">No SMS Logs</p>
                     </div>
                 <?php else: ?>
@@ -2264,10 +2264,10 @@ try {
             </div>
 
             <!-- History view (all broadcasts, incl. deactivated disasters) -->
-            <div id="smsHistoryList" class="hidden divide-y divide-slate-50 overflow-y-auto">
+            <div id="smsHistoryList" class="hidden px-8 md:px-10 py-6 space-y-4 overflow-y-auto">
                 <?php if (empty($sms_history)): ?>
-                    <div class="p-6 text-center opacity-30">
-                        <span class="material-symbols-outlined text-slate-400" style="font-size:24px">history</span>
+                    <div class="py-12 text-center opacity-40">
+                        <span class="material-symbols-outlined text-slate-400" style="font-size:36px">history</span>
                         <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-2">No SMS History</p>
                     </div>
                 <?php else: ?>
