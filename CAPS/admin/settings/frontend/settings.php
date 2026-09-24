@@ -270,9 +270,11 @@ if (is_file($fb_config_file)) {
                         <button class="tab-btn" data-tab="security" onclick="switchTab('security', this)">
                             <span class="material-symbols-outlined">shield</span> Security
                         </button>
-                        <a href="sms_settings.php" class="tab-btn-link">
+                        <?php if ($admin_role === 'admin'): ?>
+                        <button class="tab-btn" data-tab="sms" onclick="switchTab('sms', this); loadSmsConfigs();">
                             <span class="material-symbols-outlined">sms</span> SMS Configuration
-                        </a>
+                        </button>
+                        <?php endif; ?>
                         <?php if ($admin_role === 'admin'): ?>
                         <button class="tab-btn" data-tab="facebook" onclick="switchTab('facebook', this); loadFbStatus();">
                             <span class="material-symbols-outlined">share</span> Facebook
@@ -713,6 +715,125 @@ if (is_file($fb_config_file)) {
 
                     <?php if ($admin_role === 'admin'): ?>
                     <!-- ════════════════════════════════════════════════════════
+                         TAB: SMS CONFIGURATION (gateway used by Disaster Alert SMS)
+                    ════════════════════════════════════════════════════════ -->
+                    <div id="tab-sms" class="tab-panel hidden fade-up d2">
+
+                        <!-- Gateway status -->
+                        <div class="settings-card p-6 mb-5">
+                            <div class="flex items-center justify-between gap-3 mb-5">
+                                <div class="flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-indigo-500 text-[20px]">sms</span>
+                                    <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider">SMS Gateway Status</h2>
+                                </div>
+                                <button type="button" onclick="loadSmsConfigs()" class="text-xs font-semibold text-slate-500 hover:text-slate-800 flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-[16px]">refresh</span> Check again
+                                </button>
+                            </div>
+                            <div id="smsStatusBox" class="rounded-xl border border-slate-100 bg-slate-50 p-4 text-sm text-slate-500">Loading the SMS configuration…</div>
+                            <p class="text-xs text-slate-400 mt-3 leading-relaxed">
+                                Used by Announcements → Issue Alert to text residents during disasters. Only one configuration is active at a time.
+                            </p>
+                        </div>
+
+                        <!-- Send test SMS -->
+                        <div class="settings-card p-6 mb-5" id="smsTestCard">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="material-symbols-outlined text-indigo-500 text-[20px]">send_to_mobile</span>
+                                <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider">Send Test SMS</h2>
+                            </div>
+                            <p class="text-sm text-slate-500 mb-4 leading-relaxed">
+                                Sends one message through the gateway — the <strong>same way disaster alerts are sent</strong> — so you can confirm the setup works before an emergency.
+                            </p>
+                            <form id="smsTestForm" class="flex flex-wrap items-end gap-3" onsubmit="sendSmsTest(event)">
+                                <div class="min-w-[220px]">
+                                    <label class="block text-xs font-semibold text-slate-500 mb-1.5">Configuration</label>
+                                    <select name="config_id" id="smsTestConfig" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300 transition-all"></select>
+                                </div>
+                                <div class="min-w-[200px]">
+                                    <label class="block text-xs font-semibold text-slate-500 mb-1.5">Send to</label>
+                                    <input type="tel" name="test_number" required placeholder="09XXXXXXXXX" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300 transition-all font-mono">
+                                </div>
+                                <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition">
+                                    <span class="material-symbols-outlined text-[18px]">send</span> Send Test
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Configurations -->
+                        <div class="settings-card p-6 mb-5">
+                            <div class="flex items-center justify-between gap-3 mb-4">
+                                <div class="flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-indigo-500 text-[20px]">sim_card</span>
+                                    <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider">SMS Configurations</h2>
+                                    <span id="smsCount" class="text-[10px] font-bold bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full hidden"></span>
+                                </div>
+                                <button type="button" onclick="openSmsForm()" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition">
+                                    <span class="material-symbols-outlined text-[18px]">add</span> Add Configuration
+                                </button>
+                            </div>
+                            <div id="smsConfigList" class="space-y-3"></div>
+                        </div>
+
+                        <!-- Add / Edit configuration -->
+                        <div class="settings-card p-6 hidden" id="smsFormCard">
+                            <div class="flex items-center justify-between gap-2 mb-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-emerald-500 text-[20px]" id="smsFormIcon">add_circle</span>
+                                    <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider" id="smsFormTitle">Add Configuration</h2>
+                                </div>
+                                <button type="button" onclick="closeSmsForm()" class="text-slate-400 hover:text-slate-700"><span class="material-symbols-outlined text-[20px]">close</span></button>
+                            </div>
+                            <p class="text-sm text-slate-500 mb-3 leading-relaxed">Credentials from your <strong>InfiniReach</strong> account and the Android phone running the SMS Gateway app.</p>
+                            <details class="mb-4 text-xs text-slate-500">
+                                <summary class="cursor-pointer font-semibold text-slate-600">How to get these values (one time only)</summary>
+                                <ol class="list-decimal ml-5 mt-2 space-y-1.5 leading-relaxed">
+                                    <li>Install the <strong>SMS Gateway</strong> app on the Android phone that will send the messages. Insert a SIM with load, keep it online, and allow SMS, Phone, Notification and Background permissions (turn off battery optimization for the app).</li>
+                                    <li>Create or log in to your account at <a href="https://app.infinireach.io" target="_blank" rel="noopener" class="text-indigo-600 underline">app.infinireach.io</a>.</li>
+                                    <li><strong>API Key</strong>: <em>Automation → API Keys</em> → <strong>Generate API Key</strong>, then copy it.</li>
+                                    <li><strong>Device ID</strong>: in the SMS Gateway app, link the phone to your InfiniReach account, then copy the ID from <em>Device Information</em>.</li>
+                                    <li><strong>Sender Number</strong>: the number of the SIM in that phone, with country code (e.g. <code>+639171234567</code>).</li>
+                                    <li><strong>API URL</strong>: keep the default <code>https://api.infinireach.io/api/v1/messages</code> unless your provider says otherwise.</li>
+                                    <li>Save with <strong>Set as active</strong> ticked, then use <strong>Send Test SMS</strong> above.</li>
+                                </ol>
+                            </details>
+                            <form id="smsConfigForm" class="grid sm:grid-cols-2 gap-4" onsubmit="saveSmsConfig(event)">
+                                <input type="hidden" name="config_id" value="">
+                                <div class="sm:col-span-2">
+                                    <label class="block text-xs font-semibold text-slate-500 mb-1.5">Configuration Name</label>
+                                    <input type="text" name="configuration_name" required placeholder="e.g. Main SIM – Globe" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300 transition-all">
+                                </div>
+                                <div class="sm:col-span-2">
+                                    <label class="block text-xs font-semibold text-slate-500 mb-1.5">API Key <span id="smsKeyHint" class="font-normal text-slate-400 hidden">— leave blank to keep the saved key</span></label>
+                                    <input type="text" name="api_key" autocomplete="off" spellcheck="false" placeholder="smsrelay_…" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300 transition-all font-mono">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-500 mb-1.5">Sender Number</label>
+                                    <input type="text" name="from_number" required placeholder="+639XXXXXXXXX" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300 transition-all font-mono">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-500 mb-1.5">Device ID</label>
+                                    <input type="text" name="device_id" required placeholder="xxxxxxxx-xxxx-…" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300 transition-all font-mono">
+                                </div>
+                                <div class="sm:col-span-2">
+                                    <label class="block text-xs font-semibold text-slate-500 mb-1.5">API URL</label>
+                                    <input type="url" name="api_url" required value="https://api.infinireach.io/api/v1/messages" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300 transition-all">
+                                </div>
+                                <label class="sm:col-span-2 flex items-center gap-2 text-sm text-slate-600 font-medium">
+                                    <input type="checkbox" name="status" value="Active" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-300">
+                                    Set as active (disaster alerts will use this configuration)
+                                </label>
+                                <div class="sm:col-span-2 flex gap-2">
+                                    <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition">
+                                        <span class="material-symbols-outlined text-[18px]">save</span> Save Configuration
+                                    </button>
+                                    <button type="button" onclick="closeSmsForm()" class="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition">Cancel</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div><!-- /tab-sms -->
+
+                    <!-- ════════════════════════════════════════════════════════
                          TAB: FACEBOOK (Page connection for announcements)
                     ════════════════════════════════════════════════════════ -->
                     <div id="tab-facebook" class="tab-panel hidden fade-up d2">
@@ -1150,6 +1271,161 @@ function submitPasswordAjax(form, btnEl) {
         }
     });
 }
+
+// ── SMS Configuration (Settings → SMS Configuration) ─────────────────────────
+const SMS_API = '../backend/sms_config.php';
+const SETTINGS_CSRF = <?php echo json_encode($_SESSION['csrf_token']); ?>;
+let smsConfigs = [];
+
+async function smsPost(data) {
+    const fd = data instanceof FormData ? data : new FormData();
+    if (!(data instanceof FormData)) Object.entries(data).forEach(([k, v]) => fd.append(k, v));
+    fd.append('csrf_token', SETTINGS_CSRF);
+    const res = await fetch(SMS_API, { method: 'POST', body: fd });
+    return res.json();
+}
+
+async function loadSmsConfigs() {
+    const box = document.getElementById('smsStatusBox');
+    if (!box) return;
+    try {
+        const res = await fetch(SMS_API + '?action=list', { headers: { 'Accept': 'application/json' } });
+        const d = await res.json();
+        if (!d.success) throw new Error(d.message || 'Could not load the SMS configuration.');
+        smsConfigs = d.configs;
+        renderSmsStatus(d.active);
+        renderSmsList();
+    } catch (e) {
+        box.className = 'rounded-xl border border-rose-100 bg-rose-50/60 p-4 text-sm text-rose-600';
+        box.textContent = e.message;
+    }
+}
+
+function renderSmsStatus(a) {
+    const box = document.getElementById('smsStatusBox');
+    if (a) {
+        box.className = 'rounded-xl border border-emerald-100 bg-emerald-50/60 p-4 text-sm';
+        box.innerHTML = `
+            <p class="flex items-center gap-2 font-bold text-emerald-700 mb-3"><span class="material-symbols-outlined text-[20px]">check_circle</span> Active: ${fbEsc(a.configuration_name)} — Disaster SMS ready</p>
+            <div class="grid sm:grid-cols-2 gap-x-6 gap-y-1.5 text-slate-600">
+                <div class="flex justify-between"><span class="text-slate-400">Sender number</span><span class="font-mono">${fbEsc(a.from_number)}</span></div>
+                <div class="flex justify-between"><span class="text-slate-400">Gateway</span><span>${fbEsc(a.api_host)}</span></div>
+                <div class="flex justify-between"><span class="text-slate-400">Device ID</span><span class="font-mono">${fbEsc(a.device_id)}</span></div>
+                <div class="flex justify-between"><span class="text-slate-400">API key</span><span class="font-mono">${fbEsc(a.api_key_masked)}</span></div>
+            </div>`;
+    } else {
+        box.className = 'rounded-xl border border-rose-100 bg-rose-50/60 p-4 text-sm';
+        box.innerHTML = `
+            <p class="flex items-center gap-2 font-bold text-rose-700 mb-1"><span class="material-symbols-outlined text-[20px]">sms_failed</span> No active SMS configuration</p>
+            <p class="text-rose-600 text-xs">Disaster alerts are saved, but no SMS is sent to residents.</p>
+            <p class="text-slate-500 text-xs mt-2">${smsConfigs.length ? 'Click <strong>Activate</strong> on a configuration below.' : 'Click <strong>Add Configuration</strong> below.'}</p>`;
+    }
+}
+
+function renderSmsList() {
+    const list = document.getElementById('smsConfigList');
+    const count = document.getElementById('smsCount');
+    count.textContent = smsConfigs.length;
+    count.classList.toggle('hidden', !smsConfigs.length);
+    document.getElementById('smsTestCard').classList.toggle('hidden', !smsConfigs.length);
+    document.getElementById('smsTestConfig').innerHTML = smsConfigs.map(c =>
+        `<option value="${c.id}" ${c.status === 'Active' ? 'selected' : ''}>${fbEsc(c.configuration_name)}${c.status === 'Active' ? ' (Active)' : ''}</option>`).join('');
+
+    if (!smsConfigs.length) {
+        list.innerHTML = `<div class="rounded-xl border border-dashed border-slate-200 p-6 text-center text-sm text-slate-400">No SMS configurations yet.</div>`;
+        return;
+    }
+    list.innerHTML = smsConfigs.map(c => `
+        <div class="rounded-xl border ${c.status === 'Active' ? 'border-emerald-100 bg-emerald-50/40' : 'border-slate-100 bg-slate-50'} p-4 flex flex-wrap items-center gap-4">
+            <div class="flex-1 min-w-[220px]">
+                <p class="font-bold text-slate-700 text-sm flex items-center gap-2">${fbEsc(c.configuration_name)}
+                    ${c.status === 'Active' ? '<span class="text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">Active</span>' : '<span class="text-[10px] font-bold uppercase tracking-wider bg-slate-200 text-slate-500 px-2 py-0.5 rounded-full">Inactive</span>'}</p>
+                <p class="text-xs text-slate-500 mt-1">
+                    <span class="font-mono">${fbEsc(c.from_number)}</span> · Device <span class="font-mono">${fbEsc(String(c.device_id).slice(0, 12))}${String(c.device_id).length > 12 ? '…' : ''}</span>
+                    · Key <span class="font-mono">${fbEsc(c.api_key_masked)}</span> · ${fbEsc(c.api_host)}</p>
+            </div>
+            <div class="flex items-center gap-1.5">
+                ${c.status === 'Active' ? '' : `<button type="button" onclick="activateSms(${c.id})" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100"><span class="material-symbols-outlined text-[16px]">bolt</span> Activate</button>`}
+                <button type="button" onclick="openSmsForm(${c.id})" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-100"><span class="material-symbols-outlined text-[16px]">edit</span> Edit</button>
+                <button type="button" onclick="deleteSms(${c.id})" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100"><span class="material-symbols-outlined text-[16px]">delete</span> Delete</button>
+            </div>
+        </div>`).join('');
+}
+
+function openSmsForm(id) {
+    const card = document.getElementById('smsFormCard');
+    const f = document.getElementById('smsConfigForm');
+    const c = id ? smsConfigs.find(x => x.id === id) : null;
+    f.reset();
+    f.config_id.value = c ? c.id : '';
+    f.api_key.required = !c;
+    document.getElementById('smsKeyHint').classList.toggle('hidden', !c);
+    document.getElementById('smsFormTitle').textContent = c ? 'Edit Configuration' : 'Add Configuration';
+    document.getElementById('smsFormIcon').textContent = c ? 'edit' : 'add_circle';
+    if (c) {
+        f.configuration_name.value = c.configuration_name;
+        f.from_number.value = c.from_number;
+        f.device_id.value = c.device_id;
+        f.api_url.value = c.api_url;
+        f.status.checked = c.status === 'Active';
+    } else {
+        f.status.checked = !smsConfigs.some(x => x.status === 'Active');
+    }
+    card.classList.remove('hidden');
+    card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function closeSmsForm() { document.getElementById('smsFormCard').classList.add('hidden'); }
+
+async function withBtn(btn, fn) {
+    btn.disabled = true; btn.classList.add('opacity-60');
+    try { await fn(); } catch (e) { showToast('Could not reach the server.', 'error'); }
+    finally { btn.disabled = false; btn.classList.remove('opacity-60'); }
+}
+
+function saveSmsConfig(e) {
+    e.preventDefault();
+    const f = e.target;
+    withBtn(f.querySelector('[type=submit]'), async () => {
+        const fd = new FormData(f);
+        fd.append('action', 'save');
+        const d = await smsPost(fd);
+        showToast(fbEsc(d.message), d.success ? 'success' : 'error', d.success ? 4500 : 7000);
+        if (d.success) { closeSmsForm(); loadSmsConfigs(); }
+    });
+}
+
+async function activateSms(id) {
+    const d = await smsPost({ action: 'activate', config_id: id });
+    showToast(fbEsc(d.message), d.success ? 'success' : 'error');
+    loadSmsConfigs();
+}
+
+async function deleteSms(id) {
+    const c = smsConfigs.find(x => x.id === id);
+    if (!confirm(`Delete the SMS configuration "${c ? c.configuration_name : ''}"?` + (c && c.status === 'Active' ? '\n\nIt is the ACTIVE one — disaster alerts will stop sending SMS until another is activated.' : ''))) return;
+    const d = await smsPost({ action: 'delete', config_id: id });
+    showToast(fbEsc(d.message), d.success ? 'success' : 'error');
+    loadSmsConfigs();
+}
+
+function sendSmsTest(e) {
+    e.preventDefault();
+    const f = e.target;
+    const btn = f.querySelector('[type=submit]');
+    const html = btn.innerHTML;
+    btn.innerHTML = '<span class="material-symbols-outlined text-[18px] animate-spin">sync</span> Sending…';
+    withBtn(btn, async () => {
+        const fd = new FormData(f);
+        fd.append('action', 'test');
+        const d = await smsPost(fd);
+        showToast(fbEsc(d.message), d.success ? 'success' : 'error', d.success ? 6000 : 9000);
+    }).finally(() => { btn.innerHTML = html; });
+}
+
+window.addEventListener('DOMContentLoaded', function () {
+    if (new URLSearchParams(window.location.search).get('tab') === 'sms') loadSmsConfigs();
+});
 
 // ── Facebook Page connection (Settings → Facebook) ───────────────────────────
 function fbEsc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
