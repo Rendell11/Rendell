@@ -1,0 +1,5 @@
+# Certificate template images only — never run scripts from here.
+<FilesMatch "\.(php|phtml|phar|php[0-9]|phps|cgi|pl|py|sh)$">
+    Require all denied
+</FilesMatch>
+Options -Indexes
