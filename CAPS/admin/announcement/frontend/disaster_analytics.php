@@ -225,10 +225,10 @@ $page_title = 'Disaster Analytics';
 
     <!-- ── View Disaster Report Modal (Disaster ID · Title · Type · Severity · Message · Channels · SMS Live · Deactivation Report) ── -->
     <div id="viewDisasterReportModal"
-        class="fixed inset-0 z-[110] hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-6">
+        class="fixed inset-0 z-[110] hidden bg-slate-900/80 flex items-center justify-center p-6">
         <div
             class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden border border-white/20 max-h-[92vh] flex flex-col">
-            <div class="px-10 pt-10 pb-5 flex items-start justify-between border-b border-slate-100 flex-shrink-0">
+            <div class="px-10 pt-10 pb-6 flex items-start justify-between border-b border-slate-100 flex-shrink-0">
                 <div class="min-w-0">
                     <div class="flex items-center gap-2 mb-2">
                         <span id="drv_severity_badge"
@@ -246,7 +246,7 @@ $page_title = 'Disaster Analytics';
                     </p>
                 </div>
                 <button onclick="closeModal('viewDisasterReportModal')"
-                    class="h-10 w-10 flex-shrink-0 flex items-center justify-center rounded-full bg-slate-50 text-slate-400 hover:text-slate-900 transition-all">
+                    class="p-2 hover:bg-orange-50 rounded-full text-slate-400 hover:text-primary transition-colors shrink-0">
                     <span class="material-symbols-outlined">close</span>
                 </button>
             </div>
@@ -345,13 +345,13 @@ $page_title = 'Disaster Analytics';
 
             <div class="p-6 bg-slate-50/50 border-t border-slate-100 flex-shrink-0 flex flex-wrap gap-3 justify-end">
                 <button onclick="closeModal('viewDisasterReportModal')"
-                    class="px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-all">Close</button>
+                    class="px-6 py-3.5 text-xs font-black uppercase text-slate-400 hover:text-slate-700 border border-slate-200 hover:border-slate-300 rounded-2xl transition-all">Close</button>
                 <button onclick="downloadCurrentDisasterReportPDF()"
-                    class="flex items-center gap-2 px-6 py-3 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-100 transition-all">
+                    class="flex items-center gap-2 px-6 py-3.5 bg-indigo-50 text-indigo-600 rounded-2xl text-xs font-black uppercase hover:bg-indigo-100 transition-all">
                     <span class="material-symbols-outlined" style="font-size:16px">picture_as_pdf</span> Download PDF
                 </button>
                 <button onclick="printCurrentDisasterReport()"
-                    class="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all">
+                    class="flex items-center gap-2 px-6 py-3.5 btn-dark rounded-2xl text-xs font-black uppercase shadow-lg active:scale-95 transition-all">
                     <span class="material-symbols-outlined" style="font-size:16px">print</span> Print
                 </button>
             </div>
@@ -459,11 +459,11 @@ $page_title = 'Disaster Analytics';
                 ['SMS Delivered', s.sms_sent, 'sms', 'cyan', `${num(s.sms_broadcasts)} broadcasts · ${num(s.sms_recipients)} recipients`],
             ];
             document.getElementById('kpiGrid').innerHTML = kpis.map(([label, val, icon, color, note]) => `
-                <div class="kpi bg-white p-5 rounded-[24px] border border-slate-100 shadow-sm">
+                <div class="kpi bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
                     <div class="w-9 h-9 bg-${color}-50 text-${color}-600 rounded-xl flex items-center justify-center mb-3">
                         <span class="material-symbols-outlined" style="font-size:20px">${icon}</span></div>
                     <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">${label}</p>
-                    <h3 class="text-2xl font-black text-slate-800 mt-1 font-mono">${num(val)}</h3>
+                    <h3 class="text-2xl font-bold text-slate-800 mt-1">${num(val)}</h3>
                     <p class="text-[10px] font-semibold text-slate-400 mt-1">${esc(note)}</p>
                 </div>`).join('');
 

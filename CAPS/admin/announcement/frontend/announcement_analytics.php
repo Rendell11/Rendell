@@ -320,10 +320,10 @@ $page_title = 'Announcement Analytics';
                 ['Avg. per Week', s.per_week, 'calendar_month', 'slate', s.top_category ? 'Top: ' + s.top_category : '—'],
             ];
             document.getElementById('kpiGrid').innerHTML = kpis.map(([label, val, icon, color, note]) => `
-                <div class="kpi bg-white p-5 rounded-[24px] border border-slate-100 shadow-sm">
+                <div class="kpi bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
                     <div class="w-9 h-9 bg-${color}-50 text-${color}-600 rounded-xl flex items-center justify-center mb-3"><span class="material-symbols-outlined" style="font-size:20px">${icon}</span></div>
                     <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">${label}</p>
-                    <h3 class="text-2xl font-black text-slate-800 mt-1 font-mono">${num(val)}</h3>
+                    <h3 class="text-2xl font-bold text-slate-800 mt-1">${num(val)}</h3>
                     <p class="text-[10px] font-semibold text-slate-400 mt-1 truncate">${esc(note)}</p>
                 </div>`).join('');
 
@@ -395,7 +395,7 @@ $page_title = 'Announcement Analytics';
                 ['Engagement Rate', (t && t.rate !== null) ? t.rate + '%' : null, 'percent'],
             ];
             grid.innerHTML = cards.map(([label, val, icon]) => `
-                <div class="bg-slate-50 rounded-2xl border border-slate-100 p-4">
+                <div class="bg-slate-50 rounded-2xl border border-slate-100 p-5">
                     <p class="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest"><span class="material-symbols-outlined text-blue-500" style="font-size:15px">${icon}</span>${label}</p>
                     <p class="text-xl font-black text-slate-800 mt-1.5 font-mono">${val === null || val === undefined ? '—' : (typeof val === 'number' ? num(val) : esc(val))}</p>
                 </div>`).join('');

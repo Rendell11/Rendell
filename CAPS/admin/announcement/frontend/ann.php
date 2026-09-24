@@ -902,9 +902,12 @@ try {
             border-radius: 10px;
         }
 
+        /* Accent button — same as Resident Management */
+        .btn-accent { background: var(--accent-600); color: #fff; }
+        .btn-accent:hover { background: var(--accent-700); }
+
         .modal-backdrop {
-            background: rgba(15, 23, 42, 0.55);
-            backdrop-filter: blur(4px);
+            background: rgba(15, 23, 42, 0.8);
         }
 
         .gallery-img {
@@ -1024,7 +1027,7 @@ try {
                 </div>
 
                 <!-- ── Stats Cards — same visual treatment as residents.php ─────── -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
                     <div class="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
                         <div
                             class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mb-4">
@@ -1067,121 +1070,108 @@ try {
                     </div>
                 </div>
 
-                <!-- ── Disaster Cards (moved over from Disaster module) ──────────────── -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-5">
-
-                    <!-- Active Disaster -->
-                    <div class="stat-card card-clickable card-accent-bar card-rose bg-white rounded-2xl p-5 shadow-sm border border-slate-200/60 relative overflow-hidden cursor-pointer"
-                        role="button" tabindex="0" onclick="openModal('activeDisasterModal')"
+                <!-- ── Disaster Cards — same card style as Resident Management stats ── -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                    <div class="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm cursor-pointer transition-all hover:shadow-md hover:border-rose-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                        role="button" tabindex="0" onclick="openModal('activeDisasterModal');"
                         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openModal('activeDisasterModal');}"
                         title="View all active disasters">
-                        <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-rose-50 rounded-full opacity-60"></div>
-                        <div class="relative z-10">
-                            <div class="flex items-center justify-between mb-4">
-                                <span class="section-title flex items-center gap-2">
-                                    <span
-                                        class="w-2 h-2 rounded-full bg-rose-500 animate-pulse pulse-ring flex-shrink-0"></span>
-                                    Active Disaster
-                                </span>
-                                <span class="card-info-btn bg-rose-50 text-rose-600">
-                                    <span class="material-symbols-outlined" style="font-size:16px">crisis_alert</span>
-                                </span>
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="w-10 h-10 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center">
+                                <span class="material-symbols-outlined">crisis_alert</span>
                             </div>
-                            <p class="text-4xl font-black font-mono text-slate-800"><?php echo (int) $total_alerts; ?>
-                            </p>
-                            <p class="text-[10px] font-bold text-slate-400 uppercase mt-1">Currently active</p>
+                            <span class="material-symbols-outlined text-slate-300 text-lg">arrow_outward</span>
                         </div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>Active Disaster</p>
+                        <h3 class="text-2xl font-bold text-slate-800 mt-1"><?php echo (int) $total_alerts; ?></h3>
+                        <p class="text-[10px] text-slate-400 font-semibold mt-0.5">Currently active</p>
                     </div>
 
-                    <!-- SMS Live -->
-                    <div class="stat-card card-clickable card-accent-bar card-blue bg-white rounded-2xl p-5 shadow-sm border border-slate-200/60 relative overflow-hidden cursor-pointer"
-                        role="button" tabindex="0" onclick="openModal('smsLiveModal')"
+                    <div class="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm cursor-pointer transition-all hover:shadow-md hover:border-blue-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                        role="button" tabindex="0" onclick="openModal('smsLiveModal');"
                         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openModal('smsLiveModal');}"
                         title="View SMS broadcast status">
-                        <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-blue-50 rounded-full opacity-60"></div>
-                        <div class="relative z-10">
-                            <div class="flex items-center justify-between mb-4">
-                                <span class="section-title flex items-center gap-2">
-                                    <span
-                                        class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0"></span>
-                                    SMS Live
-                                </span>
-                                <span class="card-info-btn bg-blue-50 text-blue-600">
-                                    <span class="material-symbols-outlined" style="font-size:16px">sms</span>
-                                </span>
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
+                                <span class="material-symbols-outlined">sms</span>
                             </div>
-                            <p class="text-4xl font-black font-mono text-slate-800"><?php echo count($logs); ?></p>
-                            <p class="text-[10px] font-bold text-slate-400 uppercase mt-1">Recent broadcasts</p>
+                            <span class="material-symbols-outlined text-slate-300 text-lg">arrow_outward</span>
                         </div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>SMS Live</p>
+                        <h3 class="text-2xl font-bold text-slate-800 mt-1"><?php echo count($logs); ?></h3>
+                        <p class="text-[10px] text-slate-400 font-semibold mt-0.5">Recent broadcasts</p>
                     </div>
 
-                    <!-- Disaster Analytics -->
-                    <div class="stat-card card-clickable card-accent-bar card-indigo bg-white rounded-2xl p-5 shadow-sm border border-slate-200/60 relative overflow-hidden cursor-pointer"
-                        role="button" tabindex="0"
-                        onclick="window.location.href='disaster_analytics.php'"
+                    <div class="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm cursor-pointer transition-all hover:shadow-md hover:border-indigo-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                        role="button" tabindex="0" onclick="window.location.href='disaster_analytics.php';"
                         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.location.href='disaster_analytics.php';}"
                         title="Open the Disaster Analytics page">
-                        <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-indigo-50 rounded-full opacity-60"></div>
-                        <div class="relative z-10">
-                            <div class="flex items-center justify-between mb-4">
-                                <span class="section-title">Disaster Analytics</span>
-                                <span class="card-info-btn bg-indigo-50 text-indigo-600">
-                                    <span class="material-symbols-outlined" style="font-size:16px">analytics</span>
-                                </span>
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
+                                <span class="material-symbols-outlined">analytics</span>
                             </div>
-                            <p class="text-4xl font-black font-mono text-slate-800">
-                                <?php echo $total_disaster_reports; ?></p>
-                            <p class="text-[10px] font-bold text-slate-400 uppercase mt-1">Disaster reports logged</p>
+                            <span class="material-symbols-outlined text-slate-300 text-lg">arrow_outward</span>
                         </div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">Disaster Analytics</p>
+                        <h3 class="text-2xl font-bold text-slate-800 mt-1"><?php echo (int) $total_disaster_reports; ?></h3>
+                        <p class="text-[10px] text-slate-400 font-semibold mt-0.5">Disaster reports logged</p>
                     </div>
                 </div>
 
                 <!-- ── Announcement Archive Table ──────────────────────────────────── -->
-                <div class="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
-                    <div
-                        class="p-6 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4">
-                        <div>
-                            <p class="section-title mb-0.5">Archive</p>
-                            <h2 class="text-sm font-bold text-slate-700">Announcement Archive</h2>
-                        </div>
-                        <div class="flex items-center gap-3 w-full md:w-auto">
-                            <div class="relative flex-1 md:w-64">
-                                <span
-                                    class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                                    style="font-size:18px">search</span>
-                                <input type="text" id="searchInput" placeholder="Search archive..."
-                                    class="w-full pl-10 pr-4 py-2 bg-slate-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-primary/20 font-medium">
+                <!-- Search & filter row — same controls as Resident Management -->
+                <div class="grid grid-cols-12 gap-4">
+                    <div class="col-span-12 md:col-span-7 relative">
+                        <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xl">search</span>
+                        <input type="text" id="searchInput" placeholder="Search announcements by title…"
+                            class="w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 transition-all shadow-sm">
+                    </div>
+                    <div class="col-span-6 md:col-span-3">
+                        <select id="filterStatus"
+                            class="w-full border-slate-200 rounded-2xl py-2.5 text-sm font-bold text-slate-600 focus:ring-indigo-500 transition-all shadow-sm">
+                            <option value="">All Status</option>
+                            <option value="ACTIVE">Active</option>
+                            <option value="SCHEDULED">Scheduled</option>
+                            <option value="EXPIRED">Expired</option>
+                            <option value="ENDED">Ended</option>
+                        </select>
+                    </div>
+                    <div class="col-span-6 md:col-span-2">
+                        <!-- Announcement / Meta analytics (not Disaster Analytics) -->
+                        <a href="announcement_analytics.php"
+                            class="w-full h-full flex items-center justify-center gap-2 bg-white border border-slate-200 rounded-2xl py-2.5 text-sm font-bold text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50 transition-all shadow-sm whitespace-nowrap"
+                            title="Announcement posting & Facebook engagement analytics">
+                            <span class="material-symbols-outlined text-lg">analytics</span>
+                            View Analytics
+                        </a>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-[32px] shadow-sm border border-slate-100 overflow-hidden">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-8 py-5 border-b border-slate-50">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
+                                <span class="material-symbols-outlined text-xl">campaign</span>
                             </div>
-                            <select id="filterStatus"
-                                class="bg-slate-50 border-none rounded-xl text-xs font-bold text-slate-700 px-3 py-2 focus:ring-2 focus:ring-primary/20 cursor-pointer">
-                                <option value="">All Status</option>
-                                <option value="ACTIVE">Active</option>
-                                <option value="SCHEDULED">Scheduled</option>
-                                <option value="EXPIRED">Expired</option>
-                                <option value="ENDED">Ended</option>
-                            </select>
-                            <!-- Announcement / Meta analytics (not Disaster Analytics) -->
-                            <a href="announcement_analytics.php"
-                                class="flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-xl text-xs font-bold px-3 py-2 whitespace-nowrap transition-colors"
-                                title="Announcement posting & Facebook engagement analytics">
-                                <span class="material-symbols-outlined" style="font-size:16px">analytics</span>
-                                View Analytics
-                            </a>
+                            <div>
+                                <h2 class="text-sm font-black text-slate-800 uppercase tracking-tight">Announcement Archive</h2>
+                                <p class="text-[10px] text-slate-400 font-bold mt-0.5">All announcements posted to residents and the Facebook Page</p>
+                            </div>
                         </div>
                     </div>
 
                     <div class="table-container overflow-x-auto">
                         <table class="w-full text-left border-collapse" id="annTable">
                             <thead>
-                                <tr class="bg-slate-50/50">
-                                    <th class="px-6 py-4 section-title">ID</th>
-                                    <th class="px-6 py-4 section-title">Title</th>
-                                    <th class="px-6 py-4 section-title">Category</th>
-                                    <th class="px-6 py-4 section-title">Posted On</th>
-                                    <th class="px-6 py-4 section-title">Status</th>
-                                    <th class="px-6 py-4 section-title">Facebook</th>
-                                    <th class="px-6 py-4 section-title">Attachments</th>
-                                    <th class="px-6 py-4 section-title text-right">Actions</th>
+                                <tr class="bg-slate-50/50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-50">
+                                    <th class="px-6 py-5">ID</th>
+                                    <th class="px-4 py-5">Title</th>
+                                    <th class="px-4 py-5">Category</th>
+                                    <th class="px-4 py-5">Posted On</th>
+                                    <th class="px-4 py-5">Status</th>
+                                    <th class="px-4 py-5">Facebook</th>
+                                    <th class="px-4 py-5">Attachments</th>
+                                    <th class="px-4 py-5 text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-50">
@@ -1229,18 +1219,17 @@ try {
                                             data-title-raw="<?php echo htmlspecialchars($ann['title'], ENT_QUOTES, 'UTF-8'); ?>"
                                             data-status="<?php echo $status_label; ?>">
                                             <td class="px-6 py-5">
-                                                <span class="text-primary font-bold text-sm font-mono">ANN-
-                                                    <?php
+                                                <span class="text-[11px] font-bold text-slate-500 uppercase tracking-tight whitespace-nowrap">ANN-<?php
                                                     $ann_year = !empty($ann['created_at']) ? date('Y', strtotime($ann['created_at'])) : date('Y', strtotime($ann['date_posted']));
                                                     echo $ann_year . '-' . str_pad((int) ($ann['ann_id'] ?? 0), 4, '0', STR_PAD_LEFT);
                                                     ?>
                                                 </span>
                                             </td>
-                                            <td class="px-6 py-5 font-semibold text-slate-700 text-sm max-w-xs truncate">
+                                            <td class="px-4 py-5 text-sm font-bold text-slate-700 max-w-[220px] truncate">
                                                 <?php echo htmlspecialchars($ann['title']); ?></td>
-                                            <td class="px-6 py-5">
+                                            <td class="px-4 py-5">
                                                 <span
-                                                    class="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase border <?php echo $cat_style; ?>">
+                                                    class="px-2 py-0.5 text-[9px] font-bold rounded-md uppercase border whitespace-nowrap <?php echo $cat_style; ?>">
                                                     <?php
                                                     $cat_display = ($ann['category'] === 'Others' && !empty($ann['category_other']))
                                                         ? $ann['category_other']
@@ -1249,16 +1238,16 @@ try {
                                                     ?>
                                                 </span>
                                             </td>
-                                            <td class="px-6 py-5 text-slate-500 text-xs font-medium">
+                                            <td class="px-4 py-5 text-xs font-semibold text-slate-600 whitespace-nowrap">
                                                 <?php echo date('M d, Y', strtotime($ann['date_posted'])); ?></td>
-                                            <td class="px-6 py-5 ann-status-cell">
+                                            <td class="px-4 py-5 ann-status-cell">
                                                 <div
                                                     class="flex items-center gap-2 <?php echo $status_color; ?> text-[10px] font-bold uppercase">
                                                     <span class="w-1.5 h-1.5 rounded-full <?php echo $dot; ?>"></span>
                                                     <?php echo $status_label; ?>
                                                 </div>
                                             </td>
-                                            <td class="px-6 py-5">
+                                            <td class="px-4 py-5">
                                                 <?php if ($fb_post_id): ?>
                                                     <span class="fb-posted-pill">
                                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="#1877f2">
@@ -1278,7 +1267,7 @@ try {
                                                     <span class="text-slate-300 text-xs">—</span>
                                                 <?php endif; ?>
                                             </td>
-                                            <td class="px-6 py-5">
+                                            <td class="px-4 py-5">
                                                 <?php if ($ann['attachment_count'] > 0): ?>
                                                     <div class="flex items-center gap-2 text-slate-500 text-xs font-semibold">
                                                         <?php if ($ann['image_count'] > 0): ?>
@@ -1303,30 +1292,27 @@ try {
                                                     <span class="text-slate-300 text-xs">—</span>
                                                 <?php endif; ?>
                                             </td>
-                                            <td class="px-6 py-5">
+                                            <td class="px-4 py-5 text-right">
                                                 <div
-                                                    class="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    class="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
                                                     <button onclick='openView(<?php echo $ann["id"]; ?>)'
-                                                        class="p-2 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 transition-all"
+                                                        class="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
                                                         title="View">
-                                                        <span class="material-symbols-outlined"
-                                                            style="font-size:17px">visibility</span>
+                                                        <span class="material-symbols-outlined" text-xl">visibility</span>
                                                     </button>
                                                     <?php if (in_array($status_label, ['ENDED', 'EXPIRED'], true) && staff_can($pdo, 'announcements', 'update')): ?>
                                                         <button onclick="openRecoverPost(<?php echo (int) $ann['id']; ?>)"
-                                                            class="p-2 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-100 transition-all"
+                                                            class="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
                                                             title="Recover Post">
-                                                            <span class="material-symbols-outlined"
-                                                                style="font-size:17px">replay</span>
+                                                            <span class="material-symbols-outlined" text-xl">replay</span>
                                                         </button>
                                                     <?php endif; ?>
                                                     <?php if (staff_can($pdo, 'announcements', 'delete')): ?>
                                                         <button
                                                             onclick="confirmDelete(<?php echo $ann['id']; ?>, '<?php echo addslashes(htmlspecialchars($ann['title'])); ?>')"
-                                                            class="p-2 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-100 transition-all"
+                                                            class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
                                                             title="Delete">
-                                                            <span class="material-symbols-outlined"
-                                                                style="font-size:17px">delete</span>
+                                                            <span class="material-symbols-outlined" text-xl">delete</span>
                                                         </button>
                                                     <?php endif; ?>
                                                 </div>
@@ -1335,16 +1321,17 @@ try {
                                     <?php endforeach; ?>
                                 <?php else: ?>
                                     <tr>
-                                        <td colspan="8" class="px-6 py-20 text-center text-slate-400 italic text-sm">No
-                                            announcements found.</td>
+                                        <td colspan="8" class="text-center py-16 text-slate-400">
+                                            <span class="material-symbols-outlined text-4xl block mb-2 text-slate-200">campaign</span>
+                                            No announcements found.</td>
                                     </tr>
                                 <?php endif; ?>
                             </tbody>
                         </table>
                     </div>
 
-                    <div class="px-6 py-4 border-t border-slate-100 flex justify-between items-center">
-                        <span id="tableCount" class="section-title">Showing <?php echo count($announcements); ?>
+                    <div class="px-8 py-4 border-t border-slate-50 flex justify-between items-center">
+                        <span id="tableCount" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Showing <?php echo count($announcements); ?>
                             entries</span>
                     </div>
                 </div>
@@ -1360,12 +1347,12 @@ try {
 ═══════════════════════════════════════════ -->
     <div id="viewModal"
         class="hidden fixed inset-0 z-50 modal-backdrop flex items-start justify-center pt-8 pb-8 px-4 overflow-y-auto">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl relative" id="viewModalBox">
+        <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-3xl relative overflow-hidden" id="viewModalBox">
 
-            <div class="flex items-start justify-between p-6 md:p-8 border-b border-slate-100">
+            <div class="flex items-start justify-between px-8 md:px-10 pt-8 md:pt-10 pb-6 border-b border-slate-100">
                 <div>
-                    <p class="section-title text-primary mb-1" id="vm_id">#ANN-0000</p>
-                    <h2 class="text-xl font-bold text-slate-800 leading-tight" id="vm_title">—</h2>
+                    <p class="text-xs text-primary font-bold uppercase tracking-widest mb-1" id="vm_id">#ANN-0000</p>
+                    <h2 class="text-2xl font-black text-slate-900 tracking-tight leading-tight" id="vm_title">—</h2>
                     <div class="flex items-center gap-3 mt-2 flex-wrap">
                         <span id="vm_category_badge"
                             class="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase border bg-slate-50 text-slate-500 border-slate-100">General</span>
@@ -1381,7 +1368,7 @@ try {
                     </div>
                 </div>
                 <button onclick="closeView()"
-                    class="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-400 ml-4 shrink-0">
+                    class="p-2 hover:bg-orange-50 rounded-full text-slate-400 hover:text-primary transition-colors shrink-0 ml-4">
                     <span class="material-symbols-outlined">close</span>
                 </button>
             </div>
@@ -1466,7 +1453,7 @@ try {
 
                     <div id="fbPanel" class="hidden p-5 space-y-4">
                         <div>
-                            <p class="section-title mb-2">Post Preview</p>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase ml-1 mb-1.5">Post Preview</p>
                             <div class="bg-slate-50 border border-slate-100 rounded-xl p-4">
                                 <div class="flex items-center gap-3 mb-3">
                                     <div
@@ -1573,20 +1560,20 @@ try {
             <div class="px-6 md:px-8 pb-6 flex justify-end gap-3">
                 <?php if (staff_can($pdo, 'announcements', 'update')): ?>
                     <button id="vm_end_btn" onclick="confirmEndPosting()"
-                        class="hidden px-5 py-2.5 bg-amber-500 text-white rounded-xl font-bold text-sm hover:bg-amber-600 transition-all flex items-center gap-2">
+                        class="hidden px-6 py-3.5 bg-amber-500 text-white text-xs font-black uppercase rounded-2xl shadow-lg hover:bg-amber-600 active:scale-95 transition-all flex items-center gap-2">
                         <span class="material-symbols-outlined" style="font-size:16px">stop_circle</span>
                         End Posting
                     </button>
                     <button id="vm_recover_btn" onclick="openRecoverPostFromView()"
-                        class="hidden px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-bold text-sm hover:bg-emerald-700 transition-all flex items-center gap-2">
+                        class="hidden px-6 py-3.5 bg-emerald-600 text-white text-xs font-black uppercase rounded-2xl shadow-lg hover:bg-emerald-700 active:scale-95 transition-all flex items-center gap-2">
                         <span class="material-symbols-outlined" style="font-size:16px">replay</span>
                         Recover Post
                     </button>
                     <a id="vm_edit_link" href="#"
-                        class="px-5 py-2.5 bg-slate-100 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-200 transition-all">Edit</a>
+                        class="px-6 py-3.5 text-xs font-black uppercase text-slate-400 hover:text-slate-700 border border-slate-200 hover:border-slate-300 rounded-2xl transition-all">Edit</a>
                 <?php endif; ?>
                 <button onclick="closeView()"
-                    class="px-5 py-2.5 bg-primary text-white rounded-xl font-bold text-sm hover:bg-primary-light transition-all">Close</button>
+                    class="px-6 py-3.5 btn-accent text-white text-xs font-black uppercase rounded-2xl shadow-lg active:scale-95 transition-all">Close</button>
             </div>
         </div>
     </div>
@@ -1595,14 +1582,18 @@ try {
      DELETE CONFIRM MODAL
 ═══════════════════════════════════════════ -->
     <div id="deleteModal" class="hidden fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 text-center">
-            <div class="w-16 h-16 bg-rose-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
-                <span class="material-symbols-outlined text-rose-500" style="font-size:32px">delete_forever</span>
+        <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-8">
+            <div class="flex items-start gap-4 mb-5">
+                <div class="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 bg-rose-50">
+                    <span class="material-symbols-outlined text-rose-500 text-2xl">delete</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h3 class="text-base font-black text-slate-800 leading-tight tracking-tight">Delete Announcement?</h3>
+                    <p class="text-xs text-slate-500 font-medium mt-1.5 leading-relaxed">You are about to delete:
+                        <span class="font-bold text-slate-700" id="del_title_label"></span></p>
+                </div>
             </div>
-            <h3 class="text-lg font-bold text-slate-800 mb-2">Delete Announcement?</h3>
-            <p class="text-slate-500 text-sm mb-2">You are about to delete:</p>
-            <p class="text-slate-700 font-bold text-sm mb-4 px-2" id="del_title_label"></p>
-            <div class="text-left bg-rose-50 border border-rose-100 rounded-xl p-3 mb-6">
+            <div class="bg-rose-50 border border-rose-100 rounded-2xl p-4 mb-6">
                 <p class="text-xs text-rose-700 font-semibold leading-relaxed">
                     This announcement will be deleted and moved to <span class="font-black">Trash</span>.
                     It will no longer be visible to residents, and it will be recorded that you deleted it.
@@ -1612,9 +1603,9 @@ try {
             </div>
             <div class="flex gap-3">
                 <button onclick="closeDelete()"
-                    class="flex-1 px-4 py-2.5 bg-slate-100 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-200 transition-all">Cancel</button>
+                    class="flex-1 py-3.5 text-xs font-black uppercase text-slate-400 hover:text-slate-700 border border-slate-200 hover:border-slate-300 rounded-2xl transition-all">Cancel</button>
                 <button id="del_confirm_btn" onclick="executeDelete()"
-                    class="flex-1 px-4 py-2.5 bg-rose-600 text-white rounded-xl font-bold text-sm hover:bg-rose-700 transition-all flex items-center justify-center gap-2">
+                    class="flex-[2] py-3.5 bg-rose-600 text-white text-xs font-black uppercase rounded-2xl shadow-lg hover:bg-rose-700 active:scale-95 transition-all flex items-center justify-center gap-2">
                     <span id="del_btn_icon" class="material-symbols-outlined" style="font-size:16px">delete</span>
                     <span id="del_btn_text">Delete &amp; Move to Trash</span>
                 </button>
@@ -1626,20 +1617,24 @@ try {
      END POSTING CONFIRM MODAL
 ═══════════════════════════════════════════ -->
     <div id="endModal" class="hidden fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 text-center">
-            <div class="w-16 h-16 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
-                <span class="material-symbols-outlined text-amber-500" style="font-size:32px">stop_circle</span>
+        <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-8">
+            <div class="flex items-start gap-4 mb-5">
+                <div class="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 bg-amber-50">
+                    <span class="material-symbols-outlined text-amber-500 text-2xl">stop_circle</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h3 class="text-base font-black text-slate-800 leading-tight tracking-tight">End Announcement Posting?</h3>
+                    <p class="text-xs text-slate-500 font-medium mt-1.5 leading-relaxed">You are about to end:
+                        <span class="font-bold text-slate-700" id="end_title_label"></span></p>
+                    <p class="text-xs text-slate-400 font-medium mt-1.5 leading-relaxed">This will mark the announcement as
+                        ended and hide it from residents immediately.</p>
+                </div>
             </div>
-            <h3 class="text-lg font-bold text-slate-800 mb-2">End Announcement Posting?</h3>
-            <p class="text-slate-500 text-sm mb-2">You are about to end:</p>
-            <p class="text-slate-700 font-bold text-sm mb-6 px-2" id="end_title_label"></p>
-            <p class="text-slate-400 text-xs mb-6">This will mark the announcement as ended and hide it from residents
-                immediately.</p>
             <div class="flex gap-3">
                 <button onclick="closeEndModal()"
-                    class="flex-1 px-4 py-2.5 bg-slate-100 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-200 transition-all">Cancel</button>
+                    class="flex-1 py-3.5 text-xs font-black uppercase text-slate-400 hover:text-slate-700 border border-slate-200 hover:border-slate-300 rounded-2xl transition-all">Cancel</button>
                 <button id="end_confirm_btn" onclick="executeEndPosting()"
-                    class="flex-1 px-4 py-2.5 bg-amber-500 text-white rounded-xl font-bold text-sm hover:bg-amber-600 transition-all flex items-center justify-center gap-2">
+                    class="flex-[2] py-3.5 bg-amber-500 text-white text-xs font-black uppercase rounded-2xl shadow-lg hover:bg-amber-600 active:scale-95 transition-all flex items-center justify-center gap-2">
                     <span id="end_btn_icon" class="material-symbols-outlined" style="font-size:16px">stop_circle</span>
                     <span id="end_btn_text">End Posting</span>
                 </button>
@@ -1651,34 +1646,38 @@ try {
      RECOVER POST MODAL  (Ended / Expired → Posted/Active)
 ═══════════════════════════════════════════ -->
     <div id="recoverPostModal" class="hidden fixed inset-0 z-[70] modal-backdrop flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
-            <div class="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
-                <span class="material-symbols-outlined text-emerald-600" style="font-size:32px">replay</span>
+        <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-8">
+            <div class="flex items-start gap-4 mb-5">
+                <div class="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 bg-emerald-50">
+                    <span class="material-symbols-outlined text-emerald-600 text-2xl">replay</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h3 class="text-base font-black text-slate-800 leading-tight tracking-tight">Recover Post?</h3>
+                    <p class="text-xs text-slate-500 font-medium mt-1.5 leading-relaxed">You are about to re-post:
+                        <span class="font-bold text-slate-700" id="rp_title_label"></span></p>
+                </div>
             </div>
-            <h3 class="text-lg font-bold text-slate-800 mb-2 text-center">Recover Post?</h3>
-            <p class="text-slate-500 text-sm mb-1 text-center">You are about to re-post:</p>
-            <p class="text-slate-700 font-bold text-sm mb-4 px-2 text-center" id="rp_title_label"></p>
-            <div class="bg-emerald-50 border border-emerald-100 rounded-xl p-3 mb-5">
+            <div class="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 mb-5">
                 <p class="text-xs text-emerald-700 font-semibold leading-relaxed">
                     This <span id="rp_state_label">ended</span> announcement will go back to <span
                         class="font-black">Posted / Active</span>
                     and become visible to residents again. It keeps its original ID.
                 </p>
             </div>
-            <p class="section-title mb-2">New end date &amp; time <span
+            <p class="text-[10px] font-bold text-slate-400 uppercase ml-1 mb-1.5">New end date &amp; time <span
                     class="normal-case font-semibold text-slate-400">(optional)</span></p>
             <div class="grid grid-cols-2 gap-3 mb-2">
                 <input type="date" id="rp_end_date"
-                    class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 focus:ring-2 focus:ring-primary/20">
+                    class="w-full bg-slate-100 border-none rounded-xl py-3 px-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-primary/20">
                 <input type="time" id="rp_end_time"
-                    class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 focus:ring-2 focus:ring-primary/20">
+                    class="w-full bg-slate-100 border-none rounded-xl py-3 px-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-primary/20">
             </div>
             <p class="text-[11px] text-slate-400 mb-6">Leave blank to keep it posted until you end it manually.</p>
             <div class="flex gap-3">
                 <button onclick="closeRecoverPost()"
-                    class="flex-1 px-4 py-2.5 bg-slate-100 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-200 transition-all">Cancel</button>
+                    class="flex-1 py-3.5 text-xs font-black uppercase text-slate-400 hover:text-slate-700 border border-slate-200 hover:border-slate-300 rounded-2xl transition-all">Cancel</button>
                 <button id="rp_confirm_btn" onclick="executeRecoverPost()"
-                    class="flex-1 px-4 py-2.5 bg-emerald-600 text-white rounded-xl font-bold text-sm hover:bg-emerald-700 transition-all flex items-center justify-center gap-2">
+                    class="flex-[2] py-3.5 bg-emerald-600 text-white text-xs font-black uppercase rounded-2xl shadow-lg hover:bg-emerald-700 active:scale-95 transition-all flex items-center justify-center gap-2">
                     <span id="rp_btn_icon" class="material-symbols-outlined" style="font-size:16px">replay</span>
                     <span id="rp_btn_text">Recover Post</span>
                 </button>
@@ -1691,21 +1690,21 @@ try {
 ═══════════════════════════════════════════ -->
     <div id="trashModal"
         class="hidden fixed inset-0 z-50 modal-backdrop flex items-start justify-center pt-8 pb-8 px-4 overflow-y-auto">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl relative">
-            <div class="flex items-start justify-between p-6 md:p-8 border-b border-slate-100">
+        <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-5xl relative overflow-hidden">
+            <div class="flex items-start justify-between px-8 md:px-10 pt-8 md:pt-10 pb-6 border-b border-slate-100">
                 <div class="flex items-center gap-4">
                     <div class="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center shrink-0">
                         <span class="material-symbols-outlined text-rose-500" style="font-size:26px">delete_sweep</span>
                     </div>
                     <div>
-                        <p class="section-title text-rose-500 mb-0.5">Trash</p>
-                        <h2 class="text-xl font-bold text-slate-800 leading-tight">Deleted Announcements</h2>
+                        <p class="text-xs text-rose-500 font-bold uppercase tracking-widest mb-0.5">Trash</p>
+                        <h2 class="text-2xl font-black text-slate-900 tracking-tight leading-tight">Deleted Announcements</h2>
                         <p class="text-xs text-slate-400 mt-1">Deleted announcements are kept here so they can be viewed
                             or recovered.</p>
                     </div>
                 </div>
                 <button onclick="closeTrash()"
-                    class="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-400 ml-4 shrink-0">
+                    class="p-2 hover:bg-orange-50 rounded-full text-slate-400 hover:text-primary transition-colors shrink-0 ml-4">
                     <span class="material-symbols-outlined">close</span>
                 </button>
             </div>
@@ -1714,11 +1713,11 @@ try {
                     <thead>
                         <tr class="bg-slate-50/50">
                             <th class="px-6 py-4 section-title">ID</th>
-                            <th class="px-6 py-4 section-title">Title</th>
+                            <th class="px-6 py-5">Title</th>
                             <th class="px-6 py-4 section-title">Original Status</th>
                             <th class="px-6 py-4 section-title">Deleted By</th>
                             <th class="px-6 py-4 section-title">Deleted On</th>
-                            <th class="px-6 py-4 section-title text-right">Actions</th>
+                            <th class="px-8 py-5 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="trashTbody" class="divide-y divide-slate-50">
@@ -1729,10 +1728,10 @@ try {
                     </tbody>
                 </table>
             </div>
-            <div class="px-6 py-4 border-t border-slate-100 flex justify-between items-center">
+            <div class="px-8 py-4 border-t border-slate-50 flex justify-between items-center">
                 <span id="trashCountLabel" class="section-title">0 in Trash</span>
                 <button onclick="closeTrash()"
-                    class="px-5 py-2.5 bg-primary text-white rounded-xl font-bold text-sm hover:bg-primary-light transition-all">Close</button>
+                    class="px-6 py-3.5 btn-accent text-white text-xs font-black uppercase rounded-2xl shadow-lg active:scale-95 transition-all">Close</button>
             </div>
         </div>
     </div>
@@ -1742,11 +1741,11 @@ try {
 ═══════════════════════════════════════════ -->
     <div id="trashViewModal"
         class="hidden fixed inset-0 z-[55] modal-backdrop flex items-start justify-center pt-8 pb-8 px-4 overflow-y-auto">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl relative">
-            <div class="flex items-start justify-between p-6 md:p-8 border-b border-slate-100">
+        <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-3xl relative overflow-hidden">
+            <div class="flex items-start justify-between px-8 md:px-10 pt-8 md:pt-10 pb-6 border-b border-slate-100">
                 <div>
-                    <p class="section-title text-primary mb-1" id="tv_ref">#ANN-0000</p>
-                    <h2 class="text-xl font-bold text-slate-800 leading-tight" id="tv_title">--</h2>
+                    <p class="text-xs text-primary font-bold uppercase tracking-widest mb-1" id="tv_ref">#ANN-0000</p>
+                    <h2 class="text-2xl font-black text-slate-900 tracking-tight leading-tight" id="tv_title">--</h2>
                     <div class="flex items-center gap-3 mt-2 flex-wrap">
                         <span id="tv_category"
                             class="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase border bg-slate-50 text-slate-500 border-slate-100">General</span>
@@ -1759,7 +1758,7 @@ try {
                     </div>
                 </div>
                 <button onclick="closeTrashView()"
-                    class="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-400 ml-4 shrink-0">
+                    class="p-2 hover:bg-orange-50 rounded-full text-slate-400 hover:text-primary transition-colors shrink-0 ml-4">
                     <span class="material-symbols-outlined">close</span>
                 </button>
             </div>
@@ -1817,12 +1816,12 @@ try {
 
             <div class="px-6 md:px-8 pb-6 flex justify-end gap-3">
                 <button id="tv_recover_btn" onclick="openRestoreFromView()"
-                    class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-bold text-sm hover:bg-emerald-700 transition-all flex items-center gap-2">
+                    class="px-6 py-3.5 bg-emerald-600 text-white text-xs font-black uppercase rounded-2xl shadow-lg hover:bg-emerald-700 active:scale-95 transition-all flex items-center gap-2">
                     <span class="material-symbols-outlined" style="font-size:16px">restore_from_trash</span>
                     Recover
                 </button>
                 <button onclick="closeTrashView()"
-                    class="px-5 py-2.5 bg-slate-100 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-200 transition-all">Close</button>
+                    class="px-6 py-3.5 text-xs font-black uppercase text-slate-400 hover:text-slate-700 border border-slate-200 hover:border-slate-300 rounded-2xl transition-all">Close</button>
             </div>
         </div>
     </div>
@@ -1832,42 +1831,45 @@ try {
      Scheduled announcements must be given a NEW start date/time here.
 ═══════════════════════════════════════════ -->
     <div id="restoreModal" class="hidden fixed inset-0 z-[70] modal-backdrop flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
-            <div class="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
-                <span class="material-symbols-outlined text-emerald-600"
-                    style="font-size:32px">restore_from_trash</span>
+        <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-8">
+            <div class="flex items-start gap-4 mb-5">
+                <div class="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 bg-emerald-50">
+                    <span class="material-symbols-outlined text-emerald-600 text-2xl">restore_from_trash</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h3 class="text-base font-black text-slate-800 leading-tight tracking-tight">Recover Announcement?</h3>
+                    <p class="text-xs font-bold text-slate-700 mt-1.5" id="rs_title_label"></p>
+                    <p class="text-xs text-slate-400 font-medium mt-1">Original status: <span id="rs_prev_label"
+                            class="font-bold text-slate-500">--</span></p>
+                </div>
             </div>
-            <h3 class="text-lg font-bold text-slate-800 mb-2 text-center">Recover Announcement?</h3>
-            <p class="text-slate-700 font-bold text-sm mb-1 px-2 text-center" id="rs_title_label"></p>
-            <p class="text-[11px] text-slate-400 mb-4 text-center">Original status: <span id="rs_prev_label"
-                    class="font-bold text-slate-500">--</span></p>
-            <div class="bg-emerald-50 border border-emerald-100 rounded-xl p-3 mb-5">
+            <div class="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 mb-5">
                 <p class="text-xs text-emerald-700 font-semibold leading-relaxed" id="rs_outcome_text"></p>
             </div>
 
             <div id="rs_schedule_box" class="hidden mb-5">
-                <p class="section-title mb-2">New start <span class="text-rose-500">*</span></p>
+                <p class="text-[10px] font-bold text-slate-400 uppercase ml-1 mb-1.5">New start <span class="text-rose-500">*</span></p>
                 <div class="grid grid-cols-2 gap-3 mb-4">
                     <input type="date" id="rs_start_date"
-                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 focus:ring-2 focus:ring-primary/20">
+                        class="w-full bg-slate-100 border-none rounded-xl py-3 px-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-primary/20">
                     <input type="time" id="rs_start_time"
-                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 focus:ring-2 focus:ring-primary/20">
+                        class="w-full bg-slate-100 border-none rounded-xl py-3 px-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-primary/20">
                 </div>
-                <p class="section-title mb-2">End date &amp; time <span
+                <p class="text-[10px] font-bold text-slate-400 uppercase ml-1 mb-1.5">End date &amp; time <span
                         class="normal-case font-semibold text-slate-400">(optional)</span></p>
                 <div class="grid grid-cols-2 gap-3">
                     <input type="date" id="rs_end_date"
-                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 focus:ring-2 focus:ring-primary/20">
+                        class="w-full bg-slate-100 border-none rounded-xl py-3 px-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-primary/20">
                     <input type="time" id="rs_end_time"
-                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 focus:ring-2 focus:ring-primary/20">
+                        class="w-full bg-slate-100 border-none rounded-xl py-3 px-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-primary/20">
                 </div>
             </div>
 
             <div class="flex gap-3">
                 <button onclick="closeRestore()"
-                    class="flex-1 px-4 py-2.5 bg-slate-100 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-200 transition-all">Cancel</button>
+                    class="flex-1 py-3.5 text-xs font-black uppercase text-slate-400 hover:text-slate-700 border border-slate-200 hover:border-slate-300 rounded-2xl transition-all">Cancel</button>
                 <button id="rs_confirm_btn" onclick="executeRestore()"
-                    class="flex-1 px-4 py-2.5 bg-emerald-600 text-white rounded-xl font-bold text-sm hover:bg-emerald-700 transition-all flex items-center justify-center gap-2">
+                    class="flex-[2] py-3.5 bg-emerald-600 text-white text-xs font-black uppercase rounded-2xl shadow-lg hover:bg-emerald-700 active:scale-95 transition-all flex items-center justify-center gap-2">
                     <span id="rs_btn_icon" class="material-symbols-outlined"
                         style="font-size:16px">restore_from_trash</span>
                     <span id="rs_btn_text">Recover</span>
@@ -1878,22 +1880,22 @@ try {
 
     <!-- ── Issue Alert Modal (moved from Disaster module) ─────────────────────────── -->
     <div id="issueAlertModal"
-        class="fixed inset-0 z-[100] hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-6">
+        class="fixed inset-0 z-[100] hidden bg-slate-900/80 flex items-center justify-center p-6">
         <div
-            class="bg-white rounded-[3.5rem] shadow-2xl w-full max-w-2xl overflow-hidden border border-white/20 transform transition-all max-h-[95vh] overflow-y-auto">
-            <div class="px-12 pt-12 pb-6 flex justify-between items-center">
+            class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden transform transition-all max-h-[95vh] overflow-y-auto">
+            <div class="px-10 pt-10 pb-6 flex justify-between items-center border-b border-slate-100">
                 <div>
                     <h3 class="text-2xl font-black tracking-tight text-slate-900">Issue Disaster Alert</h3>
-                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Broadcast emergency
+                    <p class="text-xs text-primary font-bold uppercase tracking-widest mt-1">Broadcast emergency
                         protocols to residents</p>
                 </div>
                 <button onclick="closeModal('issueAlertModal')"
-                    class="h-12 w-12 flex items-center justify-center rounded-full bg-slate-50 text-slate-400 hover:text-slate-900 transition-all">
+                    class="p-2 hover:bg-orange-50 rounded-full text-slate-400 hover:text-primary transition-colors shrink-0">
                     <span class="material-symbols-outlined">close</span>
                 </button>
             </div>
 
-            <form action="../backend/process_disaster.php" method="POST" class="px-12 pb-14 space-y-5">
+            <form action="../backend/process_disaster.php" method="POST" class="px-10 py-8 space-y-5">
                 <input type="hidden" name="action" value="create">
                 <?php echo csrf_token(); ?>
 
@@ -1918,7 +1920,7 @@ try {
 
                 <!-- SMS Options (hidden by default) -->
                 <div id="issue_sms_options" class="hidden space-y-3">
-                    <label class="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-2">SMS
+                    <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">SMS
                         Recipients</label>
                     <div class="grid grid-cols-2 gap-3" id="issue_sms_audience_grid">
                         <label class="p-3 border border-slate-100 bg-slate-50 rounded-2xl cursor-pointer block"
@@ -2020,10 +2022,10 @@ try {
 
                 <!-- Alert Type -->
                 <div class="space-y-2">
-                    <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-2">Alert
+                    <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Alert
                         Type</label>
                     <select name="type" id="issue_type" required
-                        class="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 font-bold text-slate-700 focus:ring-2 focus:ring-[var(--accent-500)]/20">
+                        class="w-full bg-slate-100 border-none rounded-xl py-3 px-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-primary/20 ">
                         <option value="" disabled selected>Select Disaster Alert</option>
                         <option value="Typhoon">Typhoon</option>
                         <option value="Flood">Flood</option>
@@ -2034,10 +2036,10 @@ try {
 
                 <!-- Severity -->
                 <div class="space-y-2">
-                    <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-2">Severity
+                    <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Severity
                         Level</label>
                     <select name="severity" required
-                        class="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 font-bold text-slate-700 focus:ring-2 focus:ring-[var(--accent-500)]/20">
+                        class="w-full bg-slate-100 border-none rounded-xl py-3 px-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-primary/20 ">
                         <option value="" disabled selected>Select severity</option>
                         <option value="Low">Low</option>
                         <option value="Medium">Medium</option>
@@ -2048,22 +2050,22 @@ try {
 
                 <!-- Alert Title -->
                 <div class="space-y-2">
-                    <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-2">Alert
+                    <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Alert
                         Title</label>
                     <input type="text" name="title" id="issue_title" placeholder="Enter alert title" required
-                        class="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 font-bold placeholder:text-slate-300 focus:ring-2 focus:ring-[var(--accent-500)]/20">
+                        class="w-full bg-slate-100 border-none rounded-xl py-3 px-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-primary/20 placeholder:text-slate-300 ">
                 </div>
 
                 <!-- Message -->
                 <div class="space-y-2">
-                    <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-2">Message /
+                    <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Message /
                         Emergency Instructions</label>
                     <textarea name="message" id="issue_message" rows="4" placeholder="Enter instructions..." required
-                        class="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 font-bold placeholder:text-slate-300 focus:ring-2 focus:ring-[var(--accent-500)]/20 resize-none"></textarea>
+                        class="w-full bg-slate-100 border-none rounded-xl py-3 px-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-primary/20 placeholder:text-slate-300  resize-none"></textarea>
                 </div>
 
                 <button type="submit"
-                    class="w-full bg-[#0f172a] text-white py-5 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] shadow-xl hover:bg-black hover:-translate-y-1 transition-all duration-300 mt-4 flex items-center justify-center gap-3">
+                    class="w-full py-3.5 btn-accent text-white text-xs font-black uppercase rounded-2xl shadow-lg active:scale-95 transition-all mt-4 flex items-center justify-center gap-3">
                     <span class="material-symbols-outlined !text-lg">campaign</span> Issue Alert Now
                 </button>
             </form>
@@ -2072,20 +2074,20 @@ try {
 
     <!-- ── Active Disaster Modal (card "!" — all active disasters) ────────────────── -->
     <div id="activeDisasterModal"
-        class="fixed inset-0 z-[100] hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-6">
+        class="fixed inset-0 z-[100] hidden bg-slate-900/80 flex items-center justify-center p-6">
         <div
-            class="bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl overflow-hidden border border-white/20 max-h-[90vh] flex flex-col">
+            class="bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col">
             <div class="px-8 pt-8 pb-4 flex items-center justify-between border-b border-slate-100 flex-shrink-0">
                 <div class="flex items-center gap-3">
                     <div class="w-2 h-2 rounded-full bg-rose-500 animate-pulse pulse-ring flex-shrink-0"></div>
                     <div>
-                        <h3 class="text-lg font-black tracking-tight text-slate-900">Active Disaster Alerts</h3>
-                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+                        <h3 class="text-2xl font-black tracking-tight text-slate-900">Active Disaster Alerts</h3>
+                        <p class="text-xs text-primary font-bold uppercase tracking-widest mt-1">
                             <?php echo (int) $total_alerts; ?> Active</p>
                     </div>
                 </div>
                 <button onclick="closeModal('activeDisasterModal')"
-                    class="h-10 w-10 flex items-center justify-center rounded-full bg-slate-50 text-slate-400 hover:text-slate-900 transition-all">
+                    class="p-2 hover:bg-orange-50 rounded-full text-slate-400 hover:text-primary transition-colors shrink-0">
                     <span class="material-symbols-outlined">close</span>
                 </button>
             </div>
@@ -2186,24 +2188,24 @@ try {
 
     <!-- ── SMS Live Modal (card "!" — live SMS status per disaster) ────────────────── -->
     <div id="smsLiveModal"
-        class="fixed inset-0 z-[100] hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-6">
+        class="fixed inset-0 z-[100] hidden bg-slate-900/80 flex items-center justify-center p-6">
         <div
-            class="bg-white rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden border border-white/20 max-h-[90vh] flex flex-col">
+            class="bg-white rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden max-h-[90vh] flex flex-col">
             <div class="px-8 pt-8 pb-4 flex items-center justify-between border-b border-slate-100 flex-shrink-0">
                 <div>
-                    <h3 class="text-lg font-black tracking-tight text-slate-900" id="smsLiveModalTitle">SMS Notification
+                    <h3 class="text-xl font-black tracking-tight text-slate-900" id="smsLiveModalTitle">SMS Notification
                         Live Status</h3>
-                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5"
+                    <p class="text-xs text-primary font-bold uppercase tracking-widest mt-1"
                         id="smsLiveModalSubtitle">Per-disaster send progress</p>
                 </div>
                 <div class="flex items-center gap-2 flex-shrink-0">
                     <button type="button" onclick="toggleSMSHistory()" id="smsHistoryToggleBtn"
-                        class="h-10 px-4 flex items-center gap-1.5 rounded-full bg-slate-50 text-slate-500 hover:bg-slate-100 transition-all text-[10px] font-black uppercase tracking-wider">
+                        class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-[10px] font-black uppercase text-slate-500 hover:border-indigo-300 hover:text-indigo-600 transition-all">
                         <span class="material-symbols-outlined" style="font-size:16px">history</span>
                         History
                     </button>
                     <button onclick="closeModal('smsLiveModal')"
-                        class="h-10 w-10 flex items-center justify-center rounded-full bg-slate-50 text-slate-400 hover:text-slate-900 transition-all">
+                        class="p-2 hover:bg-orange-50 rounded-full text-slate-400 hover:text-primary transition-colors shrink-0">
                         <span class="material-symbols-outlined">close</span>
                     </button>
                 </div>
@@ -2241,31 +2243,31 @@ try {
 
     <!-- ── Edit Alert Modal (moved from disaster_modals.php) ───────────────────────── -->
     <div id="editAlertModal"
-        class="fixed inset-0 z-[100] hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-6">
+        class="fixed inset-0 z-[100] hidden bg-slate-900/80 flex items-center justify-center p-6">
         <div
-            class="bg-white rounded-[3.5rem] shadow-2xl w-full max-w-2xl overflow-hidden border border-white/20 transform transition-all max-h-[95vh] overflow-y-auto">
-            <div class="px-12 pt-12 pb-6 flex justify-between items-center">
+            class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden transform transition-all max-h-[95vh] overflow-y-auto">
+            <div class="px-10 pt-10 pb-6 flex justify-between items-center border-b border-slate-100">
                 <div>
                     <h3 class="text-2xl font-black tracking-tight text-slate-900">Update Alert</h3>
-                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Modify existing
+                    <p class="text-xs text-primary font-bold uppercase tracking-widest mt-1">Modify existing
                         emergency broadcast</p>
                 </div>
                 <button onclick="closeModal('editAlertModal')"
-                    class="h-12 w-12 flex items-center justify-center rounded-full bg-slate-50 text-slate-400 hover:text-slate-900 transition-all">
+                    class="p-2 hover:bg-orange-50 rounded-full text-slate-400 hover:text-primary transition-colors shrink-0">
                     <span class="material-symbols-outlined">close</span>
                 </button>
             </div>
 
-            <form action="../backend/process_disaster.php" method="POST" class="px-12 pb-14 space-y-5">
+            <form action="../backend/process_disaster.php" method="POST" class="px-10 py-8 space-y-5">
                 <input type="hidden" name="action" value="update">
                 <input type="hidden" name="alert_id" id="edit_alert_id">
                 <?php echo csrf_token(); ?>
 
                 <div class="space-y-2">
-                    <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-2">Alert
+                    <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Alert
                         Type</label>
                     <select name="type" id="edit_type" required
-                        class="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 font-bold text-slate-700 focus:ring-2 focus:ring-[var(--accent-500)]/20">
+                        class="w-full bg-slate-100 border-none rounded-xl py-3 px-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-primary/20 ">
                         <option value="Typhoon">Typhoon</option>
                         <option value="Flood">Flood</option>
                         <option value="Fire">Fire</option>
@@ -2274,10 +2276,10 @@ try {
                 </div>
 
                 <div class="space-y-2">
-                    <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-2">Severity
+                    <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Severity
                         Level</label>
                     <select name="severity" id="edit_severity" required
-                        class="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 font-bold text-slate-700 focus:ring-2 focus:ring-[var(--accent-500)]/20">
+                        class="w-full bg-slate-100 border-none rounded-xl py-3 px-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-primary/20 ">
                         <option value="Low">Low</option>
                         <option value="Medium">Medium</option>
                         <option value="High">High</option>
@@ -2286,21 +2288,21 @@ try {
                 </div>
 
                 <div class="space-y-2">
-                    <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-2">Alert
+                    <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Alert
                         Title</label>
                     <input type="text" name="title" id="edit_title" required
-                        class="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 font-bold focus:ring-2 focus:ring-[var(--accent-500)]/20">
+                        class="w-full bg-slate-100 border-none rounded-xl py-3 px-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-primary/20 ">
                 </div>
 
                 <div class="space-y-2">
-                    <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-2">Message /
+                    <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Message /
                         Emergency Instructions</label>
                     <textarea name="message" id="edit_message" rows="4" required
-                        class="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 font-bold focus:ring-2 focus:ring-[var(--accent-500)]/20 resize-none"></textarea>
+                        class="w-full bg-slate-100 border-none rounded-xl py-3 px-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-primary/20  resize-none"></textarea>
                 </div>
 
                 <button type="submit"
-                    class="w-full text-white py-5 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] shadow-xl hover:-translate-y-1 transition-all duration-300 mt-4 flex items-center justify-center gap-3"
+                    class="w-full py-3.5 text-white text-xs font-black uppercase rounded-2xl shadow-lg active:scale-95 transition-all mt-4 flex items-center justify-center gap-3"
                     style="background: var(--accent-600);">
                     <span class="material-symbols-outlined !text-lg">published_with_changes</span> Save Changes
                 </button>
@@ -2310,17 +2312,17 @@ try {
 
     <!-- ── Deactivate / Report Modal (moved from disaster_modals.php) ──────────────── -->
     <div id="deactivateModal"
-        class="fixed inset-0 z-[100] hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        class="fixed inset-0 z-[100] hidden bg-slate-900/80 flex items-center justify-center p-4">
         <div
-            class="bg-white rounded-[3rem] shadow-2xl w-full max-w-lg overflow-hidden border border-white/20 transform transition-all max-h-[95vh] overflow-y-auto">
+            class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden transform transition-all max-h-[95vh] overflow-y-auto">
             <div class="px-10 pt-10 pb-4 flex justify-between items-center border-b border-slate-100">
                 <div>
-                    <h3 class="text-xl font-black tracking-tight text-slate-900">Resolve Disaster Alert</h3>
-                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Submit a final
+                    <h3 class="text-2xl font-black tracking-tight text-slate-900">Resolve Disaster Alert</h3>
+                    <p class="text-xs text-primary font-bold uppercase tracking-widest mt-1">Submit a final
                         disaster report</p>
                 </div>
                 <button onclick="closeModal('deactivateModal')"
-                    class="h-10 w-10 flex items-center justify-center rounded-full bg-slate-50 text-slate-400 hover:text-slate-900 transition-all">
+                    class="p-2 hover:bg-orange-50 rounded-full text-slate-400 hover:text-primary transition-colors shrink-0">
                     <span class="material-symbols-outlined">close</span>
                 </button>
             </div>
@@ -2332,49 +2334,49 @@ try {
 
                 <div class="grid grid-cols-3 gap-3">
                     <div class="space-y-1.5">
-                        <label class="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-2">Affected
+                        <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Affected
                             Residents</label>
                         <input type="number" name="affected_residents" placeholder="0" required
-                            class="w-full bg-slate-50 border-none rounded-xl py-3 px-5 font-bold text-slate-700 focus:ring-2 focus:ring-red-500/20 text-sm">
+                            class="w-full bg-slate-100 border-none rounded-xl py-3 px-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-primary/20">
                     </div>
                     <div class="space-y-1.5">
                         <label
-                            class="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-2">Evacuees</label>
+                            class="text-[10px] font-bold text-slate-400 uppercase ml-1">Evacuees</label>
                         <input type="number" name="evacuees" placeholder="0" required
-                            class="w-full bg-slate-50 border-none rounded-xl py-3 px-5 font-bold text-slate-700 focus:ring-2 focus:ring-red-500/20 text-sm">
+                            class="w-full bg-slate-100 border-none rounded-xl py-3 px-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-primary/20">
                     </div>
                     <div class="space-y-1.5">
                         <label
-                            class="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-2">Injuries</label>
+                            class="text-[10px] font-bold text-slate-400 uppercase ml-1">Injuries</label>
                         <input type="number" name="injuries" placeholder="0" required
-                            class="w-full bg-slate-50 border-none rounded-xl py-3 px-5 font-bold text-slate-700 focus:ring-2 focus:ring-red-500/20 text-sm">
+                            class="w-full bg-slate-100 border-none rounded-xl py-3 px-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-primary/20">
                     </div>
                 </div>
                 <div class="space-y-1.5">
                     <label
-                        class="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-2">Casualties</label>
+                        class="text-[10px] font-bold text-slate-400 uppercase ml-1">Casualties</label>
                     <input type="number" name="casualties" placeholder="0" required
-                        class="w-full bg-slate-50 border-none rounded-xl py-3 px-5 font-bold text-slate-700 focus:ring-2 focus:ring-red-500/20 text-sm">
+                        class="w-full bg-slate-100 border-none rounded-xl py-3 px-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-primary/20">
                 </div>
 
                 <div class="space-y-4">
                     <div class="space-y-1.5">
-                        <label class="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-2">Damage
+                        <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Damage
                             Assessment</label>
                         <input type="text" name="property_damage" placeholder="Assessment of damage..." required
-                            class="w-full bg-slate-50 border-none rounded-xl py-3 px-5 font-bold text-slate-700 focus:ring-2 focus:ring-red-500/20 text-sm">
+                            class="w-full bg-slate-100 border-none rounded-xl py-3 px-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-primary/20">
                     </div>
                     <div class="space-y-1.5">
-                        <label class="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-2">Response
+                        <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Response
                             Actions & Remarks</label>
                         <textarea name="response_actions" rows="2" placeholder="Describe actions taken..." required
-                            class="w-full bg-slate-50 border-none rounded-xl py-3 px-5 font-bold text-slate-700 focus:ring-2 focus:ring-red-500/20 resize-none text-sm"></textarea>
+                            class="w-full bg-slate-100 border-none rounded-xl py-3 px-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-primary/20 resize-none"></textarea>
                     </div>
                     <div class="space-y-1.5">
-                        <label class="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-2">Final
+                        <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Final
                             Status</label>
                         <select name="status" required
-                            class="w-full bg-slate-50 border-none rounded-xl py-3 px-5 font-bold text-slate-700 focus:ring-2 focus:ring-red-500/20 text-sm">
+                            class="w-full bg-slate-100 border-none rounded-xl py-3 px-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-primary/20">
                             <option value="Resolved" selected>Resolved (Successfully Managed)</option>
                             <option value="Closed">Closed (Observation Period Ended)</option>
                             <option value="Cancelled">Cancelled (False Alarm)</option>
@@ -2384,9 +2386,9 @@ try {
 
                 <div class="flex gap-4 mt-8 pb-4">
                     <button type="button" onclick="closeModal('deactivateModal')"
-                        class="flex-1 bg-slate-100 text-slate-500 py-4 rounded-xl font-black uppercase tracking-[0.2em] text-[10px] hover:bg-slate-200 transition-all">Cancel</button>
+                        class="flex-1 py-3.5 text-xs font-black uppercase text-slate-400 hover:text-slate-700 border border-slate-200 hover:border-slate-300 rounded-2xl transition-all">Cancel</button>
                     <button type="submit"
-                        class="flex-[2] bg-red-600 text-white py-4 rounded-xl font-black uppercase tracking-[0.2em] text-[10px] shadow-xl shadow-red-500/20 hover:bg-red-700 hover:-translate-y-1 transition-all duration-300">Confirm
+                        class="flex-[2] py-3.5 bg-rose-600 text-white text-xs font-black uppercase rounded-2xl shadow-lg hover:bg-rose-700 active:scale-95 transition-all">Confirm
                         Deactivation</button>
                 </div>
             </form>
@@ -2395,25 +2397,25 @@ try {
 
     <!-- ── View Alert Modal (moved from disaster_modals.php) ───────────────────────── -->
     <div id="viewAlertModal"
-        class="fixed inset-0 z-[100] hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-6">
+        class="fixed inset-0 z-[100] hidden bg-slate-900/80 flex items-center justify-center p-6">
         <div
-            class="bg-white rounded-[3.5rem] shadow-2xl w-full max-w-lg overflow-hidden border border-white/20 transform transition-all">
-            <div class="px-12 pt-12 pb-6 flex justify-between items-start">
+            class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden transform transition-all">
+            <div class="px-10 pt-10 pb-6 flex justify-between items-start border-b border-slate-100">
                 <div>
                     <div id="view_severity_badge"
                         class="inline-block px-3 py-1 rounded-full text-[8px] font-black text-white mb-3"></div>
                     <h3 id="view_title" class="text-2xl font-black tracking-tight text-slate-900 leading-tight"></h3>
                     <p id="view_type"
-                        class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2 flex items-center gap-1">
+                        class="text-xs text-primary font-bold uppercase tracking-widest mt-2 flex items-center gap-1">
                     </p>
                 </div>
                 <button onclick="closeModal('viewAlertModal')"
-                    class="h-12 w-12 flex items-center justify-center rounded-full bg-slate-50 text-slate-400 hover:text-slate-900 transition-all">
+                    class="p-2 hover:bg-orange-50 rounded-full text-slate-400 hover:text-primary transition-colors shrink-0">
                     <span class="material-symbols-outlined">close</span>
                 </button>
             </div>
 
-            <div class="px-12 pb-14 space-y-8">
+            <div class="px-10 py-8 space-y-8">
                 <div class="p-6 bg-slate-50 rounded-3xl border border-slate-100">
                     <label class="text-[9px] font-black uppercase text-slate-400 tracking-[0.2em] block mb-3">Emergency
                         Message & Instructions</label>
@@ -2425,7 +2427,7 @@ try {
                     <span id="view_date" class="text-[11px] font-bold text-slate-600"></span>
                 </div>
                 <button onclick="closeModal('viewAlertModal')"
-                    class="w-full bg-slate-900 text-white py-5 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] hover:bg-black transition-all">Close
+                    class="w-full py-3.5 btn-accent text-white text-xs font-black uppercase rounded-2xl shadow-lg active:scale-95 transition-all">Close
                     View</button>
             </div>
         </div>
@@ -3025,27 +3027,53 @@ try {
                     showToast('error', 'Network error. Please try again.');
                 });
         }
-        function showToast(type, msg) {
-            const existing = document.getElementById('ann_toast');
-            if (existing) existing.remove();
+        // Toast — same look as Resident Management (top-right, colored, progress bar).
+        // Signature kept as showToast(type, msg) because the rest of this page uses it.
+        (function () {
+            if (document.getElementById('ann-toast-style')) return;
+            const st = document.createElement('style');
+            st.id = 'ann-toast-style';
+            st.textContent = `
+    #toast-container { position: fixed; top: 1.25rem; right: 1.25rem; z-index: 99999; display: flex; flex-direction: column; gap: .6rem; pointer-events: none; }
+    .toast { display: flex; align-items: center; gap: .75rem; padding: .85rem 1.1rem; border-radius: 1rem; box-shadow: 0 8px 28px rgba(0,0,0,.14); font-family: 'Plus Jakarta Sans', sans-serif; font-size: .75rem; font-weight: 700; min-width: 280px; max-width: 380px; pointer-events: all; transform: translateX(110%); opacity: 0; transition: transform .3s cubic-bezier(.34,1.56,.64,1), opacity .3s ease; position: relative; overflow: hidden; }
+    .toast.show { transform: translateX(0); opacity: 1; }
+    .toast.hide { transform: translateX(110%); opacity: 0; }
+    .toast-success { background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; }
+    .toast-error   { background: #fff1f2; border: 1px solid #fecaca; color: #991b1b; }
+    .toast-warning { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+    .toast-info    { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
+    .toast-icon    { font-size: 1.1rem; flex-shrink: 0; }
+    .toast-msg     { flex: 1; line-height: 1.4; }
+    .toast-close   { background: none; border: none; cursor: pointer; opacity: .5; padding: 0; font-size: 1rem; line-height: 1; flex-shrink: 0; color: inherit; }
+    .toast-close:hover { opacity: 1; }
+    .toast-bar     { position: absolute; bottom: 0; left: 0; height: 3px; border-radius: 0 0 1rem 1rem; animation: toastProgress linear forwards; }
+    .toast-success .toast-bar { background: #10b981; }
+    .toast-error   .toast-bar { background: #ef4444; }
+    .toast-warning .toast-bar { background: #f59e0b; }
+    .toast-info    .toast-bar { background: #3b82f6; }
+    @keyframes toastProgress { from { width: 100%; } to { width: 0%; } }`;
+            document.head.appendChild(st);
+        })();
 
-            const colors = type === 'success'
-                ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
-                : type === 'warning'
-                    ? 'bg-amber-50 border-amber-100 text-amber-700'
-                    : 'bg-rose-50 border-rose-100 text-rose-700';
-            const icon = type === 'success' ? 'check_circle' : type === 'warning' ? 'warning' : 'error';
-            const iconColor = type === 'success' ? 'text-emerald-500' : type === 'warning' ? 'text-amber-500' : 'text-rose-500';
-
+        function showToast(type, msg, duration = 5000) {
+            let container = document.getElementById('toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'toast-container';
+                document.body.appendChild(container);
+            }
+            const kind = ['success', 'error', 'warning', 'info'].includes(type) ? type : 'info';
+            const icons = { success: 'check_circle', error: 'error', warning: 'warning', info: 'info' };
             const toast = document.createElement('div');
             toast.id = 'ann_toast';
-            toast.className = `fixed top-6 right-6 z-[9999] flex items-center gap-3 px-5 py-4 rounded-2xl border shadow-lg text-sm font-semibold ${colors} transition-all`;
-            toast.innerHTML = `<span class="material-symbols-outlined ${iconColor}">${icon}</span>${msg}
-        <button onclick="this.parentElement.remove()" class="ml-2 opacity-50 hover:opacity-100">
-            <span class="material-symbols-outlined" style="font-size:16px">close</span>
-        </button>`;
-            document.body.appendChild(toast);
-            setTimeout(() => { if (toast.parentElement) toast.remove(); }, 5000);
+            toast.className = `toast toast-${kind}`;
+            toast.innerHTML = `<span class="material-symbols-outlined toast-icon">${icons[kind]}</span>
+                <span class="toast-msg">${msg}</span>
+                <button class="toast-close" onclick="this.parentElement.remove()">&times;</button>
+                <div class="toast-bar" style="animation-duration:${duration}ms"></div>`;
+            container.appendChild(toast);
+            requestAnimationFrame(() => requestAnimationFrame(() => toast.classList.add('show')));
+            setTimeout(() => { toast.classList.add('hide'); setTimeout(() => toast.remove(), 350); }, duration);
         }
 
         ['viewModal', 'deleteModal', 'endModal', 'recoverPostModal', 'trashModal', 'trashViewModal', 'restoreModal'].forEach(id => {
@@ -3286,10 +3314,10 @@ try {
                     <td class="px-6 py-4 text-slate-500 text-xs font-medium whitespace-nowrap">${escHtml(fmtDateTime(a.deleted_at))}</td>
                     <td class="px-6 py-4">
                         <div class="flex justify-end gap-2">
-                            <button onclick="openTrashView(${parseInt(a.id)})" class="p-2 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 transition-all" title="View">
-                                <span class="material-symbols-outlined" style="font-size:17px">visibility</span>
+                            <button onclick="openTrashView(${parseInt(a.id)})" class="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all" title="View">
+                                <span class="material-symbols-outlined" text-xl">visibility</span>
                             </button>
-                            <button onclick="openRestore(${parseInt(a.id)})" class="p-2 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-100 transition-all" title="Recover">
+                            <button onclick="openRestore(${parseInt(a.id)})" class="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all" title="Recover">
                                 <span class="material-symbols-outlined" style="font-size:17px">restore_from_trash</span>
                             </button>
                         </div>

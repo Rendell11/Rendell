@@ -110,13 +110,13 @@ const AnalyticsReport = (() => {
             wrap.id = 'arExportDialog';
             wrap.className = 'fixed inset-0 z-[200] modal-backdrop flex items-center justify-center p-6';
             wrap.innerHTML = `
-            <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden border border-slate-100">
+            <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden">
                 <div class="px-7 pt-7 pb-4 flex items-start justify-between">
                     <div>
                         <p class="section-title mb-1">${isPrint ? 'Print' : 'Save as PDF'}</p>
-                        <h3 class="text-lg font-black text-slate-900 tracking-tight">Include AI Analytics Overview?</h3>
+                        <h3 class="text-base font-black text-slate-800 tracking-tight">Include AI Analytics Overview?</h3>
                     </div>
-                    <button type="button" data-act="cancel" class="h-9 w-9 flex items-center justify-center rounded-full bg-slate-50 text-slate-400 hover:text-slate-900">
+                    <button type="button" data-act="cancel" class="p-2 hover:bg-orange-50 rounded-full text-slate-400 hover:text-primary transition-colors">
                         <span class="material-symbols-outlined">close</span></button>
                 </div>
                 <div class="px-7 pb-2 space-y-3">
@@ -132,9 +132,9 @@ const AnalyticsReport = (() => {
                         <span class="block text-xs text-slate-500 font-medium mt-0.5">Leave out the AI section. All reports and data are still included.</span></span>
                     </label>
                 </div>
-                <div class="px-7 py-5 flex justify-end gap-2">
-                    <button type="button" data-act="cancel" class="btn btn-light">Cancel</button>
-                    <button type="button" data-act="ok" class="btn btn-dark">
+                <div class="px-7 py-5 flex gap-3">
+                    <button type="button" data-act="cancel" class="btn btn-light flex-1">Cancel</button>
+                    <button type="button" data-act="ok" class="btn btn-dark flex-[2]">
                         <span class="material-symbols-outlined" style="font-size:16px">${isPrint ? 'print' : 'picture_as_pdf'}</span>
                         ${isPrint ? 'Print' : 'Save PDF'}</button>
                 </div>

@@ -90,7 +90,6 @@ $isAlreadyPosted  = ($cur_status_top === 'Published');
     <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
-    <script src="https://unpkg.com/lucide@latest"></script>
     <?php include __DIR__ . '/../../theme_head.php'; ?>
     <script>
         tailwind.config = {
@@ -107,7 +106,9 @@ $isAlreadyPosted  = ($cur_status_top === 'Published');
     </script>
     <style>
         :root { --sidebar-w: 288px; --nav-h: 64px; }
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #eef2fb; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--page-bg, #eef2fb); -webkit-font-smoothing: antialiased; }
+        .btn-accent { background: var(--accent-600); color: #fff; }
+        .btn-accent:hover { background: var(--accent-700); }
 
         .main-wrapper { margin-left: var(--sidebar-w); width: calc(100% - var(--sidebar-w)); }
         @media (max-width: 1024px) { .main-wrapper { margin-left: 0; width: 100%; } }
@@ -169,9 +170,12 @@ $isAlreadyPosted  = ($cur_status_top === 'Published');
             <?php endif; ?>
 
             <!-- ── Hero Band ───────────────────────────────────────────────────── -->
-            <div class="rounded-2xl p-6 md:p-8 text-white relative overflow-hidden" style="background: linear-gradient(135deg, var(--accent-800, #1a3570) 0%, var(--accent-600, #2a4fa0) 50%, var(--accent-800, #1a3570) 100%);">
-                <div class="absolute -right-12 -top-12 w-64 h-64 opacity-10 rounded-full blur-3xl pointer-events-none" style="background: var(--accent-400, #f05a00);"></div>
-                <div class="absolute left-1/3 bottom-0 w-48 h-48 opacity-10 rounded-full blur-2xl pointer-events-none" style="background: var(--accent-300, #6366f1);"></div>
+            <div class="rounded-2xl p-6 md:p-8 text-white relative overflow-hidden"
+                style="background: linear-gradient(135deg, var(--accent-700) 0%, var(--accent-600) 50%, var(--accent-700) 100%);">
+                <div class="absolute -right-12 -top-12 w-64 h-64 opacity-10 rounded-full blur-3xl pointer-events-none"
+                    style="background: var(--accent-400);"></div>
+                <div class="absolute left-1/3 bottom-0 w-48 h-48 opacity-10 rounded-full blur-2xl pointer-events-none"
+                    style="background: var(--accent-300);"></div>
                 <div class="relative z-10">
                     <h1 class="text-2xl md:text-3xl font-black tracking-tight leading-none">Edit Announcement</h1>
                     <p class="text-white/60 text-sm mt-2 font-medium">Updating: <strong class="text-white/80"><?php echo htmlspecialchars($ann['title']); ?></strong></p>
@@ -196,31 +200,31 @@ $isAlreadyPosted  = ($cur_status_top === 'Published');
                     <!-- ── Left Column ─────────────────────────────────────────── -->
                     <div class="lg:col-span-2 space-y-5">
 
-                        <div class="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm">
-                            <label class="section-title mb-3 block">
+                        <div class="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase ml-1 mb-1.5">
                                 Announcement Title <span class="text-rose-400">*</span>
                             </label>
                             <input type="text" name="title" required maxlength="255"
                                 value="<?php echo htmlspecialchars($d['title']); ?>"
-                                class="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-slate-700 font-medium focus:ring-2 focus:ring-blue-100 placeholder:text-slate-300">
+                                class="w-full bg-slate-100 border-none rounded-xl py-3 px-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-primary/20 placeholder:text-slate-300">
                         </div>
 
-                        <div class="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
+                        <div class="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
                             <div class="p-4 border-b border-slate-50 bg-slate-50/30 flex items-center gap-2">
-                                <button type="button" onclick="wrapText('**','**')" class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"><i data-lucide="bold" class="w-4 h-4"></i></button>
-                                <button type="button" onclick="wrapText('_','_')" class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"><i data-lucide="italic" class="w-4 h-4"></i></button>
-                                <button type="button" onclick="insertBullet()" class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"><i data-lucide="list" class="w-4 h-4"></i></button>
+                                <button type="button" onclick="wrapText('**','**')" class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"><span class="material-symbols-outlined" style="font-size:18px">format_bold</span></button>
+                                <button type="button" onclick="wrapText('_','_')" class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"><span class="material-symbols-outlined" style="font-size:18px">format_italic</span></button>
+                                <button type="button" onclick="insertBullet()" class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"><span class="material-symbols-outlined" style="font-size:18px">format_list_bulleted</span></button>
                             </div>
                             <div class="p-6">
-                                <label class="section-title mb-3 block">Content Body <span class="text-rose-400">*</span></label>
+                                <label class="block text-[10px] font-bold text-slate-400 uppercase ml-1 mb-1.5">Content Body <span class="text-rose-400">*</span></label>
                                 <textarea name="details" id="contentBody" rows="12" required
                                     class="w-full border-none focus:ring-0 text-slate-600 font-medium placeholder:text-slate-300 p-0 resize-none"><?php echo htmlspecialchars($d['details']); ?></textarea>
                             </div>
                         </div>
 
                         <?php if (!empty($attachments)): ?>
-                        <div class="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm">
-                            <label class="section-title mb-4 block">Existing Attachments</label>
+                        <div class="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase ml-1 mb-1.5">Existing Attachments</label>
                             <div class="space-y-3" id="existingAttachments">
                                 <?php foreach ($attachments as $att):
                                     $extIcons = ['pdf'=>'picture_as_pdf','doc'=>'description','docx'=>'description','xls'=>'table_chart','xlsx'=>'table_chart','txt'=>'text_snippet','zip'=>'folder_zip','rar'=>'folder_zip'];
@@ -252,16 +256,16 @@ $isAlreadyPosted  = ($cur_status_top === 'Published');
                         <?php endif; ?>
 
                         <!-- New Attachments -->
-                        <div class="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm">
-                            <label class="section-title mb-4 block">Add New Attachments</label>
+                        <div class="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase ml-1 mb-1.5">Add New Attachments</label>
                             <div id="dropZone">
                                 <input type="file" name="attachments[]" id="fileInput" class="hidden" multiple
                                     accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip,.rar,.ppt,.pptx,.csv"
                                     onchange="handleFiles(this.files)">
                                 <label for="fileInput" id="dropLabel"
-                                    class="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-2xl p-10 cursor-pointer hover:border-slate-300 hover:bg-slate-50/50 transition-all">
+                                    class="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-[24px] p-10 bg-slate-50/50 cursor-pointer hover:border-slate-300 hover:bg-slate-50/50 transition-all">
                                     <div class="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center mb-4">
-                                        <i data-lucide="upload-cloud" class="w-6 h-6 text-primary"></i>
+                                        <span class="material-symbols-outlined text-primary" style="font-size:24px">cloud_upload</span>
                                     </div>
                                     <p class="text-sm font-bold text-slate-700">Click to upload or drag and drop</p>
                                     <p class="text-[10px] font-medium text-slate-400 mt-1 uppercase">Images, PDF, DOC, XLS, ZIP (Max 10MB each)</p>
@@ -274,30 +278,30 @@ $isAlreadyPosted  = ($cur_status_top === 'Published');
                     <!-- ── Right Column ─────────────────────────────────────── -->
                     <div class="space-y-5">
 
-                        <div class="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm">
+                        <div class="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
                             <div class="flex items-center gap-3 mb-4">
-                                <div class="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
-                                    <i data-lucide="layers" class="w-4 h-4 text-primary"></i>
+                                <div class="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
+                                    <span class="material-symbols-outlined text-primary" style="font-size:18px">layers</span>
                                 </div>
-                                <h3 class="font-bold text-slate-800 text-sm">Classification</h3>
+                                <h3 class="text-sm font-black text-slate-800 uppercase tracking-tight">Classification</h3>
                             </div>
-                            <label class="section-title mb-2 block">Category</label>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase ml-1 mb-1.5">Category</label>
                             <?php if ($isAlreadyPosted): ?>
-                            <select disabled class="w-full bg-slate-100 border-none rounded-xl text-sm font-bold text-slate-400 cursor-not-allowed">
+                            <select disabled class="w-full bg-slate-100 border-none rounded-xl py-3 px-4 text-sm font-bold text-slate-400 cursor-not-allowed">
                                 <option selected><?php echo htmlspecialchars($d['category']); ?></option>
                             </select>
                             <input type="hidden" name="category" value="<?php echo htmlspecialchars($d['category']); ?>">
                             <?php else: ?>
-                            <select name="category" class="w-full bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-blue-100 cursor-pointer">
+                            <select name="category" class="w-full bg-slate-100 border-none rounded-xl py-3 px-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-primary/20 cursor-pointer">
                                 <?php foreach($cats as $c): ?>
                                 <option value="<?php echo $c; ?>" <?php echo $d['category']===$c ? 'selected' : ''; ?>><?php echo $c; ?></option>
                                 <?php endforeach; ?>
                             </select>
                             <?php endif; ?>
 
-                            <label class="section-title mb-2 mt-4 block">Status</label>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase ml-1 mb-1.5 mt-4">Status</label>
                             <?php if ($isAlreadyPosted): ?>
-                            <select id="statusSelect" disabled class="w-full bg-slate-100 border-none rounded-xl text-sm font-bold text-slate-400 cursor-not-allowed">
+                            <select id="statusSelect" disabled class="w-full bg-slate-100 border-none rounded-xl py-3 px-4 text-sm font-bold text-slate-400 cursor-not-allowed">
                                 <option selected>Published</option>
                             </select>
                             <input type="hidden" name="status" value="Published">
@@ -320,7 +324,7 @@ $isAlreadyPosted  = ($cur_status_top === 'Published');
                                 }
                             ?>
                             <select name="status" id="statusSelect" onchange="handleStatusChange(this.value)"
-                                class="w-full bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-blue-100 cursor-pointer">
+                                class="w-full bg-slate-100 border-none rounded-xl py-3 px-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-primary/20 cursor-pointer">
                                 <?php foreach ($status_options as $val => $label): ?>
                                 <option value="<?php echo $val; ?>" <?php echo $cur_status === $val ? 'selected' : ''; ?>><?php echo $label; ?></option>
                                 <?php endforeach; ?>
@@ -337,12 +341,12 @@ $isAlreadyPosted  = ($cur_status_top === 'Published');
                             <?php endif; ?>
                         </div>
 
-                        <div class="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm">
+                        <div class="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
                             <div class="flex items-center gap-3 mb-4">
-                                <div class="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
-                                    <i data-lucide="clock" class="w-4 h-4 text-primary"></i>
+                                <div class="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
+                                    <span class="material-symbols-outlined text-primary" style="font-size:18px">schedule</span>
                                 </div>
-                                <h3 class="font-bold text-slate-800 text-sm">Scheduling</h3>
+                                <h3 class="text-sm font-black text-slate-800 uppercase tracking-tight">Scheduling</h3>
                             </div>
                             <?php if ($isAlreadyPosted): ?>
                             <div class="mb-4 p-3 bg-slate-50 border border-slate-100 rounded-xl">
@@ -360,40 +364,40 @@ $isAlreadyPosted  = ($cur_status_top === 'Published');
                             ?>
                             <div class="space-y-4">
                                 <div>
-                                    <label class="section-title mb-2 block">Post Date</label>
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase ml-1 mb-1.5">Post Date</label>
                                     <?php /* Post Date is never editable here: it's the date the announcement was
                                              created (or today, when publishing now). readonly, not disabled, so it still submits.
                                              The live schedule is the "Publish On" date below. */ ?>
                                     <input type="date" name="date_posted" id="datePostedInput" readonly tabindex="-1" onclick="return false;"
                                         value="<?php echo htmlspecialchars($ann['date_posted'] ?? $server_today); ?>"
-                                        class="w-full bg-slate-50 border-none rounded-xl text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-100 px-4 py-3 opacity-50 cursor-not-allowed pointer-events-none">
+                                        class="w-full bg-slate-100 border-none rounded-xl py-3 px-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-primary/20 opacity-50 cursor-not-allowed pointer-events-none">
                                     <p id="postDateHint" class="<?php echo $isAlreadyPosted ? 'hidden ' : ''; ?>mt-1.5 text-[10px] text-slate-400 font-medium flex items-center gap-1">
                                         <span class="material-symbols-outlined" style="font-size:12px">lock</span>
                                         <span id="postDateHintText">The date this announcement was created. The "Publish On" date below sets when it goes live.</span>
                                     </p>
                                 </div>
                                 <div>
-                                    <label class="section-title mb-2 block" id="startDateLabel">
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase ml-1 mb-1.5" id="startDateLabel">
                                         <?php echo ($d['status'] ?? '') === 'Scheduled' ? 'Publish On (Date &amp; Time)' : 'Start Date &amp; Time'; ?>
                                     </label>
                                     <div class="grid grid-cols-2 gap-2">
                                         <input type="date" name="date_start" id="dateStartInput" <?php echo $lockAttr; ?>
                                             value="<?php echo htmlspecialchars($d['date_start'] ?? ''); ?>"
-                                            class="bg-slate-50 border-none rounded-xl text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-100 px-3 py-3<?php echo $lockClass; ?>">
+                                            class="bg-slate-100 border-none rounded-xl py-3 px-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-primary/20<?php echo $lockClass; ?>">
                                         <input type="time" name="time_start" id="timeStartInput" <?php echo $lockAttr; ?>
                                             value="<?php echo !empty($d['time_start']) ? substr($d['time_start'],0,5) : ''; ?>"
-                                            class="bg-slate-50 border-none rounded-xl text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-100 px-3 py-3<?php echo $lockClass; ?>">
+                                            class="bg-slate-100 border-none rounded-xl py-3 px-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-primary/20<?php echo $lockClass; ?>">
                                     </div>
                                 </div>
                                 <div>
-                                    <label class="section-title mb-2 block">End Date &amp; Time <span class="text-slate-300 font-normal normal-case">(optional)</span></label>
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase ml-1 mb-1.5">End Date &amp; Time <span class="text-slate-300 font-normal normal-case">(optional)</span></label>
                                     <div class="grid grid-cols-2 gap-2">
                                         <input type="date" name="date_end" id="dateEndInput" <?php echo $lockAttr; ?>
                                             value="<?php echo htmlspecialchars($d['date_end'] ?? ''); ?>"
-                                            class="bg-slate-50 border-none rounded-xl text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-100 px-3 py-3<?php echo $lockClass; ?>">
+                                            class="bg-slate-100 border-none rounded-xl py-3 px-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-primary/20<?php echo $lockClass; ?>">
                                         <input type="time" name="time_end" id="timeEndInput" <?php echo $lockAttr; ?>
                                             value="<?php echo !empty($d['time_end']) && $d['time_end'] !== '00:00:00' ? substr($d['time_end'],0,5) : ''; ?>"
-                                            class="bg-slate-50 border-none rounded-xl text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-100 px-3 py-3<?php echo $lockClass; ?>">
+                                            class="bg-slate-100 border-none rounded-xl py-3 px-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-primary/20<?php echo $lockClass; ?>">
                                     </div>
                                 </div>
                             </div>
@@ -401,14 +405,14 @@ $isAlreadyPosted  = ($cur_status_top === 'Published');
 
 
                         <!-- ── Facebook Auto-Edit ─────────────────────────── -->
-                        <div class="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm" id="fbCard">
+                        <div class="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm" id="fbCard">
                             <div class="flex items-center gap-3 mb-4">
-                                <div class="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                                <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="#1877f2">
                                         <path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.236 2.686.236v2.97h-1.514c-1.491 0-1.956.93-1.956 1.886v2.268h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/>
                                     </svg>
                                 </div>
-                                <h3 class="font-bold text-slate-800 text-sm">Facebook Sync</h3>
+                                <h3 class="text-sm font-black text-slate-800 uppercase tracking-tight">Facebook Sync</h3>
                             </div>
 
                             <?php if (!empty($ann['fb_post_id'])): ?>
@@ -461,8 +465,8 @@ $isAlreadyPosted  = ($cur_status_top === 'Published');
                         <!-- ── /Facebook Auto-Edit ─────────────────────────── -->
 
                         <div class="flex gap-3">
-                            <a href="ann.php" class="flex-1 px-4 py-3 rounded-xl bg-slate-100 text-slate-700 font-bold text-sm hover:bg-slate-200 transition-all text-center">Cancel</a>
-                            <button type="submit" class="flex-1 px-4 py-3 rounded-xl text-white font-bold text-sm transition-all shadow-lg" style="background: var(--accent-600, #1a3570);">
+                            <a href="ann.php" class="flex-1 py-3.5 text-xs font-black uppercase text-slate-400 hover:text-slate-700 border border-slate-200 hover:border-slate-300 rounded-2xl transition-all text-center">Cancel</a>
+                            <button type="submit" class="flex-[2] btn-accent py-3.5 rounded-2xl text-xs font-black uppercase shadow-lg active:scale-95 transition-all">
                                 Save Changes
                             </button>
                         </div>
@@ -474,7 +478,6 @@ $isAlreadyPosted  = ($cur_status_top === 'Published');
 </div>
 
 <script>
-    lucide.createIcons();
 
     // ─── Publish Now ↔ Scheduled ──────────────────────────────────────────────
     // Publish Now  → Post Date becomes today's date (locked) and the schedule

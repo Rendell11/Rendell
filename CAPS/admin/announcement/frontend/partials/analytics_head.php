@@ -58,28 +58,29 @@
     html.dark .bg-slate-100 { background: #1e293b !important; }
 
     .section-title { font-size: .65rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #94a3b8; }
-    .panel { background: #fff; border: 1px solid rgba(226, 232, 240, .6); border-radius: 1rem; box-shadow: 0 1px 2px rgba(15, 23, 42, .04); }
+    .panel { background: #fff; border: 1px solid #f1f5f9; border-radius: 32px; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, .05); }
     .panel-desc { font-size: 12px; color: #64748b; line-height: 1.6; font-weight: 500; }
     .kpi { transition: transform .25s ease, box-shadow .25s ease; }
     .kpi:hover { transform: translateY(-3px); box-shadow: 0 16px 32px -12px rgba(26, 53, 112, .18); }
     .chart-box { position: relative; width: 100%; }
-    .field { background: #f8fafc; border: 1px solid rgba(226, 232, 240, .8); border-radius: .75rem; padding: .5rem .75rem; font-size: 12px; font-weight: 700; color: #334155; }
-    .field:focus { outline: none; box-shadow: 0 0 0 3px rgba(99, 102, 241, .2); }
-    .btn { display: inline-flex; align-items: center; gap: .4rem; border-radius: .75rem; padding: .55rem 1rem; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; transition: all .15s ease; white-space: nowrap; }
+    .field { background: #f1f5f9; border: 0; border-radius: .75rem; padding: .75rem 1rem; font-size: .875rem; font-weight: 700; color: #334155; }
+    .field:focus { outline: none; box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-600, #4f46e5) 20%, transparent); }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; border-radius: 1rem; padding: .8rem 1.25rem; font-size: .75rem; font-weight: 900; text-transform: uppercase; letter-spacing: .02em; transition: all .15s ease; white-space: nowrap; }
+    .btn:active { transform: scale(.97); }
     .btn:disabled { opacity: .6; cursor: not-allowed; }
-    .btn-dark { background: #0f172a; color: #fff; }
-    .btn-dark:hover { background: #000; }
+    .btn-dark { background: var(--accent-600, #4f46e5); color: #fff; box-shadow: 0 10px 15px -3px rgba(0,0,0,.1); }
+    .btn-dark:hover { background: var(--accent-700, #4338ca); }
     .btn-soft { background: #eef2ff; color: #4f46e5; }
     .btn-soft:hover { background: #e0e7ff; }
-    .btn-light { background: #fff; color: #475569; border: 1px solid #e2e8f0; }
-    .btn-light:hover { background: #f1f5f9; }
+    .btn-light { background: #fff; color: #94a3b8; border: 1px solid #e2e8f0; }
+    .btn-light:hover { color: #334155; border-color: #cbd5e1; }
     .btn-ai { color: #fff; background: linear-gradient(90deg, var(--accent-500, #f05a00), var(--accent-400, #ff7a20)); box-shadow: 0 6px 16px -6px rgba(240, 90, 0, .45); }
     .btn-ai:hover { transform: translateY(-1px); }
-    .data-table th { font-size: 9px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: .12em; padding: .75rem 1rem; text-align: left; background: #f8fafc; white-space: nowrap; }
-    .data-table td { padding: .75rem 1rem; font-size: 12px; color: #475569; font-weight: 600; border-top: 1px solid #f1f5f9; }
+    .data-table th { font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .1em; padding: 1rem 1.5rem; text-align: left; background: rgba(248, 250, 252, .5); border-bottom: 1px solid #f8fafc; white-space: nowrap; }
+    .data-table td { padding: 1rem 1.5rem; font-size: 12px; color: #475569; font-weight: 600; border-top: 1px solid #f8fafc; }
     .data-table tbody tr:hover { background: rgba(248, 250, 252, .7); }
-    .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; }
-    .modal-backdrop { background: rgba(15, 23, 42, .6); backdrop-filter: blur(4px); }
+    .pill { display: inline-block; padding: 2px 8px; border-radius: .375rem; font-size: 9px; font-weight: 700; text-transform: uppercase; border: 1px solid transparent; }
+    .modal-backdrop { background: rgba(15, 23, 42, .8); }
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
 </style>
