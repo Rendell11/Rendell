@@ -5,261 +5,247 @@
  * Background SMS Worker for Disaster Alert Broadcasting
  *
  * HOW IT WORKS:
- *   1. process_disaster.php saves all recipients + message into `sms_queue`
- *      (status = 'pending'), then immediately redirects the admin.
- *   2. process_disaster.php fires a non-blocking HTTP request to THIS file.
- *   3. This worker claims the job (status → 'processing'), sends every SMS
- *      using cURL, then marks the job 'done' or 'failed'.
+ *   1. process_disaster.php queues the broadcast (sms_queue job + one
+ *      sms_recipient_logs row per resident, status 'pending') and redirects
+ *      the admin back to the Announcement module immediately.
+ *   2. process_disaster.php fires a non-blocking HTTP request to THIS file
+ *      (sms_live_status.php also re-starts it if it ever stops).
+ *   3. This worker replies "OK" at once, closes the connection and keeps
+ *      running: it sends the queue one SMS at a time through the active SMS
+ *      configuration, retries temporary failures (max SMS_MAX_ATTEMPTS),
+ *      and updates the counters after every SMS so "View SMS Live" is live.
  *
- * SECURITY:
- *   Only callable from localhost (127.0.0.1 / ::1) or via the internal
- *   fire-and-forget trigger. Not meant to be accessed directly by browsers.
+ * ONE WORKER AT A TIME: a MySQL named lock (GET_LOCK) makes extra triggers
+ * exit immediately, so a recipient is never sent twice by parallel workers
+ * and the provider's rate limit is respected.
  *
- * COMPATIBLE WITH: XAMPP / standard PHP-FPM / mod_php — no extra extensions
- *                  required (no pcntl, no pthreads, no Redis, no Beanstalkd).
+ * Can also run from the command line / Windows Task Scheduler / cron as a
+ * safety net:   php disaster_sms_worker.php
+ *
+ * SECURITY: only callable from localhost (127.0.0.1 / ::1) or the CLI.
+ * COMPATIBLE WITH: XAMPP / mod_php / PHP-FPM — no extra extensions needed.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-// ── Allow the worker to run as long as it needs ──────────────────────────────
 ignore_user_abort(true);
 set_time_limit(0);
-ini_set('max_execution_time', 0);
+ini_set('max_execution_time', '0');
+
+$isCli = PHP_SAPI === 'cli';
 
 // ── Only allow calls from localhost ──────────────────────────────────────────
-$caller_ip = $_SERVER['REMOTE_ADDR'] ?? '';
-$allowed   = ['127.0.0.1', '::1', 'localhost'];
-if (!in_array($caller_ip, $allowed, true)) {
-    http_response_code(403);
-    exit('Forbidden');
-}
-
-// ── Immediately send a 200 OK and close the HTTP connection ──────────────────
-// This lets process_disaster.php's cURL fire-and-forget call return instantly
-// while this worker continues running in the background.
-if (function_exists('fastcgi_finish_request')) {
-    // PHP-FPM path — fastest close
-    header('Content-Type: text/plain');
-    header('Content-Length: 2');
-    echo 'OK';
-    fastcgi_finish_request();
-} else {
-    // mod_php / standard CGI path
-    header('Connection: close');
-    header('Content-Type: text/plain');
-    $body = 'OK';
-    header('Content-Length: ' . strlen($body));
-    echo $body;
-    if (ob_get_level()) {
-        ob_end_flush();
-    }
-    flush();
-}
-
-// ── HTTP connection is now closed. Admin sees the redirect. ──────────────────
-// Everything below runs silently in the background.
-
-require_once __DIR__ . '/../../db.php';
-
-// ── Claim a pending job (use UPDATE to lock it atomically) ───────────────────
-try {
-    $lock = $pdo->prepare(
-        "UPDATE sms_queue
-         SET status = 'processing', started_at = NOW()
-         WHERE status = 'pending'
-         ORDER BY id ASC
-         LIMIT 1"
-    );
-    $lock->execute();
-
-    if ($lock->rowCount() === 0) {
-        // No pending jobs — nothing to do
-        exit;
+if (!$isCli) {
+    $caller_ip = $_SERVER['REMOTE_ADDR'] ?? '';
+    if (!in_array($caller_ip, ['127.0.0.1', '::1'], true)) {
+        http_response_code(403);
+        exit('Forbidden');
     }
 
-    // Fetch the job we just claimed
-    $job = $pdo->query(
-        "SELECT * FROM sms_queue WHERE status = 'processing' ORDER BY id ASC LIMIT 1"
-    )->fetch(PDO::FETCH_ASSOC);
-
-    if (!$job) {
-        exit;
-    }
-
-} catch (PDOException $e) {
-    error_log("SMS Worker: DB claim error — " . $e->getMessage());
-    exit;
-}
-
-// ── Load active SMS configuration ────────────────────────────────────────────
-try {
-    $config = $pdo->prepare(
-        "SELECT api_key, from_number, device_id, api_url, configuration_name
-         FROM sms_configurations
-         WHERE status = 'Active'
-         LIMIT 1"
-    );
-    $config->execute();
-    $smsConfig = $config->fetch(PDO::FETCH_ASSOC);
-
-    if (!$smsConfig) {
-        error_log("SMS Worker: No active SMS configuration found. Job ID " . $job['id'] . " aborted.");
-        $pdo->prepare("UPDATE sms_queue SET status = 'failed', finished_at = NOW() WHERE id = ?")
-            ->execute([$job['id']]);
-        exit;
-    }
-} catch (PDOException $e) {
-    error_log("SMS Worker: Config load error — " . $e->getMessage());
-    exit;
-}
-
-$api_key     = $smsConfig['api_key'];
-$from_number = $smsConfig['from_number'];
-$device_id   = $smsConfig['device_id'];
-$api_url     = $smsConfig['api_url'];
-$sms_message = $job['message'];
-
-error_log("SMS Worker: Starting job ID {$job['id']} — {$job['total']} recipients | Config: " . ($smsConfig['configuration_name'] ?? 'unknown'));
-
-// ── Decode recipients list ────────────────────────────────────────────────────
-$recipients = json_decode($job['recipients'], true);
-if (empty($recipients)) {
-    error_log("SMS Worker: Job ID {$job['id']} has no recipients. Marking done.");
-    $pdo->prepare("UPDATE sms_queue SET status = 'done', finished_at = NOW() WHERE id = ?")
-        ->execute([$job['id']]);
-    exit;
-}
-
-// ── Send SMS to each recipient ────────────────────────────────────────────────
-$sent   = 0;
-$failed = 0;
-
-foreach ($recipients as $resident) {
-    if (empty($resident['ContactNumber'])) {
-        $failed++;
-        continue;
-    }
-
-    // Normalize Philippine mobile number to E.164
-    $phone = preg_replace('/[^0-9]/', '', $resident['ContactNumber']);
-
-    if (strlen($phone) < 10) {
-        error_log("SMS Worker: Skipping invalid number for ResidentID " . ($resident['ResidentID'] ?? '?'));
-        $failed++;
-        continue;
-    }
-
-    if (substr($phone, 0, 2) === '63') {
-        $formatted_to = '+' . $phone;
-    } elseif (substr($phone, 0, 1) === '0') {
-        $formatted_to = '+63' . substr($phone, 1);
+    // ── Immediately send a 200 OK and close the HTTP connection ──────────────
+    if (function_exists('fastcgi_finish_request')) {
+        header('Content-Type: text/plain');
+        header('Content-Length: 2');
+        echo 'OK';
+        fastcgi_finish_request();
     } else {
-        $formatted_to = '+63' . $phone;
-    }
-
-    $payload = [
-        "to"        => $formatted_to,
-        "message"   => $sms_message,
-        "channel"   => "sms",
-        "device_id" => $device_id,
-        "e164From"  => $from_number,
-    ];
-
-    $ch = curl_init($api_url);
-    curl_setopt_array($ch, [
-        CURLOPT_HTTPHEADER     => [
-            "X-API-Key: $api_key",
-            "Content-Type: application/json",
-        ],
-        CURLOPT_POST           => 1,
-        CURLOPT_POSTFIELDS     => json_encode($payload),
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT        => 30,
-        CURLOPT_CONNECTTIMEOUT => 10,
-        CURLOPT_SSL_VERIFYPEER => false,
-    ]);
-
-    $result    = curl_exec($ch);
-    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $curl_err  = curl_error($ch);
-    $response  = json_decode($result, true);
-    curl_close($ch);
-
-    $is_success = false;
-    if ($http_code >= 200 && $http_code < 300) {
-        if (!empty($response['id'])) {
-            $is_success = true;
-        } elseif (isset($response['status']) && !in_array(strtolower($response['status']), ['failed', 'error', 'rejected'])) {
-            $is_success = true;
-        } elseif (is_array($response) && !isset($response['error'])) {
-            $is_success = true;
+        while (ob_get_level()) {
+            ob_end_clean();
         }
+        header('Connection: close');
+        header('Content-Type: text/plain');
+        header('Content-Length: 2');
+        echo 'OK';
+        flush();
     }
-
-    if ($is_success) {
-        $sent++;
-        error_log("SMS Worker ✓ | TO: $formatted_to | HTTP: $http_code");
-    } else {
-        $failed++;
-        error_log("SMS Worker ✗ | TO: $formatted_to | HTTP: $http_code | cURL: $curl_err | Body: $result");
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        session_write_close();
     }
+}
 
-    // ── Update progress in DB after each send so the UI can poll it ──────────
+// ── Everything below runs in the background ─────────────────────────────────
+require_once __DIR__ . '/../../db.php';
+require_once __DIR__ . '/sms_queue.php';
+
+const SMS_WORKER_MAX_RUNTIME = 1500; // seconds; then hand over to a fresh worker
+
+function worker_log(string $msg): void
+{
+    error_log('SMS Worker: ' . $msg);
+}
+
+try {
+    sms_queue_ensure($pdo);
+    if ((int) $pdo->query("SELECT GET_LOCK('caps_disaster_sms_worker', 0)")->fetchColumn() !== 1) {
+        exit; // another worker is already sending
+    }
+} catch (Throwable $e) {
+    worker_log('startup error — ' . $e->getMessage());
+    exit;
+}
+
+$startedAt = time();
+$handOver = false;
+
+try {
+    while (true) {
+        if (time() - $startedAt > SMS_WORKER_MAX_RUNTIME) {
+            $handOver = true;
+            break;
+        }
+
+        // Oldest unfinished job
+        $job = $pdo->query(
+            "SELECT * FROM sms_queue WHERE status IN ('pending','processing') ORDER BY id ASC LIMIT 1"
+        )->fetch(PDO::FETCH_ASSOC);
+        if (!$job) {
+            break; // queue empty
+        }
+        $jobId = (int) $job['id'];
+
+        // Legacy job (queued before per-recipient rows existed): convert its JSON list once.
+        if (empty($job['log_id'])) {
+            $list = json_decode((string) $job['recipients'], true) ?: [];
+            if ($list && !empty($job['alert_id'])) {
+                $q = sms_enqueue_broadcast($pdo, (int) $job['alert_id'], (string) $job['message'], $list);
+                // the new job created by sms_enqueue_broadcast replaces this one
+            }
+            $pdo->prepare("UPDATE sms_queue SET status = 'done', finished_at = NOW(), last_error = 'Converted to the per-recipient queue' WHERE id = ?")
+                ->execute([$jobId]);
+            continue;
+        }
+
+        $config = sms_active_config($pdo);
+        if (!$config) {
+            worker_log("no active SMS configuration — job {$jobId} stopped.");
+            $pdo->prepare("UPDATE sms_recipient_logs SET status = 'failed', detail = 'No active SMS configuration', last_attempt_at = NOW(3)
+                            WHERE log_id = ? AND status IN ('pending','retry','processing')")->execute([$job['log_id']]);
+            $pdo->prepare("UPDATE sms_queue SET status = 'processing', last_error = 'No active SMS configuration. Set one in Settings → SMS Configuration.' WHERE id = ?")
+                ->execute([$jobId]);
+            sms_finalize_job($pdo, $job);
+            continue;
+        }
+
+        if ($job['status'] === 'pending') {
+            $pdo->prepare("UPDATE sms_queue SET status = 'processing', started_at = COALESCE(started_at, NOW()), heartbeat_at = NOW() WHERE id = ? AND status = 'pending'")
+                ->execute([$jobId]);
+            $pdo->prepare("UPDATE sms_logs SET status = 'Sending' WHERE LogID = ?")->execute([$job['log_id']]);
+            worker_log("starting job {$jobId} (log {$job['log_id']}) — {$job['total']} recipients | config: " . ($config['configuration_name'] ?? '?'));
+        }
+
+        // A previous worker died in the middle of a request: we cannot know if that SMS went out,
+        // so it is NOT re-sent automatically (no duplicates) — it is marked failed for follow-up.
+        $pdo->prepare("UPDATE sms_recipient_logs
+                          SET status = 'failed', detail = 'Sending was interrupted — result unknown, please verify with the resident'
+                        WHERE log_id = ? AND status = 'processing' AND last_attempt_at < NOW(3) - INTERVAL 2 MINUTE")
+            ->execute([$job['log_id']]);
+
+        $message = (string) $job['message'];
+        $cancelled = false;
+
+        // ── Send in batches ──────────────────────────────────────────────────
+        while (true) {
+            $batch = $pdo->prepare(
+                "SELECT id, resident_id, resident_name, contact_number, attempts FROM sms_recipient_logs
+                  WHERE log_id = ? AND status IN ('pending','retry')
+                    AND (next_attempt_at IS NULL OR next_attempt_at <= NOW())
+                  ORDER BY attempts ASC, id ASC
+                  LIMIT " . SMS_BATCH_SIZE
+            );
+            $batch->execute([$job['log_id']]);
+            $rows = $batch->fetchAll(PDO::FETCH_ASSOC);
+            if (!$rows) {
+                break;
+            }
+
+            foreach ($rows as $r) {
+                // Cancelled from View SMS Live?
+                $st = $pdo->prepare("SELECT status FROM sms_queue WHERE id = ?");
+                $st->execute([$jobId]);
+                if ($st->fetchColumn() === 'cancelled') {
+                    $cancelled = true;
+                    break 2;
+                }
+
+                // Claim the row — only one sender can move it to 'processing'
+                $claim = $pdo->prepare("UPDATE sms_recipient_logs
+                                           SET status = 'processing', attempts = attempts + 1, last_attempt_at = NOW(3), next_attempt_at = NULL
+                                         WHERE id = ? AND status IN ('pending','retry')");
+                $claim->execute([$r['id']]);
+                if ($claim->rowCount() !== 1) {
+                    continue;
+                }
+                $attempt = (int) $r['attempts'] + 1;
+                $to = sms_normalize_number($r['contact_number']);
+
+                if (!$to) {
+                    $pdo->prepare("UPDATE sms_recipient_logs SET status = 'invalid', detail = ? WHERE id = ?")
+                        ->execute(['Number too short: ' . $r['contact_number'], $r['id']]);
+                } else {
+                    $res = sms_gateway_send($config, $to, $message);
+                    if ($res['ok']) {
+                        $pdo->prepare("UPDATE sms_recipient_logs
+                                          SET status = 'sent', delivery = 'pending', message_id = ?, detail = ?, sent_at = NOW(), last_attempt_at = NOW(3)
+                                        WHERE id = ?")
+                            ->execute([$res['message_id'] ? mb_substr((string) $res['message_id'], 0, 100) : null, $res['detail'], $r['id']]);
+                    } elseif ($res['temporary'] && $attempt < SMS_MAX_ATTEMPTS) {
+                        // PENDING → RETRY → SENT / FAILED
+                        $pdo->prepare("UPDATE sms_recipient_logs
+                                          SET status = 'retry', detail = ?, last_attempt_at = NOW(3),
+                                              next_attempt_at = NOW() + INTERVAL ? SECOND
+                                        WHERE id = ?")
+                            ->execute([mb_substr($res['detail'] . " (attempt {$attempt} of " . SMS_MAX_ATTEMPTS . ')', 0, 255), SMS_RETRY_DELAY_SECONDS * $attempt, $r['id']]);
+                    } else {
+                        $pdo->prepare("UPDATE sms_recipient_logs SET status = 'failed', detail = ?, last_attempt_at = NOW(3) WHERE id = ?")
+                            ->execute([mb_substr($res['detail'] . ($res['temporary'] ? ' — gave up after ' . $attempt . ' attempts' : ''), 0, 255), $r['id']]);
+                    }
+                }
+
+                // Counters for the SMS Live cards (cheap: indexed count on one broadcast)
+                $t = sms_job_counts($pdo, (int) $job['log_id']);
+                $pdo->prepare("UPDATE sms_queue SET sent = ?, failed = ?, heartbeat_at = NOW() WHERE id = ?")
+                    ->execute([$t['sent'], $t['failed'], $jobId]);
+                $pdo->prepare("UPDATE sms_logs SET sent_count = ? WHERE LogID = ?")->execute([$t['sent'], $job['log_id']]);
+
+                usleep(SMS_SEND_DELAY_MS * 1000);
+            }
+        }
+
+        if ($cancelled) {
+            $pdo->prepare("UPDATE sms_recipient_logs SET status = 'cancelled', detail = 'Cancelled by an administrator'
+                            WHERE log_id = ? AND status IN ('pending','retry')")->execute([$job['log_id']]);
+            $job['status'] = 'cancelled';
+            sms_finalize_job($pdo, $job);
+            worker_log("job {$jobId} cancelled.");
+            continue;
+        }
+
+        // Only retries that are not due yet are left → wait for the earliest one
+        $next = $pdo->prepare("SELECT GREATEST(1, TIMESTAMPDIFF(SECOND, NOW(), MIN(next_attempt_at))) FROM sms_recipient_logs
+                                WHERE log_id = ? AND status = 'retry'");
+        $next->execute([$job['log_id']]);
+        $wait = $next->fetchColumn();
+        if ($wait !== null && $wait !== false) {
+            $pdo->prepare("UPDATE sms_queue SET heartbeat_at = NOW() WHERE id = ?")->execute([$jobId]);
+            sleep(min(10, max(1, (int) $wait))); // short sleeps keep the heartbeat fresh
+            continue;
+        }
+
+        $t = sms_finalize_job($pdo, $job);
+        worker_log("job {$jobId} finished — sent {$t['sent']}, failed {$t['failed']}.");
+    }
+} catch (Throwable $e) {
+    worker_log('error — ' . $e->getMessage());
     try {
-        $pdo->prepare(
-            "UPDATE sms_queue SET sent = ?, failed = ? WHERE id = ?"
-        )->execute([$sent, $failed, $job['id']]);
-    } catch (PDOException $e) {
-        error_log("SMS Worker: Progress update error — " . $e->getMessage());
+        $pdo->prepare("UPDATE sms_queue SET last_error = ? WHERE status = 'processing'")->execute([mb_substr($e->getMessage(), 0, 255)]);
+    } catch (Throwable $ignored) {
     }
-
-    // Small delay to avoid rate-limiting — 150ms is enough for InfiniReach
-    usleep(150000);
+    // no automatic restart on errors: sms_live_status.php restarts a stalled worker while someone watches
 }
 
-// ── Mark job complete ─────────────────────────────────────────────────────────
-try {
-    $final_status = ($failed > 0 && $sent === 0) ? 'failed' : 'done';
-    $pdo->prepare(
-        "UPDATE sms_queue
-         SET status = ?, sent = ?, failed = ?, finished_at = NOW()
-         WHERE id = ?"
-    )->execute([$final_status, $sent, $failed, $job['id']]);
+$pdo->query("SELECT RELEASE_LOCK('caps_disaster_sms_worker')");
 
-    // ── Update sms_logs table (used by the Live SMS Status Panel) ────────────
-    if (!empty($job['alert_id'])) {
-        $pdo->prepare(
-            "UPDATE sms_logs
-             SET sent_count = ?, status = ?
-             WHERE AlertID = ?
-             ORDER BY LogID DESC
-             LIMIT 1"
-        )->execute([$sent, $final_status === 'done' ? 'Completed' : 'Failed', $job['alert_id']]);
-    }
-
-    error_log("SMS Worker: Job ID {$job['id']} finished. Sent: $sent | Failed: $failed | Status: $final_status");
-
-} catch (PDOException $e) {
-    error_log("SMS Worker: Final update error — " . $e->getMessage());
-}
-
-// ── Check if there are more pending jobs and self-trigger if so ──────────────
-try {
-    $more = $pdo->query("SELECT COUNT(*) FROM sms_queue WHERE status = 'pending'")->fetchColumn();
-    if ($more > 0) {
-        // Fire another worker instance for the next job (non-blocking)
-        // Build from this file's own URL (the old hard-coded path pointed to
-        // a non-existent "announcements" folder, so queued jobs never continued).
-        $worker_url = 'http://127.0.0.1' . str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '/CAPS/admin/announcement/backend/disaster_sms_worker.php');
-        $ch = curl_init($worker_url);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT        => 1,
-            CURLOPT_CONNECTTIMEOUT => 1,
-            CURLOPT_SSL_VERIFYPEER => false,
-        ]);
-        curl_exec($ch);
-        curl_close($ch);
-    }
-} catch (PDOException $e) {
-    // Non-critical — ignore
+// Long queue: continue in a fresh request so one PHP process never runs forever.
+if ($handOver && !$isCli) {
+    sleep(1);
+    sms_trigger_worker();
 }

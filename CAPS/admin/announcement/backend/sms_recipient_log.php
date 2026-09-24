@@ -30,34 +30,70 @@ if (!function_exists('sms_recipient_log_ensure')) {
         }
         $pdo->exec("
             CREATE TABLE IF NOT EXISTS sms_recipient_logs (
-                id             INT UNSIGNED NOT NULL AUTO_INCREMENT,
-                log_id         INT          DEFAULT NULL,
-                alert_id       INT          DEFAULT NULL,
-                resident_id    INT UNSIGNED DEFAULT NULL,
-                resident_name  VARCHAR(255) DEFAULT NULL,
-                area_label     VARCHAR(255) DEFAULT NULL,
-                contact_number VARCHAR(30)  DEFAULT NULL,
-                status         ENUM('sent','failed','invalid','no_number') NOT NULL,
-                detail         VARCHAR(255) DEFAULT NULL,
-                message_id     VARCHAR(100) DEFAULT NULL,
-                delivery       ENUM('pending','confirmed','failed') DEFAULT NULL,
-                checked_at     DATETIME     DEFAULT NULL,
-                created_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                id              INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                log_id          INT          DEFAULT NULL,
+                alert_id        INT          DEFAULT NULL,
+                resident_id     INT UNSIGNED DEFAULT NULL,
+                resident_name   VARCHAR(255) DEFAULT NULL,
+                area_label      VARCHAR(255) DEFAULT NULL,
+                contact_number  VARCHAR(30)  DEFAULT NULL,
+                status          ENUM('pending','processing','retry','sent','failed','invalid','no_number','cancelled') NOT NULL DEFAULT 'pending',
+                detail          VARCHAR(255) DEFAULT NULL,
+                message_id      VARCHAR(100) DEFAULT NULL,
+                delivery        ENUM('pending','confirmed','failed') DEFAULT NULL,
+                checked_at      DATETIME     DEFAULT NULL,
+                attempts        TINYINT UNSIGNED NOT NULL DEFAULT 0,
+                last_attempt_at DATETIME(3)  DEFAULT NULL,
+                next_attempt_at DATETIME     DEFAULT NULL,
+                sent_at         DATETIME     DEFAULT NULL,
+                created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 PRIMARY KEY (id),
-                KEY idx_srl_log (log_id),
+                UNIQUE KEY uq_srl_alert_resident (alert_id, resident_id),
+                KEY idx_srl_log_status (log_id, status),
+                KEY idx_srl_log_attempt (log_id, last_attempt_at),
                 KEY idx_srl_alert (alert_id)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         ");
-        // Tables created before delivery tracking existed
-        $have = $pdo->query("SHOW COLUMNS FROM sms_recipient_logs")->fetchAll(PDO::FETCH_COLUMN);
-        $add = [
+        // Tables created before delivery tracking / the SMS queue existed
+        $cols = [];
+        foreach ($pdo->query("SHOW COLUMNS FROM sms_recipient_logs")->fetchAll(PDO::FETCH_ASSOC) as $c) {
+            $cols[$c['Field']] = $c['Type'];
+        }
+        $alter = [];
+        if (isset($cols['status']) && strpos($cols['status'], "'processing'") === false) {
+            $alter[] = "MODIFY COLUMN status ENUM('pending','processing','retry','sent','failed','invalid','no_number','cancelled') NOT NULL DEFAULT 'pending'";
+        }
+        foreach ([
             'message_id' => "ADD COLUMN message_id VARCHAR(100) DEFAULT NULL",
             'delivery' => "ADD COLUMN delivery ENUM('pending','confirmed','failed') DEFAULT NULL",
             'checked_at' => "ADD COLUMN checked_at DATETIME DEFAULT NULL",
-        ];
-        $missing = array_diff_key($add, array_flip($have));
-        if ($missing) {
-            $pdo->exec("ALTER TABLE sms_recipient_logs " . implode(', ', $missing));
+            'attempts' => "ADD COLUMN attempts TINYINT UNSIGNED NOT NULL DEFAULT 0",
+            'last_attempt_at' => "ADD COLUMN last_attempt_at DATETIME(3) DEFAULT NULL",
+            'next_attempt_at' => "ADD COLUMN next_attempt_at DATETIME DEFAULT NULL",
+            'sent_at' => "ADD COLUMN sent_at DATETIME DEFAULT NULL",
+        ] as $col => $sql) {
+            if (!isset($cols[$col])) {
+                $alter[] = $sql;
+            }
+        }
+        if ($alter) {
+            $pdo->exec("ALTER TABLE sms_recipient_logs " . implode(', ', $alter));
+        }
+        $keys = array_unique(array_column($pdo->query("SHOW INDEX FROM sms_recipient_logs")->fetchAll(PDO::FETCH_ASSOC), 'Key_name'));
+        foreach ([
+            'idx_srl_log_status' => "ADD KEY idx_srl_log_status (log_id, status)",
+            'idx_srl_log_attempt' => "ADD KEY idx_srl_log_attempt (log_id, last_attempt_at)",
+            // Duplicate protection: one SMS per alert per resident, enforced by the database
+            'uq_srl_alert_resident' => "ADD UNIQUE KEY uq_srl_alert_resident (alert_id, resident_id)",
+        ] as $key => $sql) {
+            if (!in_array($key, $keys, true)) {
+                try {
+                    $pdo->exec("ALTER TABLE sms_recipient_logs " . $sql);
+                } catch (PDOException $e) {
+                    // e.g. old test data already holds duplicates — the queue still checks before inserting
+                    error_log('[sms_recipient_log] ' . $key . ': ' . $e->getMessage());
+                }
+            }
         }
         $done = true;
     }
@@ -133,9 +169,14 @@ if (!function_exists('sms_empty_totals')) {
      */
     function sms_empty_totals(): array
     {
-        return ['targeted' => 0, 'sent' => 0, 'confirmed' => 0, 'pending' => 0, 'failed' => 0, 'no_number' => 0];
+        return ['targeted' => 0, 'sent' => 0, 'confirmed' => 0, 'pending' => 0, 'failed' => 0, 'no_number' => 0,
+            'queued' => 0, 'processing' => 0, 'retry' => 0, 'cancelled' => 0];
     }
 
+    /**
+     * Queue states (not sent yet):  queued = pending + retry, processing, cancelled
+     * Result states:                sent (confirmed + pending), failed (+ invalid), no_number
+     */
     function sms_add_to_totals(array &$t, string $status, ?string $delivery, int $n = 1): void
     {
         $t['targeted'] += $n;
@@ -144,6 +185,15 @@ if (!function_exists('sms_empty_totals')) {
             $t[$delivery === 'confirmed' ? 'confirmed' : 'pending'] += $n;
         } elseif ($status === 'no_number') {
             $t['no_number'] += $n;
+        } elseif ($status === 'pending' || $status === 'retry') {
+            $t['queued'] += $n;
+            if ($status === 'retry') {
+                $t['retry'] += $n;
+            }
+        } elseif ($status === 'processing') {
+            $t['processing'] += $n;
+        } elseif ($status === 'cancelled') {
+            $t['cancelled'] += $n;
         } else {
             $t['failed'] += $n;
         }
@@ -218,6 +268,17 @@ if (!function_exists('sms_breakdown_detail')) {
             if ($r['checked_at'] && (!$lastChecked || $r['checked_at'] > $lastChecked)) {
                 $lastChecked = $r['checked_at'];
             }
+            if (in_array($r['status'], ['pending', 'retry', 'processing'], true)) {
+                $pendingRows[] = [
+                    'name' => $r['resident_name'],
+                    'area' => $area,
+                    'contact' => $r['contact_number'],
+                    'reason' => $r['status'] === 'processing' ? 'Sending now' : ($r['status'] === 'retry' ? 'Retrying' : 'In queue'),
+                    'detail' => $r['status'] === 'retry' ? $r['detail'] : 'Still in the SMS queue',
+                    'status' => 'pending',
+                ];
+                continue;
+            }
             if ($r['status'] === 'sent') {
                 if ($r['delivery'] !== 'confirmed') {
                     $pendingRows[] = [
@@ -243,8 +304,9 @@ if (!function_exists('sms_breakdown_detail')) {
                 'area' => $area,
                 'contact' => $r['contact_number'],
                 'reason' => $r['status'] === 'no_number' ? 'No contact number'
+                    : ($r['status'] === 'cancelled' ? 'Cancelled'
                     : ($r['status'] === 'invalid' ? 'Invalid number'
-                    : ($r['delivery'] === 'failed' ? 'Phone could not send' : 'Rejected by gateway')),
+                    : ($r['delivery'] === 'failed' ? 'Phone could not send' : 'Failed to send'))),
                 'detail' => $r['detail'],
                 'status' => $r['status'],
             ];

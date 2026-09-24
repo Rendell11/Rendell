@@ -165,6 +165,9 @@ $now_dt = date('Y-m-d H:i:s');
 $success = $_SESSION['ann_success'] ?? null;
 $error = $_SESSION['ann_error'] ?? null;
 unset($_SESSION['ann_success'], $_SESSION['ann_error']);
+// Just issued an alert with SMS → open "View SMS Live" for that broadcast
+$sms_live_open = (int) ($_SESSION['sms_live_open'] ?? 0);
+unset($_SESSION['sms_live_open']);
 
 try {
     // Fetch all non-deleted announcements including fb_post_id
@@ -516,7 +519,7 @@ try {
 }
 
 // Per-resident breakdown (targeted · sent · failed · no number) for each broadcast
-require_once __DIR__ . '/../backend/sms_recipient_log.php';
+require_once __DIR__ . '/../backend/sms_queue.php'; // also loads sms_recipient_log.php
 $sms_counts = sms_breakdown_counts($pdo, array_merge(array_column($logs, 'LogID'), array_column($sms_history, 'LogID')));
 
 // ── Active Disaster Alerts modal: summary + latest SMS result per alert ──────
@@ -612,7 +615,8 @@ if (!function_exists('render_sms_log_entry')) {
         ob_start();
         ?>
         <div class="rounded-[24px] border border-slate-100 p-6 bg-white" data-sms-log="<?= (int) ($log['LogID'] ?? 0) ?>"
-            data-checkable="<?= (int) ($bd['checkable'] ?? 0) ?>">
+            data-checkable="<?= (int) ($bd['checkable'] ?? 0) ?>"
+            data-sending="<?= $bd && ($bd['queued'] + $bd['processing']) > 0 ? 1 : 0 ?>">
             <div class="flex justify-between items-start mb-4 gap-3">
                 <div class="min-w-0">
                     <h4 class="text-xs font-black text-rose-600 uppercase tracking-widest"><?= $label ?></h4>
@@ -628,16 +632,25 @@ if (!function_exists('render_sms_log_entry')) {
                     <?php endif; ?>
                 </div>
             </div>
-            <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden mb-2">
-                <div class="h-full bar-fill transition-all duration-1000"
-                    style="width: <?= $progress ?>%; background: var(--accent-600);"></div>
-            </div>
-            <div class="flex justify-between text-[11px] font-bold uppercase">
-                <span class="text-slate-400"><?= $progress ?>% Accepted by gateway
-                    (<?= (int) $log['sent_count'] ?>/<?= (int) $log['total_recipients'] ?> with a number)</span>
-                <span style="color: var(--accent-600);" class="font-black"><?= htmlspecialchars($log['status']) ?></span>
-            </div>
-            <?php if ($bd): ?>
+            <?php if ($bd):
+                $bdTotal = $bd['targeted'] - $bd['no_number'];
+                $bdDone = $bd['sent'] + $bd['failed'] + $bd['cancelled'];
+                $bdPct = $bdTotal > 0 ? round($bdDone / $bdTotal * 100, 1) : 100;
+                $bdLive = ($bd['queued'] + $bd['processing']) > 0;
+                $bdState = $bdLive ? (in_array($log['status'], ['Queued'], true) ? 'Queued' : 'Sending…') : ($log['status'] ?: 'Completed');
+                ?>
+                <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden mb-2">
+                    <div class="h-full bar-fill transition-all duration-700" data-live="bar"
+                        style="width: <?= $bdPct ?>%; background: var(--accent-600);"></div>
+                </div>
+                <div class="flex justify-between text-[11px] font-bold uppercase gap-3">
+                    <span class="text-slate-400" data-live="progress"><?= $bdPct ?>% processed
+                        (<?= (int) $bdDone ?>/<?= (int) $bdTotal ?> with a number)</span>
+                    <span style="color: var(--accent-600);" class="font-black flex items-center gap-1" data-live="state">
+                        <?php if ($bdLive): ?><span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><?php endif; ?>
+                        <?= htmlspecialchars($bdState) ?>
+                    </span>
+                </div>
                 <!-- Accepted by the gateway, but the gateway phone could not send (e.g. SIM has no load) -->
                 <div class="sms-phone-fail mt-5 rounded-2xl border border-rose-100 bg-rose-50 p-4 flex gap-3 <?= $bd['phone_failed'] ? '' : 'hidden' ?>">
                     <span class="material-symbols-outlined text-rose-600">signal_cellular_connected_no_internet_0_bar</span>
@@ -650,25 +663,41 @@ if (!function_exists('render_sms_log_entry')) {
                 <p class="sms-check-status text-[10px] font-bold uppercase tracking-widest text-sky-600 mt-4 hidden"></p>
                 <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mt-4">
                     <?php foreach ([
-                        ['Targeted', $bd['targeted'], 'bg-white text-slate-800', 'Residents in the audience'],
-                        ['Confirmed sent', $bd['confirmed'], 'bg-emerald-50 text-emerald-700', ($bd['targeted'] ? round($bd['confirmed'] / $bd['targeted'] * 100) : 0) . '% of targeted'],
-                        ['Awaiting', $bd['pending'], 'bg-sky-50 text-sky-700', 'Accepted, not yet confirmed'],
-                        ['Failed', $bd['failed'], 'bg-rose-50 text-rose-700', $bd['phone_failed'] ? $bd['phone_failed'] . ' no load / phone failed' : 'Rejected / no load / invalid'],
-                        ['No number', $bd['no_number'], 'bg-amber-50 text-amber-700', 'No contact number'],
-                    ] as [$lbl, $num, $cls, $note]): ?>
-                        <div class="rounded-2xl border border-slate-100 p-4 <?= $cls ?>" data-card="<?= $lbl ?>">
+                        ['total', 'Total', $bdTotal, 'bg-white text-slate-800', $bd['targeted'] . ' in the audience'],
+                        ['sent', 'Sent', $bd['sent'], 'bg-emerald-50 text-emerald-700', $bd['confirmed'] . ' confirmed by phone'],
+                        ['pending', 'Pending', $bd['queued'] + $bd['processing'], 'bg-sky-50 text-sky-700', $bd['processing'] . ' sending · ' . $bd['retry'] . ' retrying'],
+                        ['failed', 'Failed', $bd['failed'], 'bg-rose-50 text-rose-700', $bd['phone_failed'] ? $bd['phone_failed'] . ' no load / phone failed' : 'Rejected / invalid no.'],
+                        ['no_number', 'No number', $bd['no_number'], 'bg-amber-50 text-amber-700', 'Not included in the send'],
+                    ] as [$key, $lbl, $num, $cls, $note]): ?>
+                        <div class="rounded-2xl border border-slate-100 p-4 <?= $cls ?>" data-card="<?= $key ?>">
                             <p class="text-[10px] font-bold uppercase tracking-widest opacity-70"><?= $lbl ?></p>
-                            <p class="text-2xl font-black mt-1" data-num><?= (int) $num ?></p>
-                            <p class="text-[10px] font-semibold opacity-70 mt-0.5" data-note><?= $note ?></p>
+                            <p class="text-2xl font-black mt-1" data-num><?= number_format((int) $num) ?></p>
+                            <p class="text-[10px] font-semibold opacity-70 mt-0.5" data-note><?= htmlspecialchars($note) ?></p>
                         </div>
                     <?php endforeach; ?>
                 </div>
-                <button type="button"
-                    onclick="openSmsBreakdown(<?= (int) $log['LogID'] ?>)"
-                    class="mt-4 w-full flex items-center justify-center gap-2 py-3 rounded-2xl border border-slate-200 text-xs font-black uppercase text-slate-500 hover:border-indigo-300 hover:text-indigo-600 transition-all">
-                    <span class="material-symbols-outlined" style="font-size:18px">table_view</span>
-                    <?= $bd['pending'] > 0 ? 'Check delivery &amp; view breakdown' : 'View breakdown by purok / area' ?>
-                </button>
+                <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <button type="button" onclick="openSmsMonitor(<?= (int) $log['LogID'] ?>)"
+                        class="flex items-center justify-center gap-2 py-3 rounded-2xl text-white text-xs font-black uppercase btn-accent shadow-sm active:scale-95 transition-all">
+                        <span class="material-symbols-outlined" style="font-size:18px">monitoring</span>
+                        View SMS Live
+                    </button>
+                    <button type="button" onclick="openSmsBreakdown(<?= (int) $log['LogID'] ?>)"
+                        class="flex items-center justify-center gap-2 py-3 rounded-2xl border border-slate-200 text-xs font-black uppercase text-slate-500 hover:border-indigo-300 hover:text-indigo-600 transition-all">
+                        <span class="material-symbols-outlined" style="font-size:18px">table_view</span>
+                        Breakdown by purok / area
+                    </button>
+                </div>
+            <?php else: ?>
+                <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden mb-2">
+                    <div class="h-full bar-fill transition-all duration-1000"
+                        style="width: <?= $progress ?>%; background: var(--accent-600);"></div>
+                </div>
+                <div class="flex justify-between text-[11px] font-bold uppercase">
+                    <span class="text-slate-400"><?= $progress ?>% Accepted by gateway
+                        (<?= (int) $log['sent_count'] ?>/<?= (int) $log['total_recipients'] ?> with a number)</span>
+                    <span style="color: var(--accent-600);" class="font-black"><?= htmlspecialchars($log['status']) ?></span>
+                </div>
             <?php endif; ?>
         </div>
         <?php
@@ -774,6 +803,7 @@ try {
     <?php include __DIR__ . '/../../theme_head.php'; ?>
     <script>
         const CSRF_TOKEN = '<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8'); ?>';
+        const SMS_LIVE_OPEN = <?php echo (int) $sms_live_open; ?>;
 
         // Barangay identity + signatories pulled from the database (barangay_profile / officials).
         // Used by the disaster report printout and the PDF so both stay in sync with settings.
@@ -2021,8 +2051,11 @@ try {
                 </button>
             </div>
 
-            <form action="../backend/process_disaster.php" method="POST" class="px-10 py-8 space-y-5">
+            <form action="../backend/process_disaster.php" method="POST" class="px-10 py-8 space-y-5" id="issueAlertForm"
+                onsubmit="return lockIssueAlertForm(this)">
                 <input type="hidden" name="action" value="create">
+                <!-- one-time token: a double click / resubmit can never issue (and SMS) the same alert twice -->
+                <input type="hidden" name="issue_token" value="<?php echo bin2hex(random_bytes(16)); ?>">
                 <?php echo csrf_token(); ?>
 
                 <!-- Notification Channels -->
@@ -2190,8 +2223,8 @@ try {
                         class="w-full bg-slate-100 border-none rounded-xl py-3 px-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-primary/20 placeholder:text-slate-300  resize-none"></textarea>
                 </div>
 
-                <button type="submit"
-                    class="w-full py-3.5 btn-accent text-white text-xs font-black uppercase rounded-2xl shadow-lg active:scale-95 transition-all mt-4 flex items-center justify-center gap-3">
+                <button type="submit" id="issueAlertSubmit"
+                    class="w-full py-3.5 btn-accent text-white text-xs font-black uppercase rounded-2xl shadow-lg active:scale-95 transition-all mt-4 flex items-center justify-center gap-3 disabled:opacity-60 disabled:cursor-wait">
                     <span class="material-symbols-outlined !text-lg">campaign</span> Issue Alert Now
                 </button>
             </form>
@@ -2457,7 +2490,7 @@ try {
 
 
     <!-- ── SMS Breakdown Modal (per purok / area + residents not reached) ──────────── -->
-    <div id="smsBreakdownModal" class="fixed inset-0 z-[110] hidden bg-slate-900/80 flex items-center justify-center p-4">
+    <div id="smsBreakdownModal" class="fixed inset-0 z-[120] hidden bg-slate-900/80 flex items-center justify-center p-4">
         <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-3xl overflow-hidden max-h-[92vh] flex flex-col">
             <div class="px-8 md:px-10 pt-8 md:pt-10 pb-6 flex items-start justify-between border-b border-slate-100 flex-shrink-0">
                 <div class="min-w-0">
@@ -2471,6 +2504,29 @@ try {
                 </button>
             </div>
             <div class="px-8 md:px-10 py-6 overflow-y-auto space-y-6" id="sbd_body">
+                <div class="py-10 flex justify-center"><div class="w-6 h-6 border-4 border-slate-200 border-t-slate-500 rounded-full animate-spin"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── View SMS Live: real-time monitor of one disaster SMS broadcast ─────────── -->
+    <div id="smsMonitorModal" class="fixed inset-0 z-[110] hidden bg-slate-900/80 flex items-center justify-center p-4">
+        <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-5xl overflow-hidden max-h-[94vh] flex flex-col">
+            <div class="px-8 md:px-10 pt-8 md:pt-10 pb-6 flex items-start justify-between border-b border-slate-100 flex-shrink-0 gap-4">
+                <div class="min-w-0">
+                    <p class="text-xs text-primary font-bold uppercase tracking-widest mb-1" id="smm_kicker">Disaster Alert SMS Status</p>
+                    <h3 class="text-2xl font-black tracking-tight text-slate-900 leading-tight truncate" id="smm_title">—</h3>
+                    <p class="text-xs text-slate-400 font-semibold mt-1" id="smm_meta">—</p>
+                </div>
+                <div class="flex items-center gap-3 shrink-0">
+                    <span id="smm_state" class="px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-slate-100 text-slate-500 flex items-center gap-1.5">—</span>
+                    <button onclick="closeSmsMonitor()"
+                        class="p-2 hover:bg-orange-50 rounded-full text-slate-400 hover:text-primary transition-colors">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+            </div>
+            <div class="px-8 md:px-10 py-6 overflow-y-auto space-y-6" id="smm_body">
                 <div class="py-10 flex justify-center"><div class="w-6 h-6 border-4 border-slate-200 border-t-slate-500 rounded-full animate-spin"></div></div>
             </div>
         </div>
@@ -2674,7 +2730,7 @@ try {
         // ─── Issue Alert Modal (moved from Disaster module) ───────────────────────────
         function openModal(id) {
             document.getElementById(id).classList.remove('hidden');
-            if (id === 'smsLiveModal') refreshSmsLiveDelivery();
+            if (id === 'smsLiveModal') { refreshSmsLiveDelivery(); startSmsCardPolling(); }
         }
 
         // SMS Live: ask the gateway whether accepted SMS were really sent by the gateway phone,
@@ -2700,33 +2756,308 @@ try {
             smsLiveChecking = false;
         }
 
-        function updateSmsLiveCard(c, d) {
-            const t = d.totals;
-            const set = (lbl, n, note) => {
-                const card = c.querySelector(`[data-card="${lbl}"]`);
+        // Puts fresh counters on an SMS Live card (from the delivery check or the live poll)
+        function applySmsCardCounts(c, t, extra = {}) {
+            const total = t.total ?? (t.targeted - t.no_number);
+            const done = t.done ?? (t.sent + t.failed + (t.cancelled || 0));
+            const pct = total > 0 ? Math.round(done / total * 1000) / 10 : 100;
+            const phoneFailed = extra.phone_failed ?? t.phone_failed ?? 0;
+            const nf = n => Number(n || 0).toLocaleString('en-US');
+            const set = (key, n, note) => {
+                const card = c.querySelector(`[data-card="${key}"]`);
                 if (!card) return;
-                card.querySelector('[data-num]').textContent = n;
-                if (note) card.querySelector('[data-note]').textContent = note;
+                card.querySelector('[data-num]').textContent = nf(n);
+                if (note != null) card.querySelector('[data-note]').textContent = note;
             };
-            set('Targeted', t.targeted);
-            set('Confirmed sent', t.confirmed, (t.targeted ? Math.round(t.confirmed / t.targeted * 100) : 0) + '% of targeted');
-            set('Awaiting', t.pending);
-            set('Failed', t.failed, d.phone_failed ? d.phone_failed + ' no load / phone failed' : null);
-            set('No number', t.no_number);
+            set('total', total, nf(t.targeted) + ' in the audience');
+            set('sent', t.sent, nf(t.confirmed) + ' confirmed by phone');
+            set('pending', (t.queued || 0) + (t.processing || 0), nf(t.processing) + ' sending · ' + nf(t.retry) + ' retrying');
+            set('failed', t.failed, phoneFailed ? phoneFailed + ' no load / phone failed' : 'Rejected / invalid no.');
+            set('no_number', t.no_number);
+            const bar = c.querySelector('[data-live="bar"]');
+            if (bar) bar.style.width = pct + '%';
+            const prog = c.querySelector('[data-live="progress"]');
+            if (prog) prog.textContent = `${pct}% processed (${nf(done)}/${nf(total)} with a number)`;
+            const sending = ((t.queued || 0) + (t.processing || 0)) > 0;
+            c.dataset.sending = sending ? 1 : 0;
+            const st = c.querySelector('[data-live="state"]');
+            if (st && extra.state_label) {
+                st.innerHTML = (sending ? '<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>' : '') + sbdEsc(extra.state_label);
+            }
             const warn = c.querySelector('.sms-phone-fail');
             if (warn) {
-                warn.classList.toggle('hidden', !d.phone_failed);
-                warn.querySelector('[data-k="phone_failed"]').textContent = d.phone_failed;
-                warn.querySelector('[data-k="phone_reason"]').textContent = d.phone_reason || '';
+                warn.classList.toggle('hidden', !phoneFailed);
+                warn.querySelector('[data-k="phone_failed"]').textContent = phoneFailed;
+                if (extra.phone_reason != null) warn.querySelector('[data-k="phone_reason"]').textContent = extra.phone_reason || '';
             }
+        }
+
+        function updateSmsLiveCard(c, d) {
+            applySmsCardCounts(c, d.totals, { phone_failed: d.phone_failed, phone_reason: d.phone_reason });
             c.dataset.checkable = d.checkable;
             const s = c.querySelector('.sms-check-status');
             if (s) {
                 if (d.check && d.check.error) s.textContent = d.check.error;
-                else if (t.pending > 0) s.textContent = t.pending + ' still waiting for the gateway phone — reopen SMS Live to check again';
+                else if (d.totals.pending > 0 && !+c.dataset.sending) s.textContent = d.totals.pending + ' still waiting for the gateway phone — reopen SMS Live to check again';
                 else s.classList.add('hidden');
             }
         }
+
+        // ── Live polling of the SMS Live cards while the modal is open ─────────
+        const SMS_STATE_LABEL = { queued: 'Queued', sending: 'Sending…', completed: 'Completed', cancelled: 'Cancelled' };
+        let smsCardTimer = null, smsCardBusy = false;
+        function startSmsCardPolling() {
+            clearInterval(smsCardTimer);
+            smsCardTimer = setInterval(pollSmsCards, 2000);
+            pollSmsCards();
+        }
+        async function pollSmsCards() {
+            if (document.getElementById('smsLiveModal').classList.contains('hidden')) { clearInterval(smsCardTimer); return; }
+            const ids = [...new Set([...document.querySelectorAll('[data-sms-log][data-sending="1"]')].map(el => el.dataset.smsLog))];
+            if (!ids.length || smsCardBusy) return;
+            smsCardBusy = true;
+            try {
+                const res = await fetch('../backend/sms_live_status.php?log_ids=' + ids.join(','), { headers: { Accept: 'application/json' } });
+                const d = await res.json();
+                if (!d.success) return;
+                let finished = false;
+                for (const [id, l] of Object.entries(d.logs)) {
+                    document.querySelectorAll(`[data-sms-log="${id}"]`).forEach(c => {
+                        applySmsCardCounts(c, l.counts, { state_label: l.state === 'completed' ? (l.log_status || 'Completed') : SMS_STATE_LABEL[l.state] });
+                        if (l.state !== 'queued' && l.state !== 'sending' && l.counts.pending > 0) { c.dataset.checkable = l.counts.pending; finished = true; }
+                    });
+                }
+                // sending just finished → ask the gateway which SMS the phone really sent (no load…)
+                if (finished) setTimeout(refreshSmsLiveDelivery, 3000);
+            } catch (e) { /* keep polling */ } finally { smsCardBusy = false; }
+        }
+
+        // ── View SMS Live (per-broadcast monitor) ─────────────────────────────
+        const smm = { logId: null, timer: null, busy: false, filter: '', page: 1, last: null };
+        const SMM_STATUS = {
+            pending: ['Pending', 'bg-slate-100 text-slate-500 border-slate-200'],
+            processing: ['Processing', 'bg-sky-50 text-sky-700 border-sky-100'],
+            retry: ['Retry', 'bg-amber-50 text-amber-700 border-amber-100'],
+            sent: ['Sent', 'bg-emerald-50 text-emerald-700 border-emerald-100'],
+            failed: ['Failed', 'bg-rose-50 text-rose-600 border-rose-100'],
+            invalid: ['Failed', 'bg-rose-50 text-rose-600 border-rose-100'],
+            no_number: ['No number', 'bg-amber-50 text-amber-700 border-amber-100'],
+            cancelled: ['Cancelled', 'bg-slate-100 text-slate-400 border-slate-200'],
+        };
+        const smmFmtDate = v => v ? new Date(String(v).replace(' ', 'T')).toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—';
+        const smmFmtTime = v => v ? new Date(String(v).replace(' ', 'T')).toLocaleTimeString('en-US', { hour12: false }) : '';
+        function smmAgo(v, now) {
+            if (!v) return '—';
+            const s = Math.max(0, Math.round((new Date(String(now).replace(' ', 'T')) - new Date(String(v).replace(' ', 'T'))) / 1000));
+            return s < 5 ? 'Just now' : s < 60 ? s + 's ago' : s < 3600 ? Math.floor(s / 60) + 'm ago' : Math.floor(s / 3600) + 'h ago';
+        }
+
+        function openSmsMonitor(logId) {
+            smm.logId = logId; smm.filter = ''; smm.page = 1; smm.last = null;
+            document.getElementById('smm_title').textContent = '—';
+            document.getElementById('smm_meta').textContent = '—';
+            document.getElementById('smm_body').innerHTML = '<div class="py-10 flex justify-center"><div class="w-6 h-6 border-4 border-slate-200 border-t-slate-500 rounded-full animate-spin"></div></div>';
+            openModal('smsMonitorModal');
+            clearInterval(smm.timer);
+            smm.timer = setInterval(pollSmsMonitor, 2000);
+            pollSmsMonitor();
+        }
+        function closeSmsMonitor() {
+            clearInterval(smm.timer); smm.timer = null; smm.logId = null;
+            closeModal('smsMonitorModal');
+        }
+        function smmFilter(f) { smm.filter = f; smm.page = 1; pollSmsMonitor(true); }
+        function smmPage(p) { smm.page = p; pollSmsMonitor(true); }
+
+        async function pollSmsMonitor(force = false) {
+            if (!smm.logId || (smm.busy && !force)) return;
+            if (document.getElementById('smsMonitorModal').classList.contains('hidden')) { closeSmsMonitor(); return; }
+            smm.busy = true;
+            const logId = smm.logId;
+            try {
+                const q = new URLSearchParams({ log_id: logId, filter: smm.filter, page: smm.page });
+                const res = await fetch('../backend/sms_live_status.php?' + q, { headers: { Accept: 'application/json' } });
+                const d = await res.json();
+                if (logId !== smm.logId) return;
+                if (!d.success) throw new Error(d.error || 'Could not load the SMS status.');
+                renderSmsMonitor(d);
+                // mirror onto the SMS Live card behind the modal
+                document.querySelectorAll(`[data-sms-log="${logId}"]`).forEach(c =>
+                    applySmsCardCounts(c, d.counts, { state_label: d.state === 'completed' ? (d.log.log_status || 'Completed') : SMS_STATE_LABEL[d.state] }));
+                if (d.state === 'completed' || d.state === 'cancelled') { clearInterval(smm.timer); smm.timer = null; }
+                else if (!smm.timer) { smm.timer = setInterval(pollSmsMonitor, 2000); }
+            } catch (err) {
+                if (!smm.last) document.getElementById('smm_body').innerHTML = `<div class="py-8 text-center text-sm font-bold text-rose-600">${sbdEsc(err.message)}</div>`;
+            } finally { smm.busy = false; }
+        }
+
+        async function cancelSmsBroadcast() {
+            if (!smm.logId || !confirm('Stop sending the remaining SMS for this alert? Messages already sent are not affected.')) return;
+            try {
+                const res = await fetch('../backend/sms_cancel.php', { method: 'POST', headers: { Accept: 'application/json' }, body: new URLSearchParams({ log_id: smm.logId, csrf_token: CSRF_TOKEN }) });
+                const d = await res.json();
+                showToast(d.success ? 'success' : 'error', d.message || d.error);
+                pollSmsMonitor(true);
+            } catch (e) { showToast('error', 'Could not cancel the SMS broadcast.'); }
+        }
+
+        function renderSmsMonitor(d) {
+            smm.last = d;
+            const c = d.counts, l = d.log, nf = n => Number(n || 0).toLocaleString('en-US');
+            document.getElementById('smm_kicker').textContent = 'Disaster Alert SMS Status · Disaster #' + l.alert_id + (l.type ? ' · ' + l.type : '');
+            document.getElementById('smm_title').textContent = l.title || 'Disaster alert';
+            document.getElementById('smm_meta').textContent = 'Queued ' + smmFmtDate(l.created_at) + (l.started_at ? ' · Started ' + smmFmtTime(l.started_at) : '');
+
+            const pill = document.getElementById('smm_state');
+            const pills = {
+                queued: ['Queued', 'bg-slate-100 text-slate-500', 'schedule'],
+                sending: ['Sending…', 'bg-sky-50 text-sky-700', null],
+                completed: ['Completed', 'bg-emerald-50 text-emerald-700', 'task_alt'],
+                cancelled: ['Cancelled', 'bg-slate-100 text-slate-500', 'block'],
+            };
+            const [pl, pc, pi] = pills[d.state] || pills.completed;
+            pill.className = 'px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 ' + pc;
+            pill.innerHTML = (pi ? `<span class="material-symbols-outlined" style="font-size:14px">${pi}</span>` : '<span class="w-2 h-2 rounded-full bg-sky-500 animate-pulse"></span>') + pl;
+
+            const tile = (label, n, cls, note) => `
+                <div class="rounded-2xl border border-slate-100 p-4 ${cls}">
+                    <p class="text-[10px] font-bold uppercase tracking-widest opacity-70">${label}</p>
+                    <p class="text-2xl font-black mt-1">${nf(n)}</p>
+                    <p class="text-[10px] font-semibold opacity-70 mt-0.5">${note}</p>
+                </div>`;
+            const current = d.state === 'queued' ? 'Waiting for the SMS worker to start…'
+                : d.state === 'sending' ? (c.processing ? 'Sending SMS…' : (c.retry ? 'Waiting to retry ' + nf(c.retry) + ' SMS…' : 'Sending SMS…'))
+                : d.state === 'cancelled' ? 'Stopped by an administrator' : 'All SMS processed';
+            const lastUpdate = d.activity.length ? d.activity[0].time : (l.finished_at || l.created_at);
+
+            const doneBox = (d.state === 'completed' || d.state === 'cancelled') ? `
+                <div class="rounded-2xl border ${d.state === 'completed' ? 'border-emerald-100 bg-emerald-50 text-emerald-800' : 'border-slate-200 bg-slate-50 text-slate-700'} p-5 flex flex-col md:flex-row md:items-center gap-4">
+                    <span class="material-symbols-outlined text-3xl">${d.state === 'completed' ? 'task_alt' : 'block'}</span>
+                    <div class="flex-1">
+                        <p class="text-sm font-black uppercase tracking-wide">${d.state === 'completed' ? 'SMS sending complete' : 'SMS sending cancelled'}</p>
+                        <p class="text-xs font-semibold opacity-80 mt-0.5">Total recipients: <b>${nf(c.total)}</b> · Sent: <b>${nf(c.sent)}</b> · Failed: <b>${nf(c.failed)}</b>${c.cancelled ? ' · Cancelled: <b>' + nf(c.cancelled) + '</b>' : ''} · Completed: <b>${smmFmtDate(l.finished_at || lastUpdate)}</b></p>
+                    </div>
+                </div>` : '';
+            const errBox = l.job_error && d.state !== 'completed' ? `<div class="rounded-2xl border border-rose-100 bg-rose-50 p-4 text-xs font-bold text-rose-700">${sbdEsc(l.job_error)}</div>` : '';
+            const loadBox = c.phone_failed ? `
+                <div class="rounded-2xl border border-rose-100 bg-rose-50 p-4 flex gap-3">
+                    <span class="material-symbols-outlined text-rose-600">signal_cellular_connected_no_internet_0_bar</span>
+                    <p class="text-xs text-rose-700 font-semibold"><b>${nf(c.phone_failed)} SMS failed on the gateway phone</b> after the gateway accepted them — possibly no load / promo or no signal on the gateway SIM.</p>
+                </div>` : '';
+
+            const act = d.activity.map(a => {
+                const icon = { sent: ['check_circle', 'text-emerald-600'], failed: ['error', 'text-rose-600'], invalid: ['error', 'text-rose-600'], retry: ['replay', 'text-amber-600'], processing: ['sync', 'text-sky-600'], cancelled: ['block', 'text-slate-400'] }[a.status] || ['radio_button_unchecked', 'text-slate-400'];
+                const text = { sent: 'SMS sent to ', failed: 'SMS failed for ', invalid: 'Invalid number for ', retry: 'Retrying ', processing: 'Sending to ', cancelled: 'Cancelled for ' }[a.status] || '';
+                return `<li class="flex gap-3 py-2">
+                    <span class="text-[11px] font-mono font-bold text-slate-400 w-16 shrink-0 pt-0.5">${smmFmtTime(a.time)}</span>
+                    <span class="material-symbols-outlined ${icon[1]} shrink-0" style="font-size:16px">${icon[0]}</span>
+                    <div class="min-w-0"><p class="text-xs font-bold text-slate-700 truncate">${text}${sbdEsc(a.name)}</p>
+                    ${a.detail ? `<p class="text-[10px] text-slate-400 font-semibold truncate">${sbdEsc(a.detail)}</p>` : ''}</div>
+                </li>`;
+            }).join('');
+
+            const chips = [['', 'All', c.targeted], ['pending', 'Pending', c.queued - c.retry], ['processing', 'Processing', c.processing], ['sent', 'Sent', c.sent],
+                ['retry', 'Retry', c.retry], ['failed', 'Failed', c.failed], ['no_number', 'No number', c.no_number]]
+                .concat(c.cancelled ? [['cancelled', 'Cancelled', c.cancelled]] : [])
+                .map(([k, lbl, n]) => `<button type="button" onclick="smmFilter('${k}')" class="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-all ${smm.filter === k ? 'btn-accent text-white border-transparent' : 'border-slate-200 text-slate-500 hover:border-slate-300'}">${lbl} <span class="opacity-70">${nf(n)}</span></button>`).join('');
+            const rows = d.recipients.map(r => {
+                const [lbl, cls] = SMM_STATUS[r.status] || [r.status, ''];
+                return `<tr class="hover:bg-slate-50/50">
+                    <td class="px-5 py-2.5"><p class="text-xs font-bold text-slate-700">${sbdEsc(r.name)}</p><p class="text-[10px] text-slate-400 font-semibold">${sbdEsc(r.area || '')}</p></td>
+                    <td class="px-4 py-2.5 text-xs text-slate-500 font-mono">${sbdEsc(r.mobile)}</td>
+                    <td class="px-5 py-2.5"><span class="px-2 py-0.5 text-[9px] font-bold rounded-md uppercase border ${cls}">${lbl}</span>
+                        ${r.attempts > 1 ? `<span class="text-[9px] font-bold text-slate-400 ml-1">${r.attempts} tries</span>` : ''}
+                        ${r.status === 'sent' && r.delivery === 'confirmed' ? '<span class="text-[9px] font-bold text-emerald-600 ml-1">✓ phone</span>' : ''}
+                        ${r.detail ? `<p class="text-[10px] text-slate-400 font-semibold mt-1">${sbdEsc(r.detail)}</p>` : ''}</td>
+                </tr>`;
+            }).join('');
+            const pager = d.pages > 1 ? `<div class="flex items-center justify-between px-5 py-3 border-t border-slate-100 text-[10px] font-bold uppercase text-slate-400">
+                    <span>Page ${d.page} of ${d.pages} · ${nf(d.rows_total)} residents</span>
+                    <div class="flex gap-2">
+                        <button type="button" ${d.page <= 1 ? 'disabled' : ''} onclick="smmPage(${d.page - 1})" class="px-3 py-1.5 rounded-lg border border-slate-200 disabled:opacity-40">Prev</button>
+                        <button type="button" ${d.page >= d.pages ? 'disabled' : ''} onclick="smmPage(${d.page + 1})" class="px-3 py-1.5 rounded-lg border border-slate-200 disabled:opacity-40">Next</button>
+                    </div></div>` : '';
+
+            // keep the scroll position of the lists while re-rendering every 2s
+            const body = document.getElementById('smm_body');
+            const keep = { body: body.scrollTop, act: (body.querySelector('#smm_act') || {}).scrollTop || 0, tbl: (body.querySelector('#smm_tbl') || {}).scrollTop || 0 };
+
+            body.innerHTML = `
+                ${doneBox}${errBox}${loadBox}
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                    ${tile('Total', c.total, 'bg-white text-slate-800', nf(c.no_number) + ' without a number not included')}
+                    ${tile('Sent', c.sent, 'bg-emerald-50 text-emerald-700', nf(c.confirmed) + ' confirmed by phone')}
+                    ${tile('Pending', c.queued, 'bg-slate-50 text-slate-700', nf(c.retry) + ' waiting to retry')}
+                    ${tile('Processing', c.processing, 'bg-sky-50 text-sky-700', 'Being sent right now')}
+                    ${tile('Failed', c.failed, 'bg-rose-50 text-rose-700', c.phone_failed ? nf(c.phone_failed) + ' no load / phone failed' : 'Rejected, invalid, or ' + <?php echo (int) SMS_MAX_ATTEMPTS; ?> + ' tries used')}
+                </div>
+                <div>
+                    <div class="flex items-end justify-between mb-2">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Progress</p>
+                        <p class="text-2xl font-black text-slate-800">${c.progress}%</p>
+                    </div>
+                    <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden flex">
+                        <div class="h-full bg-emerald-500 transition-all duration-700" style="width:${c.total ? c.sent / c.total * 100 : 0}%"></div>
+                        <div class="h-full bg-rose-400 transition-all duration-700" style="width:${c.total ? (c.failed + c.cancelled) / c.total * 100 : 0}%"></div>
+                    </div>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase mt-2">${nf(c.sent)} sent + ${nf(c.failed + c.cancelled)} failed/cancelled of ${nf(c.total)} · ${nf(c.queued + c.processing)} remaining</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div class="rounded-2xl border border-slate-100 p-4"><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Current status</p>
+                        <p class="text-sm font-black text-slate-800 mt-1">${current}</p></div>
+                    <div class="rounded-2xl border border-slate-100 p-4"><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Last sent</p>
+                        <p class="text-sm font-black text-slate-800 mt-1 truncate">${d.last_sent ? sbdEsc(d.last_sent.name) : '—'}</p>
+                        <p class="text-[11px] font-mono font-bold text-slate-400">${d.last_sent ? sbdEsc(d.last_sent.mobile) : ''}</p></div>
+                    <div class="rounded-2xl border border-slate-100 p-4"><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Last update</p>
+                        <p class="text-sm font-black text-slate-800 mt-1">${smmAgo(lastUpdate, d.server_time)}</p>
+                        <p class="text-[11px] font-bold text-slate-400">${smmFmtTime(lastUpdate)}</p></div>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
+                    <div class="lg:col-span-2">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Live activity</p>
+                        <div class="rounded-2xl border border-slate-100 px-4 max-h-80 overflow-y-auto" id="smm_act">
+                            <ul class="divide-y divide-slate-50">${act || '<li class="py-6 text-center text-xs font-semibold text-slate-400">No SMS sent yet.</li>'}</ul>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-3">
+                        <div class="flex flex-wrap gap-2 mb-2">${chips}</div>
+                        <div class="rounded-2xl border border-slate-100 overflow-hidden">
+                            <div class="max-h-80 overflow-y-auto" id="smm_tbl"><table class="w-full text-left">
+                                <thead class="sticky top-0"><tr class="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                    <th class="px-5 py-3">Resident</th><th class="px-4 py-3">Mobile</th><th class="px-5 py-3">Status</th></tr></thead>
+                                <tbody class="divide-y divide-slate-50">${rows || '<tr><td colspan="3" class="px-5 py-6 text-center text-xs text-slate-400">No residents in this list.</td></tr>'}</tbody>
+                            </table></div>
+                            ${pager}
+                        </div>
+                    </div>
+                </div>
+                <div class="flex flex-col md:flex-row gap-3 pt-2">
+                    ${d.can_cancel ? `<button type="button" onclick="cancelSmsBroadcast()" class="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl border border-rose-200 text-rose-600 text-xs font-black uppercase hover:bg-rose-50 transition-all"><span class="material-symbols-outlined" style="font-size:18px">block</span>Cancel remaining SMS</button>` : ''}
+                    <button type="button" onclick="openSmsBreakdown(${l.log_id})" class="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl border border-slate-200 text-slate-500 text-xs font-black uppercase hover:border-indigo-300 hover:text-indigo-600 transition-all"><span class="material-symbols-outlined" style="font-size:18px">table_view</span>Breakdown by purok / area</button>
+                </div>`;
+            body.scrollTop = keep.body;
+            const actEl = body.querySelector('#smm_act'), tblEl = body.querySelector('#smm_tbl');
+            if (actEl) actEl.scrollTop = keep.act;
+            if (tblEl) tblEl.scrollTop = keep.tbl;
+        }
+
+        function lockIssueAlertForm(form) {
+            if (form.dataset.submitting === '1') return false; // second click → ignored
+            form.dataset.submitting = '1';
+            const btn = document.getElementById('issueAlertSubmit');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="material-symbols-outlined animate-spin !text-lg">progress_activity</span> Issuing alert…';
+            }
+            return true;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (SMS_LIVE_OPEN) {
+                openModal('smsLiveModal');
+                openSmsMonitor(SMS_LIVE_OPEN);
+            }
+        });
 
         // "New Announcement" button — the create form is its own page (new_ann.php),
         // the same way Edit opens edit_ann.php. This function was referenced by the

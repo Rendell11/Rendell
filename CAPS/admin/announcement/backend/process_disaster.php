@@ -12,6 +12,8 @@ require_once __DIR__ . '/../../auth_check.php';
 require_once __DIR__ . '/csrf_helper.php';
 require_once __DIR__ . '/../../activity_log_helper.php';
 require_once __DIR__ . '/sms_recipient_log.php';
+require_once __DIR__ . '/sms_queue.php';
+require_once __DIR__ . '/../../permission_helper.php';
 if ($_SERVER['REQUEST_METHOD'] === 'POST')
     csrf_verify();
 
@@ -459,6 +461,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
     // ─── ACTION: CREATE ALERT ─────────────────────────────────────────────────
     if ($_POST['action'] === 'create') {
+        require_permission($pdo, 'announcements', 'create');
+
+        // Double-click / resubmit protection: each Issue Alert form carries a one-time token.
+        // The session is locked per request, so a second identical POST waits for the first
+        // one and then finds its token already used → no second alert, no second SMS blast.
+        $issueToken = preg_replace('/[^a-f0-9]/', '', (string) ($_POST['issue_token'] ?? ''));
+        if ($issueToken !== '') {
+            $_SESSION['issued_alert_tokens'] = array_slice($_SESSION['issued_alert_tokens'] ?? [], -50, null, true);
+            if (isset($_SESSION['issued_alert_tokens'][$issueToken])) {
+                $_SESSION['ann_success'] = 'This disaster alert was already issued — it was not sent again.';
+                if (!empty($_SESSION['issued_alert_tokens'][$issueToken]['log_id'])) {
+                    $_SESSION['sms_live_open'] = (int) $_SESSION['issued_alert_tokens'][$issueToken]['log_id'];
+                }
+                header("Location: ../frontend/ann.php");
+                exit();
+            }
+        }
+
         $type = $_POST['type'] ?? '';
         $severity = $_POST['severity'] ?? '';
         $title = $_POST['title'] ?? '';
@@ -529,8 +549,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 // Push notification logic preserved as-is
             }
 
-            // ── SMS NOTIFICATION ──────────────────────────────────────────────
-            $sms_notice = ' and the SMS was accepted by the gateway — see SMS Live to confirm it was really sent.';
+            // ── SMS NOTIFICATION (queued — sent in the background) ────────────
+            // Nothing is sent inside this request: the recipients are queued and
+            // disaster_sms_worker.php sends them after the admin is redirected.
+            $sms_notice = '';
+            $queuedLogId = 0;
             if ($notify_sms) {
                 $audience = $_POST['sms_audience'] ?? 'all';
                 $selected_streets = $_POST['selected_streets'] ?? [];
@@ -549,18 +572,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $hazard_lng
                 );
 
-                // For radius audience, use geo targeting; else use existing logic
-                $residents = getSMSRecipients(
-                    $pdo,
-                    $audience,
-                    $selected_streets,
-                    $selected_areas,
-                    $selected_groups,
-                    $hazard_lat,
-                    $hazard_lng,
-                    $hazard_radius
-                );
-
                 // Everyone in the chosen audience, INCLUDING residents without a number,
                 // so SMS Live can show e.g. "30 targeted · 20 sent · 10 no number".
                 $targeted = getSMSRecipients(
@@ -574,38 +585,63 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $hazard_radius,
                     true
                 );
-                $noNumber = max(0, count($targeted) - count($residents));
-                $noNumberNote = $noNumber > 0
-                    ? " {$noNumber} targeted resident(s) have no contact number — see SMS Live → View breakdown."
-                    : '';
 
-                if (!getActiveSMSConfig($pdo)) {
-                    $sms_notice = ' The alert was saved, but no SMS was sent because there is no active SMS configuration.';
-                } elseif (empty($residents)) {
-                    $sms_notice = ' The alert was saved, but no SMS was sent because none of the ' . count($targeted)
-                        . ' targeted resident(s) has a valid contact number.';
-                    if ($targeted) {
-                        $logId = logDisasterSMS($pdo, $new_alert_id, 0, 0);
-                        sms_log_recipients($pdo, $new_alert_id, $logId, $targeted, []);
+                try {
+                    if (!sms_active_config($pdo)) {
+                        $sms_notice = ' The alert was saved, but no SMS was sent because there is no active SMS configuration.';
+                        if ($targeted) {
+                            // still record who was targeted (all rows end as failed / no number)
+                            $q = sms_enqueue_broadcast($pdo, (int) $new_alert_id, $sms_message, $targeted, (string) ($_SESSION['username'] ?? ''));
+                            $queuedLogId = $q['log_id'];
+                        }
+                    } elseif (!$targeted) {
+                        $sms_notice = ' No residents matched the selected SMS audience.';
+                    } else {
+                        $q = sms_enqueue_broadcast($pdo, (int) $new_alert_id, $sms_message, $targeted, (string) ($_SESSION['username'] ?? ''));
+                        $queuedLogId = $q['log_id'];
+                        $noNumberNote = $q['no_number'] > 0 ? " {$q['no_number']} resident(s) have no contact number." : '';
+                        if ($q['queued'] > 0) {
+                            $sms_notice = " SMS to {$q['queued']} resident(s) is now sending in the background — follow it in View SMS Live." . $noNumberNote;
+                        } else {
+                            $sms_notice = ' The alert was saved, but no SMS was queued because none of the ' . count($targeted)
+                                . ' targeted resident(s) has a valid contact number.';
+                        }
                     }
-                } else {
-                    $smsResult = sendDisasterSMS($pdo, $residents, $sms_message);
-                    $logId = logDisasterSMS($pdo, $new_alert_id, count($residents), $smsResult['sent']);
-                    sms_log_recipients($pdo, $new_alert_id, $logId, $targeted ?: $residents, $smsResult['results'] ?? []);
-                    if ($smsResult['sent'] === 0) {
-                        $sms_notice = ' The alert was saved, but the SMS gateway did not accept any messages. Check SMS Settings and the gateway device.' . $noNumberNote;
-                    } elseif ($smsResult['failed'] > 0) {
-                        $sms_notice = " The alert was saved and SMS was partially sent ({$smsResult['sent']} of " . count($targeted ?: $residents)
-                            . ' targeted); check SMS Live → View breakdown for who was not reached.';
-                    } elseif ($noNumber > 0) {
-                        $sms_notice = " SMS accepted by the gateway for {$smsResult['sent']} of " . count($targeted) . ' targeted residents.' . $noNumberNote;
+                    if ($queuedLogId) {
+                        log_activity('Disaster and Risk Map', 'Queue Disaster SMS', "Queued disaster SMS for alert ID {$new_alert_id} (SMS log {$queuedLogId}).");
                     }
+                } catch (Throwable $e) {
+                    error_log('Disaster SMS queue error: ' . $e->getMessage());
+                    $sms_notice = ' The alert was saved, but the SMS could not be queued. Please try again from SMS Settings / contact the administrator.';
                 }
             }
 
-            $_SESSION['ann_success'] = "New Issue Alerted — \"{$title}\" ({$type}, {$severity} severity)"
-                . ($notify_sms ? $sms_notice : ".");
+            if ($issueToken !== '') {
+                $_SESSION['issued_alert_tokens'][$issueToken] = ['alert_id' => (int) $new_alert_id, 'log_id' => $queuedLogId];
+            }
+            if ($queuedLogId) {
+                $_SESSION['sms_live_open'] = $queuedLogId; // ann.php opens View SMS Live for this broadcast
+            }
+
+            $_SESSION['ann_success'] = "New Issue Alerted — \"{$title}\" ({$type}, {$severity} severity)."
+                . ($notify_sms ? $sms_notice : '');
+
+            // Redirect NOW; start the background sender after the response is on its way.
             header("Location: ../frontend/ann.php");
+            if ($queuedLogId) {
+                session_write_close();
+                header('Content-Length: 0');
+                header('Connection: close');
+                if (function_exists('fastcgi_finish_request')) {
+                    fastcgi_finish_request();
+                } else {
+                    while (ob_get_level()) {
+                        ob_end_flush();
+                    }
+                    flush();
+                }
+                sms_trigger_worker();
+            }
             exit();
 
         } catch (Exception $e) {
