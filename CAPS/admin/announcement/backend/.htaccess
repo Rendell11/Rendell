@@ -1,0 +1,10 @@
+# Never serve the stored Facebook Page token or the metrics cache over HTTP
+<Files "fb_token_store.json">
+    Require all denied
+</Files>
+<IfModule !mod_authz_core.c>
+    <Files "fb_token_store.json">
+        Order allow,deny
+        Deny from all
+    </Files>
+</IfModule>

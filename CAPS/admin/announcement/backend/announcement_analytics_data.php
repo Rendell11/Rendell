@@ -220,7 +220,7 @@ if (!function_exists('announcement_fb_metrics')) {
             require_once __DIR__ . '/fb_helper.php';
             $token = fb_get_page_token();
         } catch (Throwable $e) {
-            $out['error'] = 'Facebook is not connected yet, so views/reach cannot be read. (' . $e->getMessage() . ')';
+            $out['error'] = 'Facebook is not connected, so views/reach cannot be read. An admin can reconnect it in Settings → Facebook.';
             return $out;
         }
 
