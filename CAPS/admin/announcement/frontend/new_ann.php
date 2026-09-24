@@ -137,24 +137,34 @@ if (!function_exists('csrf_verify')) {
             </script>
             <?php unset($_SESSION['ann_errors']); endif; ?>
 
-            <!-- ── Hero Band ───────────────────────────────────────────────────── -->
-            <div class="rounded-2xl p-6 md:p-8 text-white relative overflow-hidden"
-                style="background: linear-gradient(135deg, var(--accent-700) 0%, var(--accent-600) 50%, var(--accent-700) 100%);">
+            <!-- CAPS Hero Band — same layout as Household Management (new_household.php) -->
+            <section class="rounded-2xl p-6 md:p-8 text-white relative overflow-hidden"
+                     style="background:linear-gradient(135deg,var(--accent-700) 0%,var(--accent-600) 50%,var(--accent-700) 100%);">
                 <div class="absolute -right-12 -top-12 w-64 h-64 opacity-10 rounded-full blur-3xl pointer-events-none"
-                    style="background: var(--accent-400);"></div>
+                     style="background:var(--accent-400);"></div>
                 <div class="absolute left-1/3 bottom-0 w-48 h-48 opacity-10 rounded-full blur-2xl pointer-events-none"
-                    style="background: var(--accent-300);"></div>
-                <div class="relative z-10">
-                    <h1 class="text-2xl md:text-3xl font-black tracking-tight leading-none">Create New Announcement</h1>
-                    <p class="text-white/60 text-sm mt-2 font-medium">Communicate vital information to the residents of Barangay Biñang 2nd.</p>
-                    <br>
-                    <nav class="flex gap-2 text-[11px] font-bold uppercase tracking-widest text-white/40 mb-3">
-                        <a href="ann.php" class="hover:text-white/80 transition-colors">Announcements</a>
-                        <span>›</span>
-                        <span class="text-white/70">Create New</span>
-                    </nav>
+                     style="background:var(--accent-300);"></div>
+
+                <div class="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+                    <div>
+                        <div class="flex items-center gap-2 text-white/60 text-[10px] font-black uppercase tracking-[0.18em] mb-2">
+                            <span class="material-symbols-outlined text-base">campaign</span>
+                            Announcement Management
+                        </div>
+                        <h1 class="text-2xl md:text-3xl font-black tracking-tight leading-none">
+                            Create New Announcement
+                        </h1>
+                        <p class="text-white/65 text-sm mt-2 font-medium max-w-2xl">
+                            Communicate vital information to the residents of Barangay Biñang 2nd.
+                        </p>
+                    </div>
+
+                    <a href="ann.php" class="inline-flex items-center justify-center gap-2 shrink-0 bg-white/10 hover:bg-white/20 border border-white/20 text-white px-5 py-3 rounded-xl font-black text-xs uppercase tracking-wider transition-all">
+                        <span class="material-symbols-outlined text-lg">arrow_back</span>
+                        Back to Announcements
+                    </a>
                 </div>
-            </div>
+            </section>
 
 <form action="../backend/save_ann.php" method="POST" enctype="multipart/form-data" id="annForm">
     <?php csrf_token_field(); ?>

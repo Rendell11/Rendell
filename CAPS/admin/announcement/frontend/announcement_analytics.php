@@ -50,28 +50,44 @@ $page_title = 'Announcement Analytics';
 
             <main class="p-4 md:p-6 lg:p-8 space-y-6">
 
-                <!-- ── Hero + Save as PDF / Print ─────────────────────────────── -->
-                <div class="rounded-2xl p-6 md:p-8 text-white relative overflow-hidden"
-                    style="background: linear-gradient(135deg, var(--accent-700) 0%, var(--accent-600) 50%, var(--accent-700) 100%);">
-                    <div class="absolute -right-12 -top-12 w-64 h-64 opacity-10 rounded-full blur-3xl pointer-events-none" style="background: var(--accent-400);"></div>
-                    <div class="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <!-- CAPS Hero Band — same layout as Household Management (new_household.php) -->
+                <section class="rounded-2xl p-6 md:p-8 text-white relative overflow-hidden"
+                         style="background:linear-gradient(135deg,var(--accent-700) 0%,var(--accent-600) 50%,var(--accent-700) 100%);">
+                    <div class="absolute -right-12 -top-12 w-64 h-64 opacity-10 rounded-full blur-3xl pointer-events-none"
+                         style="background:var(--accent-400);"></div>
+                    <div class="absolute left-1/3 bottom-0 w-48 h-48 opacity-10 rounded-full blur-2xl pointer-events-none"
+                         style="background:var(--accent-300);"></div>
+
+                    <div class="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-5">
                         <div>
-                            <a href="ann.php" class="inline-flex items-center gap-1 text-white/70 hover:text-white text-[11px] font-bold uppercase tracking-widest mb-3">
-                                <span class="material-symbols-outlined" style="font-size:16px">arrow_back</span> Announcements
-                            </a>
-                            <h1 class="text-2xl md:text-3xl font-black tracking-tight leading-none">Announcement Analytics</h1>
-                            <p class="text-white/60 text-sm mt-2 font-medium">Posting activity and Facebook (Meta) views, reach and engagement for the selected date range.</p>
+                            <div class="flex items-center gap-2 text-white/60 text-[10px] font-black uppercase tracking-[0.18em] mb-2">
+                                <span class="material-symbols-outlined text-base">campaign</span>
+                                Announcement Management
+                            </div>
+                            <h1 class="text-2xl md:text-3xl font-black tracking-tight leading-none">
+                                Announcement Analytics
+                            </h1>
+                            <p class="text-white/65 text-sm mt-2 font-medium max-w-2xl">
+                                Posting activity and Facebook (Meta) views, reach and engagement for the selected date range.
+                            </p>
                         </div>
-                        <div class="flex flex-wrap gap-3 flex-shrink-0">
-                            <button type="button" onclick="exportReport('pdf')" class="btn bg-white/10 hover:bg-white/20 border border-white/20 text-white">
-                                <span class="material-symbols-outlined" style="font-size:18px">picture_as_pdf</span> Save as PDF
+
+                        <div class="flex flex-wrap gap-3 shrink-0">
+                            <button type="button" onclick="exportReport('pdf')" class="inline-flex items-center justify-center gap-2 shrink-0 bg-white/10 hover:bg-white/20 border border-white/20 text-white px-5 py-3 rounded-xl font-black text-xs uppercase tracking-wider transition-all">
+                                <span class="material-symbols-outlined text-lg">picture_as_pdf</span>
+                                Save as PDF
                             </button>
-                            <button type="button" onclick="exportReport('print')" class="btn bg-white text-slate-900 hover:bg-slate-100 shadow-lg">
-                                <span class="material-symbols-outlined" style="font-size:18px">print</span> Print
+                            <button type="button" onclick="exportReport('print')" class="inline-flex items-center justify-center gap-2 shrink-0 bg-white/10 hover:bg-white/20 border border-white/20 text-white px-5 py-3 rounded-xl font-black text-xs uppercase tracking-wider transition-all">
+                                <span class="material-symbols-outlined text-lg">print</span>
+                                Print
                             </button>
+                            <a href="ann.php" class="inline-flex items-center justify-center gap-2 shrink-0 bg-white/10 hover:bg-white/20 border border-white/20 text-white px-5 py-3 rounded-xl font-black text-xs uppercase tracking-wider transition-all">
+                                <span class="material-symbols-outlined text-lg">arrow_back</span>
+                                Back to Announcements
+                            </a>
                         </div>
                     </div>
-                </div>
+                </section>
 
                 <!-- ── Date Range Filter ───────────────────────────────────────── -->
                 <div class="panel p-5">
