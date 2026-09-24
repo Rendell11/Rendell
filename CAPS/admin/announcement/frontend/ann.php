@@ -551,6 +551,8 @@ try {
             $as['no_number'] = $b ? $b['no_number'] : 0;
             $as['failed'] = $b ? $b['failed'] : max(0, $as['total'] - $as['sent']);
             $as['has_breakdown'] = (bool) $b;
+            $as['pending'] = $b ? $b['pending'] : 0;
+            $as['confirmed'] = $b ? $b['confirmed'] : 0;
         }
         unset($as);
     }
@@ -630,16 +632,17 @@ if (!function_exists('render_sms_log_entry')) {
                     style="width: <?= $progress ?>%; background: var(--accent-600);"></div>
             </div>
             <div class="flex justify-between text-[11px] font-bold uppercase">
-                <span class="text-slate-400"><?= $progress ?>% Sent
+                <span class="text-slate-400"><?= $progress ?>% Accepted by gateway
                     (<?= (int) $log['sent_count'] ?>/<?= (int) $log['total_recipients'] ?> with a number)</span>
                 <span style="color: var(--accent-600);" class="font-black"><?= htmlspecialchars($log['status']) ?></span>
             </div>
             <?php if ($bd): ?>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5">
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mt-5">
                     <?php foreach ([
                         ['Targeted', $bd['targeted'], 'bg-white text-slate-800', 'Residents in the audience'],
-                        ['Sent', $bd['sent'], 'bg-emerald-50 text-emerald-700', ($bd['targeted'] ? round($bd['sent'] / $bd['targeted'] * 100) : 0) . '% of targeted'],
-                        ['Failed', $bd['failed'], 'bg-rose-50 text-rose-700', 'Rejected / invalid no.'],
+                        ['Confirmed sent', $bd['confirmed'], 'bg-emerald-50 text-emerald-700', ($bd['targeted'] ? round($bd['confirmed'] / $bd['targeted'] * 100) : 0) . '% of targeted'],
+                        ['Awaiting', $bd['pending'], 'bg-sky-50 text-sky-700', 'Accepted, not yet confirmed'],
+                        ['Failed', $bd['failed'], 'bg-rose-50 text-rose-700', 'Rejected / no load / invalid'],
                         ['No number', $bd['no_number'], 'bg-amber-50 text-amber-700', 'No contact number'],
                     ] as [$lbl, $num, $cls, $note]): ?>
                         <div class="rounded-2xl border border-slate-100 p-4 <?= $cls ?>">
@@ -653,7 +656,7 @@ if (!function_exists('render_sms_log_entry')) {
                     onclick="openSmsBreakdown(<?= (int) $log['LogID'] ?>)"
                     class="mt-4 w-full flex items-center justify-center gap-2 py-3 rounded-2xl border border-slate-200 text-xs font-black uppercase text-slate-500 hover:border-indigo-300 hover:text-indigo-600 transition-all">
                     <span class="material-symbols-outlined" style="font-size:18px">table_view</span>
-                    View breakdown by purok / area
+                    <?= $bd['pending'] > 0 ? 'Check delivery &amp; view breakdown' : 'View breakdown by purok / area' ?>
                 </button>
             <?php endif; ?>
         </div>
@@ -2232,9 +2235,9 @@ try {
                             <p class="text-[10px] font-semibold opacity-70 mt-0.5">Since the oldest alert</p>
                         </div>
                         <div class="rounded-2xl border border-slate-100 p-4 bg-emerald-50 text-emerald-700">
-                            <p class="text-[10px] font-bold uppercase tracking-widest opacity-70">Reached by SMS</p>
+                            <p class="text-[10px] font-bold uppercase tracking-widest opacity-70">Accepted by SMS gateway</p>
                             <p class="text-2xl font-black mt-1"><?php echo (int) $active_summary['sms_sent']; ?><span class="text-sm font-bold opacity-60">/<?php echo (int) $active_summary['sms_targeted']; ?></span></p>
-                            <p class="text-[10px] font-semibold opacity-70 mt-0.5">Residents, latest broadcasts</p>
+                            <p class="text-[10px] font-semibold opacity-70 mt-0.5">Latest broadcasts · confirm in SMS Live</p>
                         </div>
                     </div>
 
@@ -2330,7 +2333,8 @@ try {
                                 <div class="mt-4 rounded-2xl border border-slate-100 px-4 py-3">
                                     <div class="flex items-center justify-between gap-3 mb-2">
                                         <p class="text-[11px] font-bold text-slate-500 uppercase">
-                                            SMS: <span class="text-emerald-600"><?php echo $sms['sent']; ?> sent</span>
+                                            SMS: <?php if ($sms['has_breakdown']): ?><span class="text-emerald-600"><?php echo $sms['confirmed']; ?> confirmed sent</span><?php if ($sms['pending']): ?> · <span class="text-sky-600"><?php echo $sms['pending']; ?> awaiting</span><?php endif; ?>
+                                            <?php else: ?><span class="text-emerald-600"><?php echo $sms['sent']; ?> accepted</span><?php endif; ?>
                                             of <?php echo $sms['targeted']; ?> targeted
                                             <?php if ($sms['no_number']): ?> · <span class="text-amber-600"><?php echo $sms['no_number']; ?> no number</span><?php endif; ?>
                                             <?php if ($sms['failed']): ?> · <span class="text-rose-600"><?php echo $sms['failed']; ?> failed</span><?php endif; ?>
@@ -2670,7 +2674,10 @@ try {
         // ─── SMS breakdown: who was targeted / sent / failed / had no number, per area ──
         function sbdEsc(v) { return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
+        let sbdLogId = null;
+
         async function openSmsBreakdown(logId) {
+            sbdLogId = logId;
             const body = document.getElementById('sbd_body');
             body.innerHTML = '<div class="py-10 flex justify-center"><div class="w-6 h-6 border-4 border-slate-200 border-t-slate-500 rounded-full animate-spin"></div></div>';
             document.getElementById('sbd_title').textContent = '—';
@@ -2680,66 +2687,120 @@ try {
                 const res = await fetch('../backend/get_sms_breakdown.php?log_id=' + encodeURIComponent(logId));
                 const d = await res.json();
                 if (!d.success) throw new Error(d.error || 'Could not load the breakdown.');
-                const l = d.log, t = d.totals;
-                document.getElementById('sbd_kicker').textContent = 'SMS Breakdown · Disaster #' + (l.AlertID || '—') + (l.Type ? ' · ' + l.Type : '');
-                document.getElementById('sbd_title').textContent = l.Title || 'Disaster alert';
-                document.getElementById('sbd_meta').textContent = 'Sent ' + new Date(String(l.created_at).replace(' ', 'T')).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-
-                const pct = t.targeted ? Math.round(t.sent / t.targeted * 100) : 0;
-                const card = (label, n, cls, note) => `
-                    <div class="rounded-2xl border border-slate-100 p-4 ${cls}">
-                        <p class="text-[10px] font-bold uppercase tracking-widest opacity-70">${label}</p>
-                        <p class="text-2xl font-black mt-1">${n}</p>
-                        <p class="text-[10px] font-semibold opacity-70 mt-0.5">${note}</p>
-                    </div>`;
-                const areaRows = d.areas.map(a => {
-                    const p = a.targeted ? Math.round(a.sent / a.targeted * 100) : 0;
-                    return `<tr class="hover:bg-slate-50/50">
-                        <td class="px-5 py-3 text-xs font-bold text-slate-700">${sbdEsc(a.area)}</td>
-                        <td class="px-4 py-3 text-xs font-bold text-slate-700 text-right">${a.targeted}</td>
-                        <td class="px-4 py-3 text-xs font-bold text-emerald-600 text-right">${a.sent}</td>
-                        <td class="px-4 py-3 text-xs font-bold text-rose-600 text-right">${a.failed}</td>
-                        <td class="px-4 py-3 text-xs font-bold text-amber-600 text-right">${a.no_number}</td>
-                        <td class="px-5 py-3 w-32"><div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden"><div class="h-full bg-emerald-500" style="width:${p}%"></div></div>
-                            <p class="text-[9px] font-bold text-slate-400 mt-1">${p}% reached</p></td>
-                    </tr>`;
-                }).join('');
-                const reasonCls = { no_number: 'bg-amber-50 text-amber-700 border-amber-100', invalid: 'bg-rose-50 text-rose-600 border-rose-100', failed: 'bg-rose-50 text-rose-600 border-rose-100' };
-                const missed = d.not_reached.map(r => `<tr>
-                        <td class="px-5 py-2.5 text-xs font-bold text-slate-700">${sbdEsc(r.name)}</td>
-                        <td class="px-4 py-2.5 text-xs text-slate-500 font-semibold">${sbdEsc(r.area)}</td>
-                        <td class="px-4 py-2.5 text-xs text-slate-500 font-mono">${sbdEsc(r.contact || '—')}</td>
-                        <td class="px-5 py-2.5"><span class="px-2 py-0.5 text-[9px] font-bold rounded-md uppercase border ${reasonCls[r.status] || ''}" title="${sbdEsc(r.detail)}">${sbdEsc(r.reason)}</span></td>
-                    </tr>`).join('');
-
-                body.innerHTML = `
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        ${card('Targeted', t.targeted, 'bg-white text-slate-800', 'Residents in the chosen audience')}
-                        ${card('Sent', t.sent, 'bg-emerald-50 text-emerald-700', pct + '% of targeted residents')}
-                        ${card('Failed', t.failed, 'bg-rose-50 text-rose-700', 'Gateway rejected / invalid no.')}
-                        ${card('No number', t.no_number, 'bg-amber-50 text-amber-700', 'No contact number on file')}
-                    </div>
-                    <div>
-                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">By Purok / Area</p>
-                        <div class="rounded-2xl border border-slate-100 overflow-hidden"><table class="w-full text-left">
-                            <thead><tr class="bg-slate-50/50 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                <th class="px-5 py-3">Purok / Area</th><th class="px-4 py-3 text-right">Targeted</th><th class="px-4 py-3 text-right">Sent</th>
-                                <th class="px-4 py-3 text-right">Failed</th><th class="px-4 py-3 text-right">No number</th><th class="px-5 py-3">Reached</th></tr></thead>
-                            <tbody class="divide-y divide-slate-50">${areaRows || '<tr><td colspan="6" class="px-5 py-6 text-center text-xs text-slate-400">No data</td></tr>'}</tbody>
-                        </table></div>
-                    </div>
-                    <div>
-                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Residents not reached (${d.not_reached.length})
-                            <span class="normal-case tracking-normal font-semibold text-slate-400">— contact them another way (house visit, PA system, barangay tanod)</span></p>
-                        <div class="rounded-2xl border border-slate-100 overflow-hidden max-h-72 overflow-y-auto"><table class="w-full text-left">
-                            <thead class="sticky top-0"><tr class="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                <th class="px-5 py-3">Resident</th><th class="px-4 py-3">Purok / Area</th><th class="px-4 py-3">Contact</th><th class="px-5 py-3">Reason</th></tr></thead>
-                            <tbody class="divide-y divide-slate-50">${missed || '<tr><td colspan="4" class="px-5 py-6 text-center text-xs font-bold text-emerald-600">Everyone targeted was reached.</td></tr>'}</tbody>
-                        </table></div>
-                    </div>`;
+                renderSmsBreakdown(d);
+                // Accepted ≠ sent: ask the gateway right away whether the phone really sent them.
+                if (d.checkable > 0) checkSmsDelivery(true);
             } catch (err) {
                 body.innerHTML = `<div class="py-8 text-center text-sm font-bold text-rose-600">${sbdEsc(err.message)}</div>`;
             }
+        }
+
+        async function checkSmsDelivery(auto = false) {
+            const logId = sbdLogId;
+            const btn = document.getElementById('sbd_check_btn');
+            if (btn) { btn.disabled = true; btn.innerHTML = '<span class="material-symbols-outlined animate-spin" style="font-size:16px">progress_activity</span>Checking…'; }
+            try {
+                const fd = new URLSearchParams({ log_id: logId, csrf_token: CSRF_TOKEN });
+                const res = await fetch('../backend/check_sms_delivery.php', { method: 'POST', body: fd });
+                const d = await res.json();
+                if (logId !== sbdLogId) return; // modal switched to another broadcast meanwhile
+                if (!d.success) throw new Error(d.error || 'Could not check the delivery status.');
+                renderSmsBreakdown(d);
+                const c = d.check;
+                if (c.error) showToast('error', c.error);
+                else if (c.failed > 0) showToast('error', c.failed + ' SMS could not be sent by the gateway phone (e.g. no load / no signal).');
+                else if (!auto) showToast('success', 'Delivery status updated: ' + c.confirmed + ' confirmed, ' + c.pending + ' still waiting.');
+            } catch (err) {
+                showToast('error', err.message);
+                if (btn) { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px">sync</span>Check delivery'; }
+            }
+        }
+
+        function renderSmsBreakdown(d) {
+            const body = document.getElementById('sbd_body');
+            const l = d.log, t = d.totals;
+            document.getElementById('sbd_kicker').textContent = 'SMS Breakdown · Disaster #' + (l.AlertID || '—') + (l.Type ? ' · ' + l.Type : '');
+            document.getElementById('sbd_title').textContent = l.Title || 'Disaster alert';
+            const fmt = v => new Date(String(v).replace(' ', 'T')).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+            document.getElementById('sbd_meta').textContent = 'Sent ' + fmt(l.created_at) + (d.last_checked ? ' · Delivery last checked ' + fmt(d.last_checked) : '');
+
+            const pct = n => t.targeted ? Math.round(n / t.targeted * 100) : 0;
+            const card = (label, n, cls, note) => `
+                <div class="rounded-2xl border border-slate-100 p-4 ${cls}">
+                    <p class="text-[10px] font-bold uppercase tracking-widest opacity-70">${label}</p>
+                    <p class="text-2xl font-black mt-1">${n}</p>
+                    <p class="text-[10px] font-semibold opacity-70 mt-0.5">${note}</p>
+                </div>`;
+            const areaRows = d.areas.map(a => {
+                const p = a.targeted ? Math.round(a.confirmed / a.targeted * 100) : 0;
+                const pp = a.targeted ? Math.round(a.pending / a.targeted * 100) : 0;
+                return `<tr class="hover:bg-slate-50/50">
+                    <td class="px-5 py-3 text-xs font-bold text-slate-700">${sbdEsc(a.area)}</td>
+                    <td class="px-3 py-3 text-xs font-bold text-slate-700 text-right">${a.targeted}</td>
+                    <td class="px-3 py-3 text-xs font-bold text-emerald-600 text-right">${a.confirmed}</td>
+                    <td class="px-3 py-3 text-xs font-bold text-sky-600 text-right">${a.pending}</td>
+                    <td class="px-3 py-3 text-xs font-bold text-rose-600 text-right">${a.failed}</td>
+                    <td class="px-3 py-3 text-xs font-bold text-amber-600 text-right">${a.no_number}</td>
+                    <td class="px-5 py-3 w-32"><div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden flex"><div class="h-full bg-emerald-500" style="width:${p}%"></div><div class="h-full bg-sky-300" style="width:${pp}%"></div></div>
+                        <p class="text-[9px] font-bold text-slate-400 mt-1">${p}% confirmed</p></td>
+                </tr>`;
+            }).join('');
+            const reasonCls = { no_number: 'bg-amber-50 text-amber-700 border-amber-100', invalid: 'bg-rose-50 text-rose-600 border-rose-100', failed: 'bg-rose-50 text-rose-600 border-rose-100', pending: 'bg-sky-50 text-sky-700 border-sky-100' };
+            const personRows = list => list.map(r => `<tr>
+                    <td class="px-5 py-2.5 text-xs font-bold text-slate-700">${sbdEsc(r.name)}</td>
+                    <td class="px-4 py-2.5 text-xs text-slate-500 font-semibold">${sbdEsc(r.area)}</td>
+                    <td class="px-4 py-2.5 text-xs text-slate-500 font-mono">${sbdEsc(r.contact || '—')}</td>
+                    <td class="px-5 py-2.5"><span class="px-2 py-0.5 text-[9px] font-bold rounded-md uppercase border ${reasonCls[r.status] || ''}">${sbdEsc(r.reason)}</span>
+                        ${r.detail && r.status !== 'no_number' ? `<p class="text-[10px] text-slate-400 font-semibold mt-1">${sbdEsc(r.detail)}</p>` : ''}</td>
+                </tr>`).join('');
+            const peopleTable = (rows, empty) => `
+                <div class="rounded-2xl border border-slate-100 overflow-hidden max-h-72 overflow-y-auto"><table class="w-full text-left">
+                    <thead class="sticky top-0"><tr class="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                        <th class="px-5 py-3">Resident</th><th class="px-4 py-3">Purok / Area</th><th class="px-4 py-3">Contact</th><th class="px-5 py-3">Status</th></tr></thead>
+                    <tbody class="divide-y divide-slate-50">${rows || empty}</tbody>
+                </table></div>`;
+
+            const loadBanner = d.phone_failed > 0 ? `
+                <div class="rounded-2xl border border-rose-100 bg-rose-50 p-4 flex gap-3">
+                    <span class="material-symbols-outlined text-rose-600">signal_cellular_connected_no_internet_0_bar</span>
+                    <div><p class="text-xs font-black text-rose-700 uppercase">${d.phone_failed} SMS failed on the gateway phone</p>
+                    <p class="text-xs text-rose-600 font-semibold mt-0.5">The gateway accepted them but the phone could not send. Usually the SIM has no load / promo, no signal, or the phone is off. Reload the SIM, then re-send the alert or reach these residents another way.</p></div>
+                </div>` : '';
+            const pendingBanner = t.pending > 0 ? `
+                <div class="rounded-2xl border border-sky-100 bg-sky-50 p-4 flex flex-col md:flex-row md:items-center gap-3">
+                    <span class="material-symbols-outlined text-sky-600">hourglass_top</span>
+                    <p class="text-xs text-sky-700 font-semibold flex-1"><b>${t.pending}</b> SMS were accepted by the gateway but are <b>not yet confirmed sent</b> by the gateway phone. They will turn into “Confirmed” or “Failed” (e.g. no load) when you check again.</p>
+                    ${d.checkable > 0 ? `<button id="sbd_check_btn" type="button" onclick="checkSmsDelivery()" class="shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-sky-200 text-[11px] font-black uppercase text-sky-700 hover:bg-sky-100 transition-all"><span class="material-symbols-outlined" style="font-size:16px">sync</span>Check delivery</button>` : ''}
+                </div>` : '';
+
+            body.innerHTML = `
+                ${loadBanner}
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                    ${card('Targeted', t.targeted, 'bg-white text-slate-800', 'Residents in the audience')}
+                    ${card('Confirmed sent', t.confirmed, 'bg-emerald-50 text-emerald-700', pct(t.confirmed) + '% of targeted')}
+                    ${card('Awaiting', t.pending, 'bg-sky-50 text-sky-700', 'Accepted, not confirmed')}
+                    ${card('Failed', t.failed, 'bg-rose-50 text-rose-700', 'Rejected / no load / invalid')}
+                    ${card('No number', t.no_number, 'bg-amber-50 text-amber-700', 'No contact number on file')}
+                </div>
+                ${pendingBanner}
+                <div>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">By Purok / Area</p>
+                    <div class="rounded-2xl border border-slate-100 overflow-x-auto"><table class="w-full text-left">
+                        <thead><tr class="bg-slate-50/50 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                            <th class="px-5 py-3">Purok / Area</th><th class="px-3 py-3 text-right">Targeted</th><th class="px-3 py-3 text-right">Confirmed</th>
+                            <th class="px-3 py-3 text-right">Awaiting</th><th class="px-3 py-3 text-right">Failed</th><th class="px-3 py-3 text-right">No no.</th><th class="px-5 py-3">Reached</th></tr></thead>
+                        <tbody class="divide-y divide-slate-50">${areaRows || '<tr><td colspan="7" class="px-5 py-6 text-center text-xs text-slate-400">No data</td></tr>'}</tbody>
+                    </table></div>
+                </div>
+                <div>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Residents not reached (${d.not_reached.length})
+                        <span class="normal-case tracking-normal font-semibold text-slate-400">— contact them another way (house visit, PA system, barangay tanod)</span></p>
+                    ${peopleTable(personRows(d.not_reached), '<tr><td colspan="4" class="px-5 py-6 text-center text-xs font-bold text-emerald-600">No failed sends and no missing numbers.</td></tr>')}
+                </div>
+                ${d.pending && d.pending.length ? `<div>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Awaiting confirmation (${d.pending.length})</p>
+                    ${peopleTable(personRows(d.pending), '')}
+                </div>` : ''}`;
         }
 
         function toggleSMSHistory() {

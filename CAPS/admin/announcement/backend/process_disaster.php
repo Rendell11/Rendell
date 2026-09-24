@@ -121,7 +121,13 @@ function sendDisasterSMS($pdo, $residents, $sms_message)
 
         if ($is_success) {
             $sent++;
-            $results[(int) ($resident['ResidentID'] ?? 0)] = ['status' => 'sent', 'detail' => ''];
+            // "sent" = accepted by the gateway; the gateway phone sends it afterwards.
+            // Keep the messageId so SMS Live can check if the phone really sent it (no load, no signal…).
+            $results[(int) ($resident['ResidentID'] ?? 0)] = [
+                'status' => 'sent',
+                'detail' => 'Accepted by the SMS gateway',
+                'message_id' => $response['messageId'] ?? $response['id'] ?? $response['data']['messageId'] ?? $response['data']['id'] ?? null,
+            ];
         } else {
             $failed++;
             $results[(int) ($resident['ResidentID'] ?? 0)] = [
@@ -524,7 +530,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
 
             // ── SMS NOTIFICATION ──────────────────────────────────────────────
-            $sms_notice = ' and residents have been notified via SMS.';
+            $sms_notice = ' and the SMS was accepted by the gateway — see SMS Live to confirm it was really sent.';
             if ($notify_sms) {
                 $audience = $_POST['sms_audience'] ?? 'all';
                 $selected_streets = $_POST['selected_streets'] ?? [];
@@ -592,7 +598,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         $sms_notice = " The alert was saved and SMS was partially sent ({$smsResult['sent']} of " . count($targeted ?: $residents)
                             . ' targeted); check SMS Live → View breakdown for who was not reached.';
                     } elseif ($noNumber > 0) {
-                        $sms_notice = " SMS sent to {$smsResult['sent']} of " . count($targeted) . ' targeted residents.' . $noNumberNote;
+                        $sms_notice = " SMS accepted by the gateway for {$smsResult['sent']} of " . count($targeted) . ' targeted residents.' . $noNumberNote;
                     }
                 }
             }
