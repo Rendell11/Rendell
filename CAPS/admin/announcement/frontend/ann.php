@@ -2731,7 +2731,7 @@ try {
                             const t = document.createElement('button');
                             t.className = 'w-14 h-14 rounded-xl overflow-hidden border-2 transition-all ' +
                                 (i === 0 ? 'border-primary' : 'border-transparent opacity-60');
-                            t.innerHTML = `<img src="${img.file_path}" class="w-full h-full object-cover" alt="">`;
+                            t.innerHTML = `<img src="${img.url || img.file_path}" class="w-full h-full object-cover" alt="">`;
                             t.onclick = () => { galleryIndex = i; renderGallery(); };
                             thumbsCont.appendChild(t);
                         });
@@ -2752,7 +2752,7 @@ try {
                             const icon = extIcons[f.file_ext.toLowerCase()] || 'attach_file';
                             const size = formatSize(f.file_size);
                             fileList.innerHTML += `
-                        <a href="${f.file_path}" download="${f.original_name}" target="_blank"
+                        <a href="${f.url || f.file_path}" download="${f.original_name}" target="_blank"
                            class="flex items-center gap-4 p-4 bg-slate-50 rounded-xl hover:bg-blue-50 transition-colors group">
                             <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center shrink-0">
                                 <span class="material-symbols-outlined text-primary" style="font-size:20px">${icon}</span>
@@ -2860,7 +2860,7 @@ try {
             const imgWrap = document.getElementById('fb_preview_img_wrap');
             const imgEl = document.getElementById('fb_preview_img');
             if (images && images.length > 0) {
-                imgEl.src = images[0].file_path;
+                imgEl.src = images[0].url || images[0].file_path;
                 imgWrap.classList.remove('hidden');
             } else {
                 imgWrap.classList.add('hidden');
@@ -2932,7 +2932,7 @@ try {
             if (!galleryImages.length) return;
             const img = galleryImages[galleryIndex];
             const total = galleryImages.length;
-            document.getElementById('vm_gallery_img').src = img.file_path;
+            document.getElementById('vm_gallery_img').src = img.url || img.file_path;
             document.getElementById('vm_gallery_img').alt = img.original_name;
 
             // Counter — show "1 / 3" only if multiple images
@@ -3338,12 +3338,12 @@ try {
                     const imgSec = document.getElementById('tv_images_section');
                     imgSec.classList.toggle('hidden', !imgs.length);
                     document.getElementById('tv_images').innerHTML = imgs.map(f =>
-                        `<a href="${escHtml(f.file_path)}" target="_blank" class="block aspect-video bg-slate-100 rounded-xl overflow-hidden">
-                    <img src="${escHtml(f.file_path)}" alt="" class="w-full h-full object-cover"></a>`).join('');
+                        `<a href="${escHtml(f.url || f.file_path)}" target="_blank" class="block aspect-video bg-slate-100 rounded-xl overflow-hidden">
+                    <img src="${escHtml(f.url || f.file_path)}" alt="" class="w-full h-full object-cover"></a>`).join('');
                     const fileSec = document.getElementById('tv_files_section');
                     fileSec.classList.toggle('hidden', !files.length);
                     document.getElementById('tv_files').innerHTML = files.map(f =>
-                        `<a href="${escHtml(f.file_path)}" download="${escHtml(f.original_name)}" target="_blank"
+                        `<a href="${escHtml(f.url || f.file_path)}" download="${escHtml(f.original_name)}" target="_blank"
                     class="flex items-center gap-4 p-4 bg-slate-50 rounded-xl hover:bg-blue-50 transition-colors">
                     <span class="material-symbols-outlined text-primary" style="font-size:20px">attach_file</span>
                     <div class="min-w-0 flex-1">
