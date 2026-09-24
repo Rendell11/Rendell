@@ -1085,6 +1085,10 @@ try {
                         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>Active Disaster</p>
                         <h3 class="text-2xl font-bold text-slate-800 mt-1"><?php echo (int) $total_alerts; ?></h3>
                         <p class="text-[10px] text-slate-400 font-semibold mt-0.5">Currently active</p>
+                        <div class="mt-4 pt-3 border-t border-slate-100 flex items-start gap-2">
+                            <span class="material-symbols-outlined text-rose-400 text-base leading-none mt-px">info</span>
+                            <p class="text-[11px] text-slate-500 font-medium leading-snug">Disaster alerts that are still ongoing. Click to view, edit or <strong class="font-bold text-slate-600">deactivate</strong> an alert and submit its final report.</p>
+                        </div>
                     </div>
 
                     <div class="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm cursor-pointer transition-all hover:shadow-md hover:border-blue-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
@@ -1100,6 +1104,10 @@ try {
                         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>SMS Live</p>
                         <h3 class="text-2xl font-bold text-slate-800 mt-1"><?php echo count($logs); ?></h3>
                         <p class="text-[10px] text-slate-400 font-semibold mt-0.5">Recent broadcasts</p>
+                        <div class="mt-4 pt-3 border-t border-slate-100 flex items-start gap-2">
+                            <span class="material-symbols-outlined text-blue-400 text-base leading-none mt-px">info</span>
+                            <p class="text-[11px] text-slate-500 font-medium leading-snug">SMS sent to residents for the active alerts. Click to see the delivery progress of each broadcast and the SMS history.</p>
+                        </div>
                     </div>
 
                     <div class="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm cursor-pointer transition-all hover:shadow-md hover:border-indigo-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
@@ -1115,6 +1123,10 @@ try {
                         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">Disaster Analytics</p>
                         <h3 class="text-2xl font-bold text-slate-800 mt-1"><?php echo (int) $total_disaster_reports; ?></h3>
                         <p class="text-[10px] text-slate-400 font-semibold mt-0.5">Disaster reports logged</p>
+                        <div class="mt-4 pt-3 border-t border-slate-100 flex items-start gap-2">
+                            <span class="material-symbols-outlined text-indigo-400 text-base leading-none mt-px">info</span>
+                            <p class="text-[11px] text-slate-500 font-medium leading-snug">Final reports filed when alerts were deactivated. Click to open Disaster Analytics — charts, AI insights, print and PDF.</p>
+                        </div>
                     </div>
                 </div>
 
