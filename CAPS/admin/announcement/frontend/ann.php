@@ -519,6 +519,78 @@ try {
 require_once __DIR__ . '/../backend/sms_recipient_log.php';
 $sms_counts = sms_breakdown_counts($pdo, array_merge(array_column($logs, 'LogID'), array_column($sms_history, 'LogID')));
 
+// ── Active Disaster Alerts modal: summary + latest SMS result per alert ──────
+$active_summary = ['critical_high' => 0, 'oldest' => null, 'by_type' => [], 'sms_sent' => 0, 'sms_targeted' => 0];
+$alert_sms = []; // AlertID => ['log_id', 'sent', 'total', 'status', 'targeted', 'no_number', 'failed']
+try {
+    foreach ($pdo->query("SELECT AlertID, Type, Severity, CreatedAt FROM disaster_alerts WHERE Status = 'active'")->fetchAll(PDO::FETCH_ASSOC) as $a) {
+        if (in_array($a['Severity'], ['High', 'Critical', 'Extreme'], true)) {
+            $active_summary['critical_high']++;
+        }
+        $t = $a['Type'] ?: 'Other';
+        $active_summary['by_type'][$t] = ($active_summary['by_type'][$t] ?? 0) + 1;
+        if (!$active_summary['oldest'] || $a['CreatedAt'] < $active_summary['oldest']) {
+            $active_summary['oldest'] = $a['CreatedAt'];
+        }
+    }
+    arsort($active_summary['by_type']);
+
+    $ids = array_map('intval', array_column($active_alerts, 'AlertID'));
+    if ($ids) {
+        $ph = implode(',', array_fill(0, count($ids), '?'));
+        $st = $pdo->prepare("SELECT LogID, AlertID, total_recipients, sent_count, status FROM sms_logs WHERE AlertID IN ($ph) ORDER BY created_at DESC");
+        $st->execute($ids);
+        foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $l) {
+            if (isset($alert_sms[(int) $l['AlertID']])) continue; // keep the latest broadcast only
+            $alert_sms[(int) $l['AlertID']] = ['log_id' => (int) $l['LogID'], 'sent' => (int) $l['sent_count'], 'total' => (int) $l['total_recipients'], 'status' => $l['status']];
+        }
+        $bdc = sms_breakdown_counts($pdo, array_column($alert_sms, 'log_id'));
+        foreach ($alert_sms as &$as) {
+            $b = $bdc[$as['log_id']] ?? null;
+            $as['targeted'] = $b ? $b['targeted'] : $as['total'];
+            $as['no_number'] = $b ? $b['no_number'] : 0;
+            $as['failed'] = $b ? $b['failed'] : max(0, $as['total'] - $as['sent']);
+            $as['has_breakdown'] = (bool) $b;
+        }
+        unset($as);
+    }
+    // Residents reached by SMS across every active alert (latest broadcast each)
+    $st = $pdo->query(
+        "SELECT sl.AlertID, sl.LogID, sl.sent_count, sl.total_recipients
+           FROM sms_logs sl
+           JOIN disaster_alerts da ON da.AlertID = sl.AlertID AND da.Status = 'active'
+          ORDER BY sl.created_at DESC"
+    );
+    $seen = [];
+    $latest = [];
+    foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $l) {
+        if (isset($seen[$l['AlertID']])) continue;
+        $seen[$l['AlertID']] = true;
+        $latest[(int) $l['LogID']] = $l;
+    }
+    $bdc = sms_breakdown_counts($pdo, array_keys($latest));
+    foreach ($latest as $lid => $l) {
+        $active_summary['sms_sent'] += (int) $l['sent_count'];
+        $active_summary['sms_targeted'] += isset($bdc[$lid]) ? $bdc[$lid]['targeted'] : (int) $l['total_recipients'];
+    }
+} catch (Throwable $e) {
+    error_log('[ann] active summary: ' . $e->getMessage());
+}
+
+if (!function_exists('active_duration')) {
+    /** "3h 20m" / "2 days 4h" since the alert was issued. */
+    function active_duration(?string $since): string
+    {
+        if (!$since) return '—';
+        $mins = max(0, (int) floor((time() - strtotime($since)) / 60));
+        if ($mins < 60) return $mins . 'm';
+        $h = intdiv($mins, 60);
+        if ($h < 24) return $h . 'h ' . ($mins % 60) . 'm';
+        $d = intdiv($h, 24);
+        return $d . ($d === 1 ? ' day ' : ' days ') . ($h % 24) . 'h';
+    }
+}
+
 if (!function_exists('render_sms_log_entry')) {
     function render_sms_log_entry(array $log): string
     {
@@ -2114,33 +2186,58 @@ try {
 
     <!-- ── Active Disaster Modal (card "!" — all active disasters) ────────────────── -->
     <div id="activeDisasterModal"
-        class="fixed inset-0 z-[100] hidden bg-slate-900/80 flex items-center justify-center p-6">
+        class="fixed inset-0 z-[100] hidden bg-slate-900/80 flex items-center justify-center p-4">
         <div
-            class="bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col">
-            <div class="px-8 pt-8 pb-4 flex items-center justify-between border-b border-slate-100 flex-shrink-0">
-                <div class="flex items-center gap-3">
-                    <div class="w-2 h-2 rounded-full bg-rose-500 animate-pulse pulse-ring flex-shrink-0"></div>
-                    <div>
-                        <h3 class="text-2xl font-black tracking-tight text-slate-900">Active Disaster Alerts</h3>
-                        <p class="text-xs text-primary font-bold uppercase tracking-widest mt-1">
-                            <?php echo (int) $total_alerts; ?> Active</p>
-                    </div>
+            class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-3xl overflow-hidden max-h-[92vh] flex flex-col">
+            <div class="px-8 md:px-10 pt-8 md:pt-10 pb-6 flex items-start justify-between border-b border-slate-100 flex-shrink-0">
+                <div>
+                    <h3 class="text-2xl font-black tracking-tight text-slate-900 flex items-center gap-3">
+                        <span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse pulse-ring flex-shrink-0"></span>
+                        Active Disaster Alerts
+                    </h3>
+                    <p class="text-xs text-primary font-bold uppercase tracking-widest mt-1">
+                        <?php echo (int) $total_alerts; ?> ongoing · view, update or deactivate</p>
                 </div>
                 <button onclick="closeModal('activeDisasterModal')"
                     class="p-2 hover:bg-orange-50 rounded-full text-slate-400 hover:text-primary transition-colors shrink-0">
                     <span class="material-symbols-outlined">close</span>
                 </button>
             </div>
-            <div class="p-5 flex flex-col gap-3 overflow-y-auto">
+            <div class="px-8 md:px-10 py-6 flex flex-col gap-4 overflow-y-auto">
                 <?php if (empty($active_alerts)): ?>
-                    <div class="flex flex-col items-center justify-center py-12 opacity-30">
-                        <div class="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mb-3">
+                    <div class="flex flex-col items-center justify-center py-14 opacity-40">
+                        <div class="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-3">
                             <span class="material-symbols-outlined text-slate-400"
-                                style="font-size:28px">notifications_off</span>
+                                style="font-size:32px">notifications_off</span>
                         </div>
                         <p class="text-xs font-black uppercase tracking-widest text-slate-400">No Active Emergencies</p>
                     </div>
                 <?php else: ?>
+                    <!-- Summary -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div class="rounded-2xl border border-slate-100 p-4 bg-rose-50 text-rose-700">
+                            <p class="text-[10px] font-bold uppercase tracking-widest opacity-70">Active Alerts</p>
+                            <p class="text-2xl font-black mt-1"><?php echo (int) $total_alerts; ?></p>
+                            <p class="text-[10px] font-semibold opacity-70 mt-0.5 truncate">
+                                <?php echo htmlspecialchars(implode(' · ', array_map(fn($t, $n) => "$n $t", array_keys($active_summary['by_type']), $active_summary['by_type'])) ?: '—'); ?></p>
+                        </div>
+                        <div class="rounded-2xl border border-slate-100 p-4 bg-orange-50 text-orange-700">
+                            <p class="text-[10px] font-bold uppercase tracking-widest opacity-70">High / Critical</p>
+                            <p class="text-2xl font-black mt-1"><?php echo (int) $active_summary['critical_high']; ?></p>
+                            <p class="text-[10px] font-semibold opacity-70 mt-0.5">Need close monitoring</p>
+                        </div>
+                        <div class="rounded-2xl border border-slate-100 p-4 bg-white text-slate-800">
+                            <p class="text-[10px] font-bold uppercase tracking-widest opacity-70">Longest Running</p>
+                            <p class="text-2xl font-black mt-1"><?php echo active_duration($active_summary['oldest']); ?></p>
+                            <p class="text-[10px] font-semibold opacity-70 mt-0.5">Since the oldest alert</p>
+                        </div>
+                        <div class="rounded-2xl border border-slate-100 p-4 bg-emerald-50 text-emerald-700">
+                            <p class="text-[10px] font-bold uppercase tracking-widest opacity-70">Reached by SMS</p>
+                            <p class="text-2xl font-black mt-1"><?php echo (int) $active_summary['sms_sent']; ?><span class="text-sm font-bold opacity-60">/<?php echo (int) $active_summary['sms_targeted']; ?></span></p>
+                            <p class="text-[10px] font-semibold opacity-70 mt-0.5">Residents, latest broadcasts</p>
+                        </div>
+                    </div>
+
                     <?php foreach ($active_alerts as $alert):
                         $icon = 'warning';
                         $color = 'text-slate-500';
@@ -2168,38 +2265,103 @@ try {
                             $border = 'border-violet-100';
                         }
                         ?>
-                        <div
-                            class="flex items-center justify-between gap-4 px-4 py-3.5 rounded-xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50/50 transition-all group">
-                            <div class="flex items-center gap-4 min-w-0">
-                                <div
-                                    class="h-10 w-10 rounded-xl <?php echo $bg; ?> border <?php echo $border; ?> flex items-center justify-center flex-shrink-0 <?php echo $color; ?>">
-                                    <span class="material-symbols-outlined" style="font-size:20px"><?php echo $icon; ?></span>
-                                </div>
-                                <div class="min-w-0">
-                                    <div class="flex items-center gap-2 flex-wrap">
-                                        <p class="text-sm font-semibold text-slate-800 truncate">
-                                            <?php echo htmlspecialchars($alert['Title']); ?></p>
-                                        <span
-                                            class="px-2 py-0.5 rounded-md text-[9px] font-bold text-white <?php echo ($alert['Severity'] == 'Critical') ? 'bg-rose-500' : 'bg-orange-500'; ?>">
-                                            <?php echo strtoupper($alert['Severity']); ?>
-                                        </span>
+                        <?php
+                        $sev = $alert['Severity'] ?: 'Medium';
+                        $sevCls = in_array($sev, ['Critical', 'Extreme'], true) ? 'bg-rose-500' : ($sev === 'High' ? 'bg-orange-500' : ($sev === 'Medium' ? 'bg-amber-500' : 'bg-emerald-500'));
+                        $accent = in_array($sev, ['Critical', 'Extreme'], true) ? 'border-l-rose-400' : ($sev === 'High' ? 'border-l-orange-400' : ($sev === 'Medium' ? 'border-l-amber-400' : 'border-l-emerald-400'));
+                        $sms = $alert_sms[(int) $alert['AlertID']] ?? null;
+                        $pct = ($sms && $sms['targeted'] > 0) ? round($sms['sent'] / $sms['targeted'] * 100) : 0;
+                        ?>
+                        <div class="rounded-[24px] border border-slate-100 border-l-4 <?php echo $accent; ?> p-6 bg-white hover:shadow-md transition-all">
+                            <!-- Title row -->
+                            <div class="flex items-start justify-between gap-4">
+                                <div class="flex items-start gap-4 min-w-0">
+                                    <div class="h-12 w-12 rounded-2xl <?php echo $bg; ?> border <?php echo $border; ?> flex items-center justify-center flex-shrink-0 <?php echo $color; ?>">
+                                        <span class="material-symbols-outlined" style="font-size:24px"><?php echo $icon; ?></span>
                                     </div>
-                                    <p class="text-[11px] text-slate-400 font-medium mt-0.5 truncate">
-                                        <?php echo htmlspecialchars($alert['Message']); ?></p>
+                                    <div class="min-w-0">
+                                        <p class="text-xs font-black uppercase tracking-widest <?php echo $color; ?>">
+                                            Disaster #<?php echo (int) $alert['AlertID']; ?> · <?php echo htmlspecialchars(strtoupper($alert['Type'] ?? '')); ?></p>
+                                        <div class="flex items-center gap-2 flex-wrap mt-1">
+                                            <p class="text-lg font-black text-slate-800 tracking-tight truncate">
+                                                <?php echo htmlspecialchars($alert['Title']); ?></p>
+                                            <span class="px-2 py-0.5 rounded-md text-[9px] font-bold text-white <?php echo $sevCls; ?>">
+                                                <?php echo htmlspecialchars(strtoupper($sev)); ?></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-right flex-shrink-0">
+                                    <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Active for</p>
+                                    <p class="text-sm font-black text-rose-600"><?php echo active_duration($alert['CreatedAt'] ?? null); ?></p>
                                 </div>
                             </div>
-                            <div class="flex items-center gap-2 flex-shrink-0">
+
+                            <!-- Message -->
+                            <p class="text-sm text-slate-600 font-medium leading-relaxed mt-4 bg-slate-50 rounded-2xl px-4 py-3 line-clamp-3">
+                                <?php echo nl2br(htmlspecialchars($alert['Message'] ?: 'No message.')); ?></p>
+
+                            <!-- Details -->
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+                                <div>
+                                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Issued</p>
+                                    <p class="text-xs font-bold text-slate-700 mt-0.5"><?php echo !empty($alert['CreatedAt']) ? date('M j, Y · g:i A', strtotime($alert['CreatedAt'])) : '—'; ?></p>
+                                </div>
+                                <div class="min-w-0">
+                                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Location</p>
+                                    <p class="text-xs font-bold text-slate-700 mt-0.5 truncate" title="<?php echo htmlspecialchars($alert['IncidentLocation'] ?? ''); ?>">
+                                        <?php echo htmlspecialchars(($alert['IncidentLocation'] ?? '') ?: 'Barangay-wide'); ?>
+                                        <?php if (!empty($alert['HazardRadius']) && !empty($alert['HazardLat'])): ?><span class="text-slate-400 font-semibold">· <?php echo (int) $alert['HazardRadius']; ?> m</span><?php endif; ?></p>
+                                </div>
+                                <div class="min-w-0">
+                                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Evacuation</p>
+                                    <p class="text-xs font-bold text-slate-700 mt-0.5 truncate"><?php echo htmlspecialchars((($alert['EvacuationCenter'] ?? '') && $alert['EvacuationCenter'] !== 'None') ? $alert['EvacuationCenter'] : 'None set'); ?></p>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Channels</p>
+                                    <div class="flex gap-1.5 mt-1">
+                                        <span class="px-2 py-0.5 text-[9px] font-bold rounded-md uppercase border <?php echo !empty($alert['notify_app']) ? 'bg-indigo-50 text-indigo-600 border-indigo-100' : 'bg-slate-50 text-slate-300 border-slate-100 line-through'; ?>">App</span>
+                                        <span class="px-2 py-0.5 text-[9px] font-bold rounded-md uppercase border <?php echo !empty($alert['notify_sms']) ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-300 border-slate-100 line-through'; ?>">SMS</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- SMS result -->
+                            <?php if ($sms): ?>
+                                <div class="mt-4 rounded-2xl border border-slate-100 px-4 py-3">
+                                    <div class="flex items-center justify-between gap-3 mb-2">
+                                        <p class="text-[11px] font-bold text-slate-500 uppercase">
+                                            SMS: <span class="text-emerald-600"><?php echo $sms['sent']; ?> sent</span>
+                                            of <?php echo $sms['targeted']; ?> targeted
+                                            <?php if ($sms['no_number']): ?> · <span class="text-amber-600"><?php echo $sms['no_number']; ?> no number</span><?php endif; ?>
+                                            <?php if ($sms['failed']): ?> · <span class="text-rose-600"><?php echo $sms['failed']; ?> failed</span><?php endif; ?>
+                                        </p>
+                                        <?php if ($sms['has_breakdown']): ?>
+                                            <button type="button" onclick="openSmsBreakdown(<?php echo $sms['log_id']; ?>)"
+                                                class="text-[10px] font-black uppercase text-indigo-600 hover:underline flex-shrink-0">Breakdown →</button>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                                        <div class="h-full bg-emerald-500" style="width: <?php echo $pct; ?>%"></div>
+                                    </div>
+                                </div>
+                            <?php elseif (!empty($alert['notify_sms'])): ?>
+                                <p class="mt-4 text-[11px] font-bold text-amber-600 bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3">
+                                    SMS was requested but no broadcast was recorded (check Settings → SMS Configuration).</p>
+                            <?php endif; ?>
+
+                            <!-- Actions -->
+                            <div class="flex items-center justify-end gap-2 mt-5 pt-4 border-t border-slate-100">
                                 <button onclick="openViewModal(<?php echo htmlspecialchars(json_encode($alert)); ?>)"
-                                    class="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors">
-                                    <span class="material-symbols-outlined" style="font-size:16px">visibility</span>
+                                    class="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl border border-slate-200 text-xs font-black uppercase text-slate-500 hover:border-indigo-300 hover:text-indigo-600 transition-all">
+                                    <span class="material-symbols-outlined" style="font-size:16px">visibility</span> View
                                 </button>
                                 <button onclick="openEditModal(<?php echo htmlspecialchars(json_encode($alert)); ?>)"
-                                    class="p-2 bg-slate-100 text-slate-500 rounded-lg hover:bg-slate-200 transition-colors">
-                                    <span class="material-symbols-outlined" style="font-size:16px">edit_square</span>
+                                    class="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl border border-slate-200 text-xs font-black uppercase text-slate-500 hover:border-indigo-300 hover:text-indigo-600 transition-all">
+                                    <span class="material-symbols-outlined" style="font-size:16px">edit_square</span> Update
                                 </button>
                                 <button onclick="openDeactivateModal(<?php echo $alert['AlertID']; ?>)"
-                                    class="px-3 py-2 bg-rose-50 text-rose-600 rounded-lg text-[9px] font-black uppercase hover:bg-rose-100 transition-colors">
-                                    Deactivate
+                                    class="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-black uppercase shadow-lg active:scale-95 transition-all">
+                                    <span class="material-symbols-outlined" style="font-size:16px">task_alt</span> Deactivate
                                 </button>
                             </div>
                         </div>
@@ -2209,14 +2371,14 @@ try {
                         <div class="flex justify-center items-center gap-3 mt-2 pt-4 border-t border-slate-50">
                             <?php if ($disaster_page > 1): ?>
                                 <a href="?dpage=<?= $disaster_page - 1 ?>#"
-                                    class="px-4 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-slate-100 transition-colors">←
+                                    class="px-4 py-2 border border-slate-200 rounded-2xl text-[10px] font-black uppercase text-slate-500 hover:border-indigo-300 hover:text-indigo-600 transition-all">←
                                     Prev</a>
                             <?php endif; ?>
                             <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Page
                                 <?= $disaster_page ?> of <?= $disaster_total_pages ?></span>
                             <?php if ($disaster_page < $disaster_total_pages): ?>
                                 <a href="?dpage=<?= $disaster_page + 1 ?>#"
-                                    class="px-4 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-slate-100 transition-colors">Next
+                                    class="px-4 py-2 border border-slate-200 rounded-2xl text-[10px] font-black uppercase text-slate-500 hover:border-indigo-300 hover:text-indigo-600 transition-all">Next
                                     →</a>
                             <?php endif; ?>
                         </div>
