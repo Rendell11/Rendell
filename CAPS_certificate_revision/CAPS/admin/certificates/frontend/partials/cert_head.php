@@ -60,8 +60,8 @@ $_theme_head_loaded = true;
     .table-card tbody tr { transition:background .15s; }
     .table-card tbody tr:hover { background:rgba(248,250,252,.6); }
     .avatar { width:2.25rem; height:2.25rem; border-radius:.75rem; background:#f1f5f9; color:#64748b; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:10px; flex-shrink:0; }
-    .search-pill { width:100%; padding:.625rem 1rem .625rem 2.75rem; background:#fff; border:1px solid #e2e8f0; border-radius:1rem; font-size:.875rem; box-shadow:0 1px 2px rgba(15,23,42,.05); transition:all .15s; }
-    .search-pill:focus { outline:none; border-color:var(--accent-500,#6366f1); box-shadow:0 0 0 4px rgba(99,102,241,.06); }
+    .search-pill, input.search-pill { width:100%; padding:.625rem 1rem .625rem 2.75rem; background:#fff; border:1px solid #e2e8f0; border-radius:1rem; font-size:.875rem; box-shadow:0 1px 2px rgba(15,23,42,.05); transition:all .15s; }
+    .search-pill:focus, input.search-pill:focus { outline:none; border-color:var(--accent-500,#6366f1); box-shadow:0 0 0 4px rgba(99,102,241,.06); }
     .select-pill { width:100%; border:1px solid #e2e8f0; border-radius:1rem; padding-top:.625rem; padding-bottom:.625rem; font-size:.875rem; font-weight:700; color:#475569; background-color:#fff; box-shadow:0 1px 2px rgba(15,23,42,.05); }
 
     /* Pills (Resident classification tags) */
@@ -104,9 +104,12 @@ $_theme_head_loaded = true;
 
     /* Form fields (Resident inputs: slate-100, no border) */
     .field-label { display:block; font-size:10px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:#94a3b8; margin:0 0 .375rem .25rem; }
-    .input { width:100%; border-radius:.75rem; border:0; background:#f1f5f9; font-size:.875rem; font-weight:700; padding:.75rem 1rem; color:#1e293b; }
-    .input:focus { outline:none; box-shadow:0 0 0 2px rgba(99,102,241,.2); background:#f1f5f9; }
+    /* :is(input,select,textarea).input outranks Tailwind forms' [type='text'] / [type='date'] rules
+       (loaded after this sheet by the CDN), so every field type gets the same look. */
+    .input, :is(input,select,textarea).input { width:100%; border-radius:.75rem; border:0; background-color:#f1f5f9; font-size:.875rem; font-weight:700; padding:.75rem 1rem; color:#1e293b; box-shadow:none; }
+    .input:focus, :is(input,select,textarea).input:focus { outline:none; box-shadow:0 0 0 2px rgba(99,102,241,.2); background-color:#f1f5f9; border-color:transparent; }
     select.input { padding-right:2.5rem; }
+    .input::placeholder { color:#94a3b8; font-weight:600; }
 
     /* Wizard steps */
     .steps { display:flex; align-items:center; gap:.35rem; flex-wrap:wrap; }
@@ -132,7 +135,7 @@ $_theme_head_loaded = true;
     html.dark .text-slate-700 { color:#cbd5e1 !important; }
     html.dark .text-slate-600 { color:#94a3b8 !important; }
     html.dark .border-slate-100, html.dark .border-slate-200, html.dark .modal-head, html.dark .card, html.dark .stat-card, html.dark .table-card, html.dark .sec-box { border-color:#334155 !important; }
-    html.dark .input { background:#0f172a; color:#e2e8f0; }
+    html.dark .input, html.dark :is(input,select,textarea).input { background-color:#0f172a; color:#e2e8f0; }
     html.dark .table-card thead tr { background:#0f172a; }
 </style>
 <script>
