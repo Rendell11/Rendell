@@ -569,8 +569,8 @@ const Preview = (function(){
         const items = Object.keys(r.labels).map(k => ({ key:k, label:r.labels[k], sample:r.values[k] || '' }));
         const groups = [
             { title:'On this document', items: items.filter(i => present.includes(i.key)) },
-            { title:'Resident data', items: items.filter(i => !present.includes(i.key) && !i.key.startsWith('extra.') && !['document_number','date_issued','day_issued','month_year_issued','purpose','barangay_name','captain_name','issuing_officer','reference_no'].includes(i.key)) },
-            { title:'System', items: items.filter(i => !present.includes(i.key) && ['document_number','date_issued','day_issued','month_year_issued','purpose','barangay_name','captain_name','issuing_officer','reference_no'].includes(i.key)) },
+            { title:'Resident data', items: items.filter(i => !present.includes(i.key) && !i.key.startsWith('extra.') && !['document_number','date_issued','day_issued','month_year_issued','month_issued','year_issued','year_issued_short','purpose','barangay_name','captain_name','issuing_officer','reference_no'].includes(i.key)) },
+            { title:'System', items: items.filter(i => !present.includes(i.key) && ['document_number','date_issued','day_issued','month_year_issued','month_issued','year_issued','year_issued_short','purpose','barangay_name','captain_name','issuing_officer','reference_no'].includes(i.key)) },
             { title:'Extra information fields', items: items.filter(i => !present.includes(i.key) && i.key.startsWith('extra.')) },
         ].filter(g => g.items.length);
         document.getElementById('edTitle').textContent = cur.doc_type + ' · ' + cur.doc_number;

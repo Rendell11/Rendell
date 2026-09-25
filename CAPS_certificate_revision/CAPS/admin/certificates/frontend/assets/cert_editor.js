@@ -219,14 +219,24 @@
                 btn.disabled = true; status.textContent = 'AI is reading the template…';
                 Promise.resolve(cfg.onAiDetect(state.positions.map(function (p) { return p.field_key; })))
                     .then(function (res) {
-                        if (!res || !res.length) { status.textContent = 'AI could not place any field. You can still place them manually.'; return; }
-                        res.forEach(function (r) {
+                        // Accepts a plain positions array or { positions, unplaced }.
+                        const list = Array.isArray(res) ? res : ((res && res.positions) || []);
+                        const unplaced = (res && res.unplaced) || [];
+                        if (!list.length) { status.textContent = 'AI could not place any field. You can still place them manually.'; return; }
+                        list.forEach(function (r) {
+                            const upd = { pos_x: r.pos_x, pos_y: r.pos_y, width: r.width, text_align: r.text_align };
+                            if (r.font_size) upd.font_size = r.font_size;
                             const cur = find(r.field_key);
-                            if (cur) Object.assign(cur, { pos_x: r.pos_x, pos_y: r.pos_y, width: r.width, text_align: r.text_align });
-                            else state.positions.push(Object.assign({ field_label: labelOf[r.field_key] || r.field_key, font_size: 16, font_weight: 'normal', text_color: '#000000', uppercase: 0 }, r));
+                            if (cur) Object.assign(cur, upd);
+                            else state.positions.push(Object.assign({ field_key: r.field_key, field_label: labelOf[r.field_key] || r.field_key, font_size: 16, font_weight: 'normal', text_color: '#000000', uppercase: 0 }, upd));
                         });
-                        state.dirty = true; draw(); drawList(); drawProps();
-                        status.textContent = 'AI placed ' + res.length + ' field(s). Check them, fix any mistakes, then click Save — nothing is saved yet.';
+                        // Checked fields with no matching blank are taken off the page instead of floating somewhere.
+                        const removed = state.positions.filter(function (p) { return unplaced.indexOf(p.field_key) >= 0; });
+                        state.positions = state.positions.filter(function (p) { return unplaced.indexOf(p.field_key) < 0; });
+                        state.selected = null; state.dirty = true; draw(); drawList(); drawProps();
+                        status.textContent = 'AI placed ' + list.length + ' field(s).' +
+                            (removed.length ? ' No matching blank for: ' + removed.map(function (p) { return labelOf[p.field_key] || p.field_key; }).join(', ') + ' (removed — add it from the list if needed).' : '') +
+                            ' Check them, fix any mistakes, then click Save — nothing is saved yet.';
                     })
                     .catch(function (err) { status.textContent = (err && err.message) || 'AI Auto Detect is unavailable right now. You can still place fields manually.'; })
                     .finally(function () { btn.disabled = false; });

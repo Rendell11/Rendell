@@ -418,7 +418,7 @@ const Editor = (function(){
             onAiDetect: async function(keys){
                 const r = await CERT.post('../backend/cert_ai_detect.php', { id:cur.id, keys:keys });
                 if (!r.success) throw new Error(r.message);
-                return r.positions;
+                return { positions:r.positions, unplaced:r.unplaced || [] };
             },
         });
     }

@@ -512,6 +512,9 @@ function cert_field_catalog(PDO $pdo): array {
     $add('date_issued', 'Date Issued', date('F j, Y'), 'system');
     $add('day_issued', 'Day Issued (ordinal)', date('jS'), 'system');
     $add('month_year_issued', 'Month & Year Issued', date('F Y'), 'system');
+    $add('month_issued', 'Month Issued', date('F'), 'system');
+    $add('year_issued', 'Year Issued', date('Y'), 'system');
+    $add('year_issued_short', 'Year Issued (last 2 digits, for "20__")', date('y'), 'system');
     $add('purpose', 'Purpose', 'Employment', 'system');
     $add('barangay_name', 'Barangay Name', 'Barangay Biñang 2nd', 'system');
     $add('captain_name', 'Barangay Captain', 'HON. MARIA SANTOS', 'system');
@@ -791,6 +794,9 @@ function cert_field_values(PDO $pdo, array $req, array $res): array {
         'date_issued' => date('F j, Y', $issued),
         'day_issued' => date('jS', $issued),
         'month_year_issued' => date('F Y', $issued),
+        'month_issued' => date('F', $issued),
+        'year_issued' => date('Y', $issued),
+        'year_issued_short' => date('y', $issued),
         'purpose' => $req['Purpose'] ?? '',
         'barangay_name' => $b['name'],
         'captain_name' => cert_current_captain($pdo),

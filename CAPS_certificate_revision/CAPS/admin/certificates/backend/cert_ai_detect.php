@@ -29,11 +29,16 @@ $root = realpath(__DIR__ . '/../../..');
 if (!$abs || strpos($abs, $root) !== 0 || !is_file($abs)) cert_json(['success' => false, 'message' => 'Upload the template image first.'], 422);
 
 $labels = cert_field_labels($pdo, (string)$docType);
-$keys = json_decode((string)($_POST['keys'] ?? '[]'), true);
-$keys = array_values(array_filter(is_array($keys) ? $keys : [], fn($k) => isset($labels[$k])));
-if (!$keys) $keys = json_decode((string)($tpl['layout_json'] ?? ''), true)['selected'] ?? [];
-$keys = array_values(array_filter($keys, fn($k) => isset($labels[$k])));
-if (!$keys) cert_json(['success' => false, 'message' => 'Select the fields for this document first (step 2).'], 422);
+// The checked fields are only a hint: the AI may use ANY available field that fits a blank
+// (e.g. "born on ____" → Birth Date even if only Birth Place was checked), and must skip
+// checked fields that have no matching blank instead of forcing them somewhere.
+$preferred = json_decode((string)($_POST['keys'] ?? '[]'), true);
+$preferred = array_values(array_filter(is_array($preferred) ? $preferred : [], fn($k) => isset($labels[$k])));
+if (!$preferred) $preferred = array_values(array_filter(json_decode((string)($tpl['layout_json'] ?? ''), true)['selected'] ?? [], fn($k) => isset($labels[$k])));
+$keys = array_keys($labels);
+$samples = [];
+foreach (cert_field_catalog($pdo) as $k => $f) $samples[$k] = $f['sample'];
+$paperH = cert_paper($tpl['paper_size'] ?? 'a4')['h'];
 
 // Downscale big images to keep the request small (the AI only needs to read the lines).
 $mime = (new finfo(FILEINFO_MIME_TYPE))->file($abs);
@@ -50,16 +55,23 @@ if (function_exists('imagecreatefromstring') && ($img = @imagecreatefromstring($
     }
 }
 
-$fieldList = implode("\n", array_map(fn($k) => '- ' . $k . ': ' . $labels[$k], $keys));
-$prompt = "This image is a Philippine barangay certificate template (a printed form with blank lines). "
-    . "Find where each field below should be written, e.g. \"Name: ______\" gets the Full Name on that blank line, "
-    . "\"this ___ day of ___\" gets the day / month issued, a signature line above \"Punong Barangay\" gets the captain's name.\n"
-    . "Fields (key: label):\n" . $fieldList . "\n\n"
-    . "For each field, find the BLANK area (the underline / empty space) where its value must be written — not the printed label.\n"
-    . "Return ONLY a JSON array: [{\"field_key\": string, \"box_2d\": [ymin, xmin, ymax, xmax], \"text_align\": \"left\"|\"center\"|\"right\"}].\n"
-    . "box_2d is the box of that blank area, normalized to 0-1000 over the whole image (0,0 = top-left, 1000,1000 = bottom-right). "
-    . "Use \"left\" for blanks inside a sentence, \"center\" for blanks centered on the page or above a signature title. "
-    . "Skip a field if there is no place for it. Use only the keys listed. Each key at most once.";
+$fieldList = implode("\n", array_map(fn($k) => '- ' . $k . ': ' . $labels[$k] . ' (example: "' . ($samples[$k] ?? $labels[$k]) . '")'
+    . (in_array($k, $preferred, true) ? ' [selected by admin]' : ''), $keys));
+$prompt = "This image is a blank Philippine barangay certificate template: printed text with blank underlines to be filled in.\n"
+    . "Task: for EVERY blank that should be filled, choose the ONE field below whose value belongs there, based on the words printed right before/after the blank.\n"
+    . "Available fields (key: label, example value):\n" . $fieldList . "\n\n"
+    . "Rules:\n"
+    . "- Match the MEANING of the surrounding words, e.g. \"whose name ____\" = full_name, \"born on ____\" = birth_date, \"born in / place of birth ____\" = birth_place, "
+    . "\"a resident of ____\" = purok or complete_address, \"House No. ____\" = house_number, \"Street ____\" = street, \"No. ____\" near the title = document_number, "
+    . "\"Issued this ____ day\" = day_issued, \"day of ____\" = month_issued (or month_year_issued if no year blank follows), \"20__\" = year_issued_short, "
+    . "\"purpose of ____\" = purpose, the line above \"Punong Barangay\" = captain_name, the line above \"Barangay Secretary\" or the issuing officer title = issuing_officer.\n"
+    . "- Prefer fields marked [selected by admin] when they fit, but NEVER put a field where its meaning does not match. Leave a field out if no blank matches it.\n"
+    . "- Do not place anything on printed text that is already complete, on the letterhead, or on seals/signature-free areas.\n"
+    . "- box_2d = the box of the BLANK (the underline or empty space), not the printed label, normalized 0-1000 over the whole image (0,0 top-left, 1000,1000 bottom-right). "
+    . "The box height should be the height of one text line sitting on the underline.\n"
+    . "- text_align: \"left\" for blanks inside a sentence, \"center\" for blanks centered above a title/signature or centered on the page.\n"
+    . "- Each field at most once; each blank at most one field.\n"
+    . "Return ONLY a JSON array: [{\"field_key\": string, \"box_2d\": [ymin, xmin, ymax, xmax], \"text_align\": \"left\"|\"center\"|\"right\"}].";
 
 $r = ai_call([
     ['inline_data' => ['mime_type' => $mime, 'data' => base64_encode($data)]],
@@ -96,7 +108,8 @@ function ai_detect_to_position(array $p): ?array {
         return null;
     }
     if ($x < 0 || $x > 100 || $y < 0 || $y > 100) return null; // out of the page: skip instead of piling up in a corner
-    return ['pos_x' => round($x, 2), 'pos_y' => round($y, 2), 'width' => $w !== null ? round(min(100, $w), 2) : null, 'text_align' => $align];
+    return ['pos_x' => round($x, 2), 'pos_y' => round($y, 2), 'width' => $w !== null ? round(min(100, $w), 2) : null, 'text_align' => $align,
+            'height' => isset($y1, $y2) && $y2 > $y1 ? $y2 - $y1 : null];
 }
 
 $out = []; $seen = [];
@@ -105,8 +118,11 @@ foreach ($parsed as $p) {
     $pos = ai_detect_to_position($p);
     if (!$pos) continue;
     $seen[$p['field_key']] = true;
-    $c = cert_clean_position(['field_key' => $p['field_key'], 'font_size' => 16] + $pos);
-    $out[] = ['field_key' => $c['field_key'], 'pos_x' => $c['pos_x'], 'pos_y' => $c['pos_y'], 'width' => $c['width'], 'text_align' => $c['text_align']];
+    // Font size follows the height of the blank line (clamped to readable sizes).
+    $font = isset($pos['height']) ? (int)max(11, min(22, round($pos['height'] / 100 * $paperH * 0.7))) : 16;
+    $c = cert_clean_position(['field_key' => $p['field_key'], 'font_size' => $font] + $pos);
+    $out[] = ['field_key' => $c['field_key'], 'pos_x' => $c['pos_x'], 'pos_y' => $c['pos_y'], 'width' => $c['width'], 'text_align' => $c['text_align'], 'font_size' => $c['font_size']];
 }
 cert_log_activity('AI Auto Detect', 'AI suggested positions for ' . count($out) . ' field(s) on ' . $docType . ' (not saved)');
-cert_json(['success' => true, 'positions' => $out, 'model' => $r['model']]);
+$dropped = array_values(array_diff($preferred, array_column($out, 'field_key')));
+cert_json(['success' => true, 'positions' => $out, 'unplaced' => $dropped, 'model' => $r['model']]);
