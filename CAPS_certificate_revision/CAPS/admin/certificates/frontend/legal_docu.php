@@ -534,7 +534,8 @@ const WalkIn = (function(){
             close(); CERT.toast(d.message + ' ' + d.doc_number, 'success');
             loadList(); Preview.open(d.request_id);
         } catch (e) { msg(e.message); }
-        finally { btn.disabled = false; if (step === 6) go(6); }
+        // Restore the button only — go(6) would also clear the error message shown above.
+        finally { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-outlined">description</span>Generate Document'; }
     }
     return { open, close, next, back, checkAll };
 })();

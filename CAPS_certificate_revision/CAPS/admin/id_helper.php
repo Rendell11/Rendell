@@ -36,7 +36,7 @@ if (!function_exists('id_helper_migrate')) {
         $pdo->exec("CREATE TABLE IF NOT EXISTS `id_sequences` (
             `prefix`     VARCHAR(10) NOT NULL,
             `year`       SMALLINT UNSIGNED NOT NULL,
-            `last_value` INT UNSIGNED NOT NULL DEFAULT 0,
+            `last_value` INT UNSIGNED NOT NULL DEFAULT 0, -- backticks needed: LAST_VALUE is reserved in MySQL 8
             `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (`prefix`, `year`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
@@ -64,7 +64,7 @@ if (!function_exists('next_record_id')) {
         if ($ownTx) $pdo->beginTransaction();
         try {
             // First use of this prefix/year: start after the highest number already in use.
-            $exists = $pdo->prepare("SELECT last_value FROM id_sequences WHERE prefix = ? AND year = ? FOR UPDATE");
+            $exists = $pdo->prepare("SELECT `last_value` FROM `id_sequences` WHERE `prefix` = ? AND `year` = ? FOR UPDATE");
             $exists->execute([$prefix, $year]);
             if ($exists->fetchColumn() === false) {
                 $start = 0;
@@ -75,10 +75,10 @@ if (!function_exists('next_record_id')) {
                     $q->execute([$like]);
                     $start = (int)$q->fetchColumn();
                 }
-                $pdo->prepare("INSERT IGNORE INTO id_sequences (prefix, year, last_value) VALUES (?, ?, ?)")
+                $pdo->prepare("INSERT IGNORE INTO `id_sequences` (`prefix`, `year`, `last_value`) VALUES (?, ?, ?)")
                     ->execute([$prefix, $year, $start]);
             }
-            $pdo->prepare("UPDATE id_sequences SET last_value = LAST_INSERT_ID(last_value + 1) WHERE prefix = ? AND year = ?")
+            $pdo->prepare("UPDATE `id_sequences` SET `last_value` = LAST_INSERT_ID(`last_value` + 1) WHERE `prefix` = ? AND `year` = ?")
                 ->execute([$prefix, $year]);
             $n = (int)$pdo->query("SELECT LAST_INSERT_ID()")->fetchColumn();
             if ($ownTx) $pdo->commit();
