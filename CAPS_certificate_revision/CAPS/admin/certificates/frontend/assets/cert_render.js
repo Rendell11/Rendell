@@ -28,8 +28,32 @@
         el.style.color = f.text_color || '#000';
         el.style.textTransform = Number(f.uppercase) ? 'uppercase' : 'none';
         el.style.lineHeight = '1.25';
-        if (f.width) { el.style.width = f.width + '%'; el.style.whiteSpace = 'normal'; }
-        else { el.style.width = 'auto'; el.style.whiteSpace = 'nowrap'; }
+        // Always one line: a value never wraps onto the printed line below it.
+        el.style.whiteSpace = 'nowrap';
+        el.style.overflow = 'visible';
+        el.style.width = f.width ? f.width + '%' : 'auto';
+        el.dataset.fs = f.font_size || 14;
+    }
+
+    /**
+     * Values longer than their blank (a long address, a 3-word captain name) are shrunk
+     * a little to fit on the line instead of wrapping. Never below 80% of the set size, so the
+     * text stays readable; if it still does not fit it is flagged (data-overflow) for the editor.
+     * Needs the page in the document (it measures text), so page()/into() callers run it after appending.
+     */
+    function fitText(pg) {
+        pg.querySelectorAll('.cert-field').forEach(function (el) {
+            const base = parseFloat(el.dataset.fs) || 14;
+            el.style.fontSize = base + 'px';
+            delete el.dataset.overflow;
+            if (!el.style.width || el.style.width === 'auto') return;
+            let fs = base;
+            while (el.scrollWidth > el.clientWidth + 1 && fs > base * 0.8) {
+                fs -= 0.5;
+                el.style.fontSize = fs + 'px';
+            }
+            if (el.scrollWidth > el.clientWidth + 1) el.dataset.overflow = '1';
+        });
     }
 
     /** Returns a page element at full physical size (not scaled). */
@@ -78,6 +102,8 @@
         wrap.style.cssText = 'position:relative;margin:0 auto;';
         wrap.appendChild(pg);
         host.appendChild(wrap);
+        fitText(pg);
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { fitText(pg); });
         function fit() {
             const avail = opts.width || host.clientWidth || p.w;
             const s = Math.min(1, avail / p.w);
@@ -95,5 +121,5 @@
         return pg;
     }
 
-    global.CertRender = { page: page, into: into, applyFieldStyle: applyFieldStyle };
+    global.CertRender = { page: page, into: into, applyFieldStyle: applyFieldStyle, fitText: fitText };
 })(window);

@@ -63,7 +63,7 @@ if (!$canPrint) cert_log_activity('View Document', ($req['doc_number'] ?: '#' . 
     const host = document.getElementById('host');
     <?php if ($canPrint): ?>
     // Real size for printing (no scaling).
-    const pg = CertRender.page(model); host.appendChild(pg);
+    const pg = CertRender.page(model); host.appendChild(pg); CertRender.fitText(pg);
     function go(){ requestAnimationFrame(function(){ requestAnimationFrame(function(){ setTimeout(function(){ window.print(); }, 150); }); }); }
     const img = pg.querySelector('img');
     if (img && !img.complete) { img.addEventListener('load', go); img.addEventListener('error', go); } else { window.addEventListener('load', go); }

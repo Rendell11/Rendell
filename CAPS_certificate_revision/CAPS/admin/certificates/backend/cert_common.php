@@ -518,6 +518,7 @@ function cert_field_catalog(PDO $pdo): array {
     $add('purpose', 'Purpose', 'Employment', 'system');
     $add('barangay_name', 'Barangay Name', 'Barangay Biñang 2nd', 'system');
     $add('captain_name', 'Barangay Captain', 'HON. MARIA SANTOS', 'system');
+    $add('captain_name_only', 'Barangay Captain (name only, no "HON.")', 'MARIA SANTOS', 'system');
     $add('issuing_officer', 'Issuing Officer', 'Barangay Secretary', 'system');
     $add('reference_no', 'Reference No.', 'REF-2026-0001', 'system');
     return $f;
@@ -800,6 +801,7 @@ function cert_field_values(PDO $pdo, array $req, array $res): array {
         'purpose' => $req['Purpose'] ?? '',
         'barangay_name' => $b['name'],
         'captain_name' => cert_current_captain($pdo),
+        'captain_name_only' => preg_replace('/^HON\.\s*/', '', cert_current_captain($pdo)),
         'issuing_officer' => $req['generated_by'] ?? '',
         'reference_no' => $req['ReferenceNo'] ?? '',
     ];

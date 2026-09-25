@@ -64,7 +64,10 @@ $prompt = "This image is a blank Philippine barangay certificate template: print
     . "- Match the MEANING of the surrounding words, e.g. \"whose name ____\" = full_name, \"born on ____\" = birth_date, \"born in / place of birth ____\" = birth_place, "
     . "\"a resident of ____\" = purok or complete_address, \"House No. ____\" = house_number, \"Street ____\" = street, \"No. ____\" near the title = document_number, "
     . "\"Issued this ____ day\" = day_issued, \"day of ____\" = month_issued (or month_year_issued if no year blank follows), \"20__\" = year_issued_short, "
-    . "\"purpose of ____\" = purpose, the line above \"Punong Barangay\" = captain_name, the line above \"Barangay Secretary\" or the issuing officer title = issuing_officer.\n"
+    . "\"purpose of ____\" = purpose, the line above \"Punong Barangay\" = captain_name — but if \"HON.\" is already printed before that line use captain_name_only, "
+    . "the line above \"Barangay Secretary\" or the issuing officer title = issuing_officer.\n"
+    . "- \"born on ____\" is ALWAYS birth_date (a date), never birth_place.\n"
+    . "- Only place a field ON an existing underline or clearly empty blank. Never place a field in open space between paragraphs, over printed words, or where no underline exists — leave it out instead.\n"
     . "- Prefer fields marked [selected by admin] when they fit, but NEVER put a field where its meaning does not match. Leave a field out if no blank matches it.\n"
     . "- Do not place anything on printed text that is already complete, on the letterhead, or on seals/signature-free areas.\n"
     . "- box_2d = the box of the BLANK (the underline or empty space), not the printed label, normalized 0-1000 over the whole image (0,0 top-left, 1000,1000 bottom-right). "
@@ -118,11 +121,17 @@ foreach ($parsed as $p) {
     $pos = ai_detect_to_position($p);
     if (!$pos) continue;
     $seen[$p['field_key']] = true;
-    // Font size follows the height of the blank line (clamped to readable sizes).
-    $font = isset($pos['height']) ? (int)max(11, min(22, round($pos['height'] / 100 * $paperH * 0.7))) : 16;
-    $c = cert_clean_position(['field_key' => $p['field_key'], 'font_size' => $font] + $pos);
-    $out[] = ['field_key' => $c['field_key'], 'pos_x' => $c['pos_x'], 'pos_y' => $c['pos_y'], 'width' => $c['width'], 'text_align' => $c['text_align'], 'font_size' => $c['font_size']];
+    $c = cert_clean_position(['field_key' => $p['field_key'], 'font_size' => 14] + $pos);
+    $out[] = ['field_key' => $c['field_key'], 'pos_x' => $c['pos_x'], 'pos_y' => $c['pos_y'], 'width' => $c['width'], 'text_align' => $c['text_align'],
+              'font_size' => 14, '_h' => $pos['height'] ?? null];
 }
+// ONE font size for the whole document, from the typical (median) line height, so fields look
+// like the printed body text instead of a mix of sizes. Long values shrink to fit on screen/print.
+$hs = array_values(array_filter(array_column($out, '_h')));
+sort($hs);
+$font = $hs ? (int)max(12, min(18, round($hs[intdiv(count($hs), 2)] / 100 * $paperH * 0.72))) : 14;
+foreach ($out as &$o) { $o['font_size'] = $font; unset($o['_h']); }
+unset($o);
 cert_log_activity('AI Auto Detect', 'AI suggested positions for ' . count($out) . ' field(s) on ' . $docType . ' (not saved)');
 $dropped = array_values(array_diff($preferred, array_column($out, 'field_key')));
 cert_json(['success' => true, 'positions' => $out, 'unplaced' => $dropped, 'model' => $r['model']]);

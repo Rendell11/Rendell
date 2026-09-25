@@ -11,12 +11,14 @@
 .ce-prop input[type=color] { width:26px; height:24px; border:0; padding:0; background:transparent; }
 .ce-tog { width:32px; height:32px; display:inline-flex; align-items:center; justify-content:center; border:1px solid #e2e8f0; border-radius:.5rem; background:#fff; color:#475569; }
 .ce-tog .material-symbols-outlined { font-size:18px; }
+.ce-tog.ce-wide { width:auto; padding:0 .6rem; font-size:.66rem; font-weight:800; }
 .ce-tog.on { background:#0f172a; color:#fff; border-color:#0f172a; }
 .ce-tog.ce-del { color:#dc2626; margin-left:.25rem; }
 .ce-canvas { flex:1; overflow:auto; padding:12px; min-height:0; }
 .ce-canvas .cert-page { box-shadow:0 10px 30px rgba(15,23,42,.15); }
 .ce-field { cursor:move; outline:1px dashed rgba(99,102,241,.55); outline-offset:2px; touch-action:none; user-select:none; }
 .ce-field:hover { outline-color:#6366f1; background:rgba(99,102,241,.06); }
+.ce-field[data-overflow] { outline:2px dashed #ef4444 !important; background:rgba(239,68,68,.08); }
 .ce-field.ce-selected { outline:2px solid #6366f1; background:rgba(99,102,241,.1); }
 .ce-side { background:#fff; border-left:1px solid #e2e8f0; display:flex; flex-direction:column; min-height:0; }
 .ce-side-head { padding:.75rem; border-bottom:1px solid #f1f5f9; }
@@ -34,7 +36,8 @@
 .ce-empty { font-size:.75rem; color:#94a3b8; padding:.75rem .25rem; }
 .ce-side-foot { padding:.75rem; border-top:1px solid #f1f5f9; display:flex; flex-direction:column; gap:.5rem; }
 .ce-note, .ce-status { font-size:.7rem; color:#64748b; margin:0; line-height:1.4; }
-.ce-status:empty { display:none; }
+.ce-status:empty, .ce-fitnote:empty { display:none; }
+.ce-fitnote { font-size:.7rem; color:#b91c1c; font-weight:700; margin:0; line-height:1.4; }
 .ce-btn { display:inline-flex; align-items:center; justify-content:center; gap:.35rem; border-radius:.75rem; padding:.6rem .9rem; font-size:.65rem; font-weight:900; text-transform:uppercase; letter-spacing:.08em; }
 .ce-btn .material-symbols-outlined { font-size:17px; }
 .ce-btn:disabled { opacity:.5; }

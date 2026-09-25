@@ -55,6 +55,7 @@
             '    <div class="ce-list" data-ref="list"></div>' +
             '    <div class="ce-side-foot">' +
             (cfg.note ? '<p class="ce-note">' + esc(cfg.note) + '</p>' : '') +
+            '      <p class="ce-fitnote" data-ref="fitnote"></p>' +
             '      <p class="ce-status" data-ref="status"></p>' +
             (cfg.onAiDetect ? '<button type="button" class="ce-btn ce-btn-ai" data-ref="ai"><span class="material-symbols-outlined">auto_awesome</span>AI Auto Detect</button>' : '') +
             '      <button type="button" class="ce-btn ce-btn-primary" data-ref="save"><span class="material-symbols-outlined">save</span>' + esc(cfg.saveLabel || 'Save Layout') + '</button>' +
@@ -62,7 +63,7 @@
             '  </aside>' +
             '</div>';
         const $ = function (r) { return host.querySelector('[data-ref="' + r + '"]'); };
-        const canvas = $('canvas'), list = $('list'), props = $('props'), status = $('status');
+        const canvas = $('canvas'), list = $('list'), props = $('props'), status = $('status'), fitNote = $('fitnote');
 
         let pageEl = null;
 
@@ -78,10 +79,13 @@
             pageEl = CertRender.into(canvas, model(), { width: Math.max(280, canvas.clientWidth - 24), noResize: true });
             pageEl.querySelectorAll('.cert-field').forEach(function (el) {
                 el.classList.add('ce-field');
+                if (el.dataset.overflow) el.title = 'Too long for this blank — make the width bigger or the font smaller';
                 if (el.dataset.key === state.selected) el.classList.add('ce-selected');
                 el.addEventListener('pointerdown', startDrag);
             });
             pageEl.addEventListener('pointerdown', function (e) { if (e.target === pageEl || e.target.tagName === 'IMG') select(null); });
+            const tooLong = Array.prototype.map.call(pageEl.querySelectorAll('.cert-field[data-overflow]'), function (el) { return labelOf[el.dataset.key] || el.dataset.key; });
+            fitNote.textContent = tooLong.length ? 'Too long for its blank: ' + tooLong.join(', ') + '. Make the width (↔) bigger so it stays readable.' : '';
         }
 
         function find(key) { return state.positions.find(function (p) { return p.field_key === key; }); }
@@ -132,6 +136,7 @@
             props.innerHTML =
                 '<span class="ce-chip">' + esc(labelOf[p.field_key] || p.field_label || p.field_key) + '</span>' +
                 '<label class="ce-prop" title="Font size (px)"><span class="material-symbols-outlined">format_size</span><input type="number" min="6" max="96" data-p="font_size" value="' + p.font_size + '"></label>' +
+                '<button type="button" class="ce-tog ce-wide" data-t="size_all" title="Use this font size for every field on the page">Same size for all</button>' +
                 '<button type="button" class="ce-tog' + (p.font_weight === 'bold' ? ' on' : '') + '" data-t="bold" title="Bold"><span class="material-symbols-outlined">format_bold</span></button>' +
                 '<button type="button" class="ce-tog' + (Number(p.uppercase) ? ' on' : '') + '" data-t="upper" title="UPPERCASE"><span class="material-symbols-outlined">match_case</span></button>' +
                 ['left', 'center', 'right'].map(function (a) {
@@ -157,6 +162,10 @@
                     const t = b.dataset.t;
                     if (t === 'bold') p.font_weight = p.font_weight === 'bold' ? 'normal' : 'bold';
                     if (t === 'upper') p.uppercase = Number(p.uppercase) ? 0 : 1;
+                    if (t === 'size_all') {
+                        state.positions.forEach(function (x) { x.font_size = p.font_size; });
+                        status.textContent = 'All fields now use ' + p.font_size + ' px. Long values shrink a little to stay on their line.';
+                    }
                     if (t === 'remove') {
                         state.positions = state.positions.filter(function (x) { return x !== p; });
                         state.selected = null; state.dirty = true; draw(); drawList(); drawProps(); return;
@@ -169,7 +178,11 @@
         function redrawSelected() {
             const p = find(state.selected);
             const el = pageEl && pageEl.querySelector('.cert-field[data-key="' + CSS.escape(state.selected) + '"]');
-            if (p && el) CertRender.applyFieldStyle(el, p);
+            if (p && el) {
+                CertRender.applyFieldStyle(el, p); CertRender.fitText(pageEl);
+                const tooLong = Array.prototype.map.call(pageEl.querySelectorAll('.cert-field[data-overflow]'), function (x) { return labelOf[x.dataset.key] || x.dataset.key; });
+                fitNote.textContent = tooLong.length ? 'Too long for its blank: ' + tooLong.join(', ') + '. Make the width (↔) bigger so it stays readable.' : '';
+            }
         }
 
         function startDrag(e) {
