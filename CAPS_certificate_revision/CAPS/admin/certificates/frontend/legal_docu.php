@@ -32,174 +32,187 @@ $tab = in_array($_GET['tab'] ?? '', ['pending', 'queue', 'released', 'expired', 
     <link rel="stylesheet" href="assets/cert_editor.css?v=<?php echo @filemtime(__DIR__ . '/assets/cert_editor.css'); ?>">
     <style>
         .stat { transition:transform .2s, box-shadow .2s; }
-        .stat:hover { transform:translateY(-2px); box-shadow:0 16px 36px -14px rgba(15,23,42,.2); }
-        .bubble { position:absolute; top:-8px; right:-8px; min-width:24px; height:24px; padding:0 6px; border-radius:999px; background:#ef4444; color:#fff; font-size:.7rem; font-weight:900; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 3px #fff; }
+        .stat:hover { transform:translateY(-2px); box-shadow:0 16px 36px -14px rgba(15,23,42,.18); }
+        .bubble { position:absolute; top:1.25rem; right:1.25rem; min-width:24px; height:24px; padding:0 7px; border-radius:999px; background:#ef4444; color:#fff; font-size:.7rem; font-weight:900; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 3px #fff; }
         .bubble.hidden { display:none; }
         .bubble.pulse { animation:pulse 1.6s infinite; }
         @keyframes pulse { 0%{box-shadow:0 0 0 3px #fff,0 0 0 3px rgba(239,68,68,.5)} 70%{box-shadow:0 0 0 3px #fff,0 0 0 12px rgba(239,68,68,0)} 100%{box-shadow:0 0 0 3px #fff,0 0 0 3px rgba(239,68,68,0)} }
-        .tab { padding:.5rem .9rem; border-radius:999px; font-size:.64rem; font-weight:800; letter-spacing:.07em; text-transform:uppercase; color:#64748b; background:#f1f5f9; display:inline-flex; align-items:center; gap:.4rem; white-space:nowrap; }
-        .tab .cnt { background:#fff; color:#475569; border-radius:999px; padding:0 .45rem; font-size:.62rem; }
-        .tab.active { background:#0f172a; color:#fff; } .tab.active .cnt { background:rgba(255,255,255,.18); color:#fff; }
-        .row-new { background:linear-gradient(90deg,rgba(239,68,68,.06),transparent 40%); }
-        .check { display:flex; align-items:flex-start; gap:.6rem; padding:.7rem .85rem; border-radius:.9rem; border:1px solid; }
+        .tab { padding:.5rem 1rem; border-radius:.75rem; font-size:10px; font-weight:900; letter-spacing:.08em; text-transform:uppercase; color:#64748b; background:#f8fafc; border:1px solid #f1f5f9; display:inline-flex; align-items:center; gap:.45rem; white-space:nowrap; transition:all .15s; }
+        .tab:hover { color:var(--accent-600); border-color:#e0e7ff; }
+        .tab .cnt { background:#fff; color:#475569; border-radius:.4rem; padding:0 .4rem; font-size:10px; border:1px solid #e2e8f0; }
+        .tab.active { background:var(--accent-600); border-color:var(--accent-600); color:#fff; box-shadow:0 10px 15px -3px rgba(99,102,241,.2); } .tab.active .cnt { background:rgba(255,255,255,.2); border-color:transparent; color:#fff; }
+        .row-new { background:linear-gradient(90deg,rgba(239,68,68,.05),transparent 45%); }
+        .check { display:flex; align-items:flex-start; gap:.75rem; padding:.9rem 1rem; border-radius:1.25rem; border:1px solid; }
         .check .material-symbols-outlined { font-size:20px; }
         .check.ok { background:#ecfdf5; border-color:#a7f3d0; color:#065f46; }
         .check.bad { background:#fff1f2; border-color:#fecaca; color:#991b1b; }
         .check.warn { background:#fffbeb; border-color:#fde68a; color:#92400e; }
-        .req { display:flex; align-items:center; gap:.6rem; padding:.65rem .85rem; border:1px solid #e2e8f0; border-radius:.8rem; font-size:.85rem; font-weight:600; color:#334155; cursor:pointer; }
+        .req { display:flex; align-items:center; gap:.75rem; padding:.85rem 1rem; background:#f8fafc; border:1px solid #f1f5f9; border-radius:1rem; font-size:.85rem; font-weight:700; color:#334155; cursor:pointer; transition:all .15s; }
         .req:has(input:checked) { border-color:#a7f3d0; background:#ecfdf5; color:#065f46; }
-        .req input { width:18px; height:18px; accent-color:#10b981; }
-        .doc-opt { text-align:left; border:1px solid #e2e8f0; border-radius:1rem; padding:.85rem; display:flex; gap:.7rem; align-items:flex-start; background:#fff; }
-        .doc-opt:hover { border-color:var(--accent-400,#60a5fa); }
-        .doc-opt.sel { border-color:var(--accent-600); background:#eff6ff; box-shadow:0 0 0 3px rgba(59,130,246,.12); }
-        .kv { display:grid; grid-template-columns:150px 1fr; gap:.35rem .9rem; font-size:.82rem; }
-        .kv dt { color:#94a3b8; font-weight:700; font-size:.7rem; text-transform:uppercase; letter-spacing:.05em; padding-top:.1rem; }
-        .kv dd { color:#1e293b; font-weight:600; margin:0; word-break:break-word; }
+        .req input { width:18px; height:18px; accent-color:#10b981; border-radius:.3rem; }
+        .doc-opt { text-align:left; border:1px solid #f1f5f9; border-radius:1.5rem; padding:1.1rem; display:flex; gap:.85rem; align-items:flex-start; background:#fff; box-shadow:0 1px 2px rgba(15,23,42,.05); transition:all .15s; }
+        .doc-opt:hover { border-color:#c7d2fe; }
+        .doc-opt.sel { border-color:var(--accent-600); background:#eef2ff; box-shadow:0 0 0 3px rgba(99,102,241,.12); }
+        .kv { display:grid; grid-template-columns:140px 1fr; gap:.5rem 1rem; font-size:.82rem; }
+        .kv dt { color:#94a3b8; font-weight:700; font-size:10px; text-transform:uppercase; letter-spacing:.06em; padding-top:.15rem; }
+        .kv dd { color:#1e293b; font-weight:700; margin:0; word-break:break-word; }
         .mini-table { width:100%; font-size:.78rem; }
-        .mini-table th { text-align:left; font-size:.6rem; text-transform:uppercase; letter-spacing:.08em; color:#94a3b8; padding:.45rem .5rem; background:#f8fafc; }
-        .mini-table td { padding:.5rem; border-top:1px solid #f1f5f9; }
-        .ts-wrapper.single .ts-control { border-radius:.75rem !important; padding:.65rem .9rem !important; background:#f8fafc !important; border-color:#e2e8f0 !important; font-size:.9rem; }
-        .ts-dropdown { border-radius:.75rem !important; box-shadow:0 12px 32px rgba(15,23,42,.14) !important; overflow:hidden; }
-        .ts-dropdown .option { padding:.55rem .8rem !important; }
-        .ts-dropdown .active { background:#eff6ff !important; color:inherit !important; }
-        #previewHost, #viewDocHost { background:#e2e8f0; border-radius:1rem; padding:12px; }
+        .mini-table th { text-align:left; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:#94a3b8; padding:.6rem .75rem; background:rgba(248,250,252,.7); }
+        .mini-table td { padding:.65rem .75rem; border-top:1px solid #f8fafc; font-weight:600; color:#334155; }
+        .ts-wrapper.single .ts-control { border-radius:.75rem !important; padding:.75rem 1rem !important; background:#f1f5f9 !important; border:0 !important; font-size:.875rem; font-weight:700; box-shadow:none !important; }
+        .ts-wrapper.single.focus .ts-control { box-shadow:0 0 0 2px rgba(99,102,241,.2) !important; }
+        .ts-dropdown { border-radius:1rem !important; border:1px solid #f1f5f9 !important; box-shadow:0 20px 40px -12px rgba(15,23,42,.2) !important; overflow:hidden; margin-top:.35rem !important; }
+        .ts-dropdown .option { padding:.65rem 1rem !important; }
+        .ts-dropdown .active { background:#eef2ff !important; color:inherit !important; }
+        #previewHost, #viewDocHost { background:#f1f5f9; border-radius:1.5rem; padding:14px; }
         #editOverlay { position:fixed; inset:0; z-index:80; background:#0f172a; display:none; flex-direction:column; }
         #editOverlay.open { display:flex; }
         #editHost { flex:1; min-height:0; }
-        .timeline li { position:relative; padding-left:1.35rem; padding-bottom:.8rem; }
+        .timeline li { position:relative; padding-left:1.4rem; padding-bottom:.9rem; }
         .timeline li::before { content:''; position:absolute; left:5px; top:6px; bottom:-2px; width:2px; background:#e2e8f0; }
         .timeline li:last-child::before { display:none; }
         .timeline li::after { content:''; position:absolute; left:0; top:4px; width:12px; height:12px; border-radius:999px; background:#fff; border:3px solid var(--accent-600); }
+        .pager a, .pager button { display:inline-flex; align-items:center; gap:.25rem; padding:.375rem .75rem; border-radius:.75rem; font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:.05em; transition:all .15s; }
     </style>
 </head>
 <body <?php echo $theme_attrs['body'] ?? ''; ?>>
 <div class="flex min-h-screen">
     <?php require __DIR__ . '/../../sidebar.php'; ?>
-    <div class="flex-1 min-w-0 main-wrapper">
+    <div class="flex-1 flex flex-col min-w-0 main-wrapper">
         <?php require __DIR__ . '/../../header.php'; ?>
-        <main class="p-4 md:p-6 lg:p-8 space-y-4">
+        <main class="p-4 md:p-6 lg:p-8 space-y-8">
 
-            <section class="hero-band rounded-2xl p-5 md:p-6 text-white relative overflow-hidden">
+            <!-- ── Hero Band (same as Resident Management) ── -->
+            <div class="hero-band rounded-2xl p-6 md:p-8 text-white relative overflow-hidden">
                 <div class="absolute -right-12 -top-12 w-64 h-64 opacity-10 rounded-full blur-3xl pointer-events-none" style="background:var(--accent-400);"></div>
-                <div class="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <div class="absolute left-1/3 bottom-0 w-48 h-48 opacity-10 rounded-full blur-2xl pointer-events-none" style="background:var(--accent-300);"></div>
+                <div class="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
-                        <div class="flex items-center gap-2 text-white/60 text-[10px] font-black uppercase tracking-[0.18em] mb-1">
-                            <span class="material-symbols-outlined text-base">gavel</span> Legal Documents
-                        </div>
-                        <h1 class="text-2xl font-black tracking-tight leading-none">Certificates</h1>
-                        <p class="text-white/65 text-xs mt-1.5 font-medium">Issue walk-in documents, review online requests and release printed certificates.</p>
+                        <h1 class="text-2xl md:text-3xl font-black tracking-tight leading-none">Certificate Management</h1>
+                        <p class="text-white/60 text-sm mt-2 font-medium">Issue walk-in documents, review online requests and release printed certificates.</p>
                     </div>
-                    <div class="flex flex-wrap gap-2 shrink-0">
+                    <div class="flex flex-wrap gap-3 flex-shrink-0">
+                        <a href="certificate_analytics.php" class="hero-btn"><span class="material-symbols-outlined">analytics</span>Analytics</a>
+                        <a href="document_templates.php" class="hero-btn"><span class="material-symbols-outlined">design_services</span>Templates</a>
                         <?php if ($canCreate): ?>
-                        <button type="button" onclick="WalkIn.open()" class="inline-flex items-center gap-1.5 bg-white text-slate-900 hover:bg-white/90 px-4 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-wider"><span class="material-symbols-outlined text-base">person_add</span>Issue Walk-In</button>
+                        <button type="button" onclick="WalkIn.open()" class="hero-btn hero-btn-primary"><span class="material-symbols-outlined">person_add</span>Issue Walk-In</button>
                         <?php endif; ?>
-                        <a href="document_templates.php" class="inline-flex items-center gap-1.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white px-4 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-wider"><span class="material-symbols-outlined text-base">design_services</span>Templates</a>
-                        <a href="certificate_analytics.php" class="inline-flex items-center gap-1.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white px-4 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-wider"><span class="material-symbols-outlined text-base">monitoring</span>View Analytics</a>
                     </div>
                 </div>
-            </section>
-
-            <?php if ($db_error): ?>
-                <div class="rounded-xl border border-rose-200 bg-rose-50 text-rose-700 px-4 py-3 text-sm font-semibold"><?php echo h($db_error); ?></div>
-            <?php elseif (!$docTypes): ?>
-                <div class="rounded-xl border border-amber-200 bg-amber-50 text-amber-800 px-4 py-3 text-sm font-semibold flex items-center gap-2"><span class="material-symbols-outlined">info</span>No finished document types yet. Open <a class="underline" href="document_templates.php">Templates</a> to add one before issuing.</div>
-            <?php endif; ?>
-
-            <!-- Cards -->
-            <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
-                <button type="button" onclick="setTab('pending')" class="stat relative text-left bg-white rounded-2xl card p-4">
-                    <span id="onlineBubble" class="bubble hidden"></span>
-                    <div class="flex items-center justify-between"><p class="section-title">Online Requests</p><span class="w-8 h-8 rounded-xl bg-red-50 text-red-600 flex items-center justify-center"><span class="material-symbols-outlined text-lg">cloud_download</span></span></div>
-                    <p class="text-2xl font-black text-slate-900 mt-1" data-count="online">0</p>
-                    <p class="text-[11px] text-slate-400"><span data-count="new_online">0</span> new · click to review</p>
-                </button>
-                <button type="button" onclick="setTab('pending')" class="stat text-left bg-white rounded-2xl card p-4">
-                    <div class="flex items-center justify-between"><p class="section-title">Pending / Review</p><span class="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center"><span class="material-symbols-outlined text-lg">rate_review</span></span></div>
-                    <p class="text-2xl font-black text-amber-600 mt-1" data-count="pending">0</p><p class="text-[11px] text-slate-400">Waiting for Accept / Reject</p>
-                </button>
-                <button type="button" onclick="setTab('queue')" class="stat text-left bg-white rounded-2xl card p-4">
-                    <div class="flex items-center justify-between"><p class="section-title">Ready to Pick Up</p><span class="w-8 h-8 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center"><span class="material-symbols-outlined text-lg">inventory_2</span></span></div>
-                    <p class="text-2xl font-black text-sky-600 mt-1" data-count="queue">0</p><p class="text-[11px] text-slate-400">Expire after <?php echo CERT_PICKUP_DAYS; ?> days</p>
-                </button>
-                <button type="button" onclick="setTab('released')" class="stat text-left bg-white rounded-2xl card p-4">
-                    <div class="flex items-center justify-between"><p class="section-title">Released</p><span class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center"><span class="material-symbols-outlined text-lg">task_alt</span></span></div>
-                    <p class="text-2xl font-black text-emerald-600 mt-1" data-count="released">0</p><p class="text-[11px] text-slate-400"><span data-count="preview">0</span> walk-in waiting to print</p>
-                </button>
-                <button type="button" onclick="setTab('expired')" class="stat text-left bg-white rounded-2xl card p-4">
-                    <div class="flex items-center justify-between"><p class="section-title">Expired</p><span class="w-8 h-8 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center"><span class="material-symbols-outlined text-lg">hourglass_disabled</span></span></div>
-                    <p class="text-2xl font-black text-slate-500 mt-1" data-count="expired">0</p><p class="text-[11px] text-slate-400">Not picked up in time</p>
-                </button>
             </div>
 
-            <!-- Table -->
-            <section class="bg-white rounded-2xl card overflow-hidden">
-                <div class="px-4 pt-4 pb-3 flex flex-col 2xl:flex-row 2xl:items-center gap-3 border-b border-slate-100">
-                    <div class="flex gap-1.5 overflow-x-auto pb-1" id="tabs">
+            <?php if ($db_error): ?>
+                <div class="rounded-2xl border border-rose-200 bg-rose-50 text-rose-700 px-5 py-4 text-sm font-bold"><?php echo h($db_error); ?></div>
+            <?php elseif (!$docTypes): ?>
+                <div class="rounded-2xl border border-amber-200 bg-amber-50 text-amber-800 px-5 py-4 text-sm font-bold flex items-center gap-2"><span class="material-symbols-outlined">info</span>No finished document types yet. Open <a class="underline" href="document_templates.php">Templates</a> to add one before issuing.</div>
+            <?php endif; ?>
+
+            <!-- ── Search & Filter Row ── -->
+            <div class="grid grid-cols-12 gap-4">
+                <div class="col-span-12 md:col-span-6 xl:col-span-8 relative">
+                    <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xl">search</span>
+                    <input id="q" type="search" placeholder="Search by resident name, Resident ID, reference or document no.…" class="search-pill">
+                </div>
+                <div class="col-span-6 md:col-span-3 xl:col-span-2">
+                    <select id="docFilter" class="select-pill">
+                        <option value="">All Documents</option>
+                        <?php foreach ($allTypes as $t): ?><option value="<?php echo h($t); ?>"><?php echo h($t); ?></option><?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-span-6 md:col-span-3 xl:col-span-2">
+                    <select id="typeFilter" class="select-pill">
+                        <option value="">All Types</option>
+                        <option value="walk-in">Walk-in</option>
+                        <option value="online">Online</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- ── Stats Cards (Resident style) ── -->
+            <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-6">
+                <?php foreach ([
+                    ['pending', 'Online Requests', 'online', 'cloud_download', 'bg-rose-50 text-rose-600', true],
+                    ['pending', 'Pending / Review', 'pending', 'rate_review', 'bg-amber-50 text-amber-600', false],
+                    ['queue', 'Ready to Pick Up', 'queue', 'inventory_2', 'bg-sky-50 text-sky-600', false],
+                    ['released', 'Released', 'released', 'task_alt', 'bg-emerald-50 text-emerald-600', false],
+                    ['expired', 'Expired', 'expired', 'hourglass_disabled', 'bg-slate-100 text-slate-500', false],
+                ] as [$tabKey, $label, $count, $icon, $tile, $bubble]): ?>
+                <button type="button" onclick="setTab('<?php echo $tabKey; ?>')" class="stat stat-card relative text-left">
+                    <?php if ($bubble): ?><span id="onlineBubble" class="bubble hidden" title="New online requests"></span><?php endif; ?>
+                    <div class="stat-icon <?php echo $tile; ?>"><span class="material-symbols-outlined"><?php echo $icon; ?></span></div>
+                    <p class="stat-label"><?php echo h($label); ?></p>
+                    <h3 class="stat-value" data-count="<?php echo $count; ?>">0</h3>
+                </button>
+                <?php endforeach; ?>
+            </div>
+
+            <!-- ── Requests Table (Resident table style) ── -->
+            <div class="table-card">
+                <div class="px-8 pt-6 pb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-50">
+                    <div class="flex items-center gap-3">
+                        <span class="material-symbols-outlined text-white bg-primary p-2 rounded-xl shadow-md">description</span>
+                        <div><h2 class="text-base font-black text-slate-800 leading-tight">Document Requests</h2>
+                            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5"><span data-count="new_online">0</span> new online · <span data-count="preview">0</span> walk-in waiting to print</p></div>
+                    </div>
+                    <div class="flex gap-2 overflow-x-auto pb-1" id="tabs">
                         <?php foreach (['pending' => ['Pending', 'pending'], 'queue' => ['Online Queue', 'queue'], 'released' => ['Released', 'released'],
                                         'expired' => ['Expired', 'expired'], 'walkin' => ['Walk-in', 'walkin'], 'all' => ['All', 'total']] as $k => [$lbl, $cnt]): ?>
                         <button type="button" class="tab<?php echo $tab === $k ? ' active' : ''; ?>" data-tab="<?php echo $k; ?>" onclick="setTab('<?php echo $k; ?>')"><?php echo h($lbl); ?><span class="cnt" data-count="<?php echo $cnt; ?>">0</span></button>
                         <?php endforeach; ?>
                     </div>
-                    <div class="flex gap-2 2xl:ml-auto">
-                        <div class="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl px-3 flex-1">
-                            <span class="material-symbols-outlined text-slate-400 text-lg">search</span>
-                            <input id="q" type="search" placeholder="Name, Resident ID, reference, doc no." class="border-0 bg-transparent text-sm py-2 focus:ring-0 w-full min-w-[220px]">
-                        </div>
-                        <select id="docFilter" class="rounded-xl border-slate-200 bg-slate-50 text-sm font-semibold">
-                            <option value="">All documents</option>
-                            <?php foreach ($allTypes as $t): ?><option value="<?php echo h($t); ?>"><?php echo h($t); ?></option><?php endforeach; ?>
-                        </select>
-                    </div>
                 </div>
                 <div class="overflow-x-auto">
-                    <table class="min-w-full text-sm">
-                        <thead class="bg-slate-50 text-[10px] uppercase tracking-widest text-slate-400 text-left">
-                            <tr><th class="px-4 py-3">Reference / Doc No.</th><th class="px-4 py-3">Resident</th><th class="px-4 py-3">Document</th><th class="px-4 py-3">Type</th><th class="px-4 py-3">Requested</th><th class="px-4 py-3">Status</th><th class="px-4 py-3 text-right">Action</th></tr>
-                        </thead>
-                        <tbody id="rows" class="divide-y divide-slate-100"><tr><td colspan="7" class="px-4 py-10 text-center text-slate-400">Loading…</td></tr></tbody>
+                    <table class="w-full text-left border-collapse">
+                        <thead><tr><th>Resident Info</th><th>Document</th><th>Reference / Doc No.</th><th>Requested</th><th>Status</th><th class="text-right">Actions</th></tr></thead>
+                        <tbody id="rows" class="divide-y divide-slate-50"><tr><td colspan="6" class="text-center py-16 text-slate-400">Loading…</td></tr></tbody>
                     </table>
                 </div>
-            </section>
+                <div id="pager" class="pager hidden flex flex-col sm:flex-row items-center justify-between gap-3 px-8 py-4 border-t border-slate-50"></div>
+            </div>
         </main>
     </div>
 </div>
 
 <!-- ═════════ Issue Walk-In (6 steps) ═════════ -->
 <div id="walkInModal" class="modal-back">
-  <div class="modal-box" style="max-width:880px">
+  <div class="modal-box" style="max-width:900px">
     <div class="modal-head">
       <div class="min-w-0">
-        <p class="section-title">Issue Walk-In</p>
-        <h2 class="text-lg font-black text-slate-800" id="wiTitle">Search Resident</h2>
-        <div class="steps mt-3" id="wiSteps"></div>
+        <h3 class="modal-title" id="wiTitle">Search Resident</h3>
+        <p class="modal-sub">Issue Walk-In · Certificate Request</p>
+        <div class="steps mt-4" id="wiSteps"></div>
       </div>
-      <button type="button" class="text-slate-400 hover:text-slate-700" onclick="WalkIn.close()"><span class="material-symbols-outlined">close</span></button>
+      <button type="button" class="modal-close" onclick="WalkIn.close()"><span class="material-symbols-outlined">close</span></button>
     </div>
     <div class="modal-body">
       <div data-wi="1" class="space-y-4">
-        <div><label class="field-label" for="wiResident">Resident</label><select id="wiResident" placeholder="Type a name, Resident ID or address…"></select>
-          <p class="text-[11px] text-slate-400 mt-1">Results narrow as you type. Deceased residents are not listed.</p></div>
+        <div class="sec-head"><span class="material-symbols-outlined">person_search</span><h4>Find the Resident</h4></div>
+        <div><label class="field-label" for="wiResident">Resident *</label><select id="wiResident" placeholder="Type a name, Resident ID or address…"></select>
+          <p class="text-[11px] text-slate-400 font-medium mt-1.5 ml-1">Results narrow as you type. Deceased residents are not listed.</p></div>
         <div id="wiResidentCard"></div>
       </div>
       <div data-wi="2" class="hidden">
-        <p class="text-sm text-slate-500 mb-3">Choose the document to issue. Only finished, active documents are listed.</p>
-        <div id="wiDocs" class="grid sm:grid-cols-2 gap-2"></div>
+        <div class="sec-head"><span class="material-symbols-outlined">description</span><h4>Choose the Document</h4></div>
+        <p class="text-xs text-slate-500 font-medium mb-4">Only finished, active documents are listed.</p>
+        <div id="wiDocs" class="grid sm:grid-cols-2 gap-3"></div>
       </div>
       <div data-wi="3" class="hidden space-y-3">
-        <div class="flex items-center justify-between gap-2"><p class="text-sm text-slate-500">All requirements must be presented and checked.</p><button type="button" class="btn btn-ghost" onclick="WalkIn.checkAll()"><span class="material-symbols-outlined">done_all</span>Check all</button></div>
+        <div class="flex items-center justify-between gap-2"><div class="sec-head !mb-0"><span class="material-symbols-outlined">checklist</span><h4>Requirements</h4></div><button type="button" class="btn btn-ghost btn-sm" onclick="WalkIn.checkAll()"><span class="material-symbols-outlined">done_all</span>Check all</button></div>
+        <p class="text-xs text-slate-500 font-medium">All requirements must be presented and checked.</p>
         <div id="wiReqs" class="space-y-2"></div>
       </div>
       <div data-wi="4" class="hidden space-y-4" id="wiElig"></div>
-      <div data-wi="5" class="hidden space-y-4">
+      <div data-wi="5" class="hidden space-y-5">
+        <div class="sec-head"><span class="material-symbols-outlined">edit_note</span><h4>Extra Information</h4></div>
         <div><label class="field-label" for="wiPurpose">Purpose *</label><input id="wiPurpose" class="input" maxlength="500" placeholder="e.g. Employment requirement" list="purposeList">
           <datalist id="purposeList"><option>Employment</option><option>Local employment</option><option>Scholarship</option><option>Bank requirement</option><option>School requirement</option><option>Business permit</option><option>Travel</option><option>Medical assistance</option><option>Financial assistance</option><option>Legal purposes</option></datalist></div>
         <div id="wiExtra" class="grid sm:grid-cols-2 gap-4"></div>
-        <div><label class="field-label" for="wiPhoto">Applicant photo (optional)</label><input id="wiPhoto" type="file" accept="image/png,image/jpeg,image/webp" class="text-sm"></div>
+        <div><label class="field-label" for="wiPhoto">Applicant photo (optional)</label><input id="wiPhoto" type="file" accept="image/png,image/jpeg,image/webp" class="text-sm font-semibold text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-indigo-50 file:text-indigo-600 file:font-bold file:text-xs"></div>
       </div>
       <div data-wi="6" class="hidden" id="wiSummary"></div>
     </div>
     <div class="modal-foot">
-      <p id="wiMsg" class="text-[11px] font-semibold text-rose-600 mr-auto"></p>
+      <p id="wiMsg" class="text-[11px] font-bold text-rose-600 mr-auto"></p>
       <button type="button" class="btn btn-ghost" id="wiBack" onclick="WalkIn.back()"><span class="material-symbols-outlined">arrow_back</span>Back</button>
       <button type="button" class="btn btn-dark" id="wiNext" onclick="WalkIn.next()">Next<span class="material-symbols-outlined">arrow_forward</span></button>
     </div>
@@ -208,14 +221,14 @@ $tab = in_array($_GET['tab'] ?? '', ['pending', 'queue', 'released', 'expired', 
 
 <!-- ═════════ Preview (Edit / Print & Release) ═════════ -->
 <div id="previewModal" class="modal-back">
-  <div class="modal-box" style="max-width:980px">
+  <div class="modal-box" style="max-width:1000px">
     <div class="modal-head">
-      <div class="min-w-0"><p class="section-title" id="pvEyebrow">Preview</p><h2 class="text-lg font-black text-slate-800 truncate" id="pvTitle"></h2><p class="text-[11px] text-slate-400" id="pvSub"></p></div>
-      <button type="button" class="text-slate-400 hover:text-slate-700" onclick="CERT.close('previewModal')"><span class="material-symbols-outlined">close</span></button>
+      <div class="min-w-0"><h3 class="modal-title truncate" id="pvTitle"></h3><p class="modal-sub" id="pvEyebrow">Preview</p><p class="text-xs text-slate-400 font-semibold mt-1" id="pvSub"></p></div>
+      <button type="button" class="modal-close" onclick="CERT.close('previewModal')"><span class="material-symbols-outlined">close</span></button>
     </div>
     <div class="modal-body"><div id="pvNote"></div><div id="previewHost"></div></div>
     <div class="modal-foot">
-      <p class="text-[11px] text-slate-400 mr-auto" id="pvFootNote"></p>
+      <p class="text-[11px] text-slate-400 font-semibold mr-auto" id="pvFootNote"></p>
       <button type="button" class="btn btn-ghost" onclick="CERT.close('previewModal')">Close</button>
       <?php if ($canUpdate): ?>
       <button type="button" class="btn btn-ghost" id="pvEdit" onclick="Preview.edit()"><span class="material-symbols-outlined">edit</span>Edit</button>
@@ -227,19 +240,19 @@ $tab = in_array($_GET['tab'] ?? '', ['pending', 'queue', 'released', 'expired', 
 
 <!-- Per-document layout editor -->
 <div id="editOverlay">
-  <div class="flex items-center justify-between gap-3 px-4 py-2.5 bg-slate-900 text-white">
-    <div class="min-w-0"><p class="text-[10px] font-black uppercase tracking-[0.18em] text-white/50">Edit this document only · template is not changed</p><p class="font-black truncate" id="edTitle"></p></div>
-    <button type="button" class="btn bg-white text-slate-900" onclick="Preview.closeEdit()"><span class="material-symbols-outlined">close</span>Back to preview</button>
+  <div class="flex items-center justify-between gap-3 px-5 py-3 hero-band text-white">
+    <div class="min-w-0"><p class="text-[10px] font-black uppercase tracking-[0.18em] text-white/60">Edit this document only · template is not changed</p><p class="font-black truncate" id="edTitle"></p></div>
+    <button type="button" class="hero-btn hero-btn-white" onclick="Preview.closeEdit()"><span class="material-symbols-outlined">close</span>Back to preview</button>
   </div>
   <div id="editHost"></div>
 </div>
 
 <!-- ═════════ Online review (Accept / Reject) ═════════ -->
 <div id="reviewModal" class="modal-back">
-  <div class="modal-box" style="max-width:920px">
+  <div class="modal-box" style="max-width:940px">
     <div class="modal-head">
-      <div class="min-w-0"><p class="section-title">Online Request · Review</p><h2 class="text-lg font-black text-slate-800 truncate" id="rvTitle"></h2><p class="text-[11px] text-slate-400" id="rvSub"></p></div>
-      <button type="button" class="text-slate-400 hover:text-slate-700" onclick="CERT.close('reviewModal')"><span class="material-symbols-outlined">close</span></button>
+      <div class="min-w-0"><h3 class="modal-title truncate" id="rvTitle"></h3><p class="modal-sub">Online Request · Review</p><p class="text-xs text-slate-400 font-semibold mt-1" id="rvSub"></p></div>
+      <button type="button" class="modal-close" onclick="CERT.close('reviewModal')"><span class="material-symbols-outlined">close</span></button>
     </div>
     <div class="modal-body space-y-4" id="rvBody"></div>
     <div class="modal-foot">
@@ -253,17 +266,18 @@ $tab = in_array($_GET['tab'] ?? '', ['pending', 'queue', 'released', 'expired', 
 </div>
 
 <div id="rejectModal" class="modal-back" style="z-index:75">
-  <div class="modal-box" style="max-width:460px">
-    <div class="modal-head"><div><p class="section-title">Reject Request</p><h2 class="text-lg font-black text-slate-800">Reason for rejection</h2></div>
-      <button type="button" class="text-slate-400" onclick="CERT.close('rejectModal')"><span class="material-symbols-outlined">close</span></button></div>
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-head"><div><h3 class="modal-title">Reject Request</h3><p class="modal-sub">Reason for rejection</p></div>
+      <button type="button" class="modal-close" onclick="CERT.close('rejectModal')"><span class="material-symbols-outlined">close</span></button></div>
     <div class="modal-body space-y-3">
+      <div><label class="field-label" for="rjReason">Reason *</label>
       <select id="rjReason" class="input">
         <option value="">Choose a reason…</option>
         <option>Incomplete requirements</option><option>Invalid information</option><option>Active blotter case</option><option>Duplicate request</option><option>Others</option>
-      </select>
+      </select></div>
       <textarea id="rjOther" class="input hidden" rows="3" maxlength="480" placeholder="Type the reason (required)"></textarea>
-      <p class="text-[11px] text-slate-400">The resident is notified with this reason.</p>
-      <p id="rjMsg" class="text-[11px] font-semibold text-rose-600"></p>
+      <p class="text-[11px] text-slate-400 font-medium ml-1">The resident is notified with this reason.</p>
+      <p id="rjMsg" class="text-[11px] font-bold text-rose-600 ml-1"></p>
     </div>
     <div class="modal-foot"><button type="button" class="btn btn-ghost" onclick="CERT.close('rejectModal')">Cancel</button><button type="button" class="btn btn-red" onclick="Review.confirmReject()"><span class="material-symbols-outlined">block</span>Reject Request</button></div>
   </div>
@@ -271,10 +285,10 @@ $tab = in_array($_GET['tab'] ?? '', ['pending', 'queue', 'released', 'expired', 
 
 <!-- ═════════ View (details + status log) ═════════ -->
 <div id="viewModal" class="modal-back">
-  <div class="modal-box" style="max-width:980px">
+  <div class="modal-box" style="max-width:1000px">
     <div class="modal-head">
-      <div class="min-w-0"><p class="section-title">View · read only</p><h2 class="text-lg font-black text-slate-800 truncate" id="vwTitle"></h2><p class="text-[11px] text-slate-400" id="vwSub"></p></div>
-      <button type="button" class="text-slate-400 hover:text-slate-700" onclick="CERT.close('viewModal')"><span class="material-symbols-outlined">close</span></button>
+      <div class="min-w-0"><h3 class="modal-title truncate" id="vwTitle"></h3><p class="modal-sub">View · read only</p><p class="text-xs text-slate-400 font-semibold mt-1" id="vwSub"></p></div>
+      <button type="button" class="modal-close" onclick="CERT.close('viewModal')"><span class="material-symbols-outlined">close</span></button>
     </div>
     <div class="modal-body" id="vwBody"></div>
     <div class="modal-foot"><button type="button" class="btn btn-ghost" onclick="CERT.close('viewModal')">Close</button></div>
@@ -283,9 +297,9 @@ $tab = in_array($_GET['tab'] ?? '', ['pending', 'queue', 'released', 'expired', 
 
 <!-- Blotter case pop-up -->
 <div id="blotterModal" class="modal-back" style="z-index:85">
-  <div class="modal-box" style="max-width:620px">
-    <div class="modal-head"><div><p class="section-title">Blotter Case</p><h2 class="text-lg font-black text-slate-800" id="bcTitle"></h2></div>
-      <button type="button" class="text-slate-400" onclick="CERT.close('blotterModal')"><span class="material-symbols-outlined">close</span></button></div>
+  <div class="modal-box" style="max-width:640px">
+    <div class="modal-head"><div><h3 class="modal-title" id="bcTitle"></h3><p class="modal-sub">Blotter Case</p></div>
+      <button type="button" class="modal-close" onclick="CERT.close('blotterModal')"><span class="material-symbols-outlined">close</span></button></div>
     <div class="modal-body" id="bcBody"></div>
     <div class="modal-foot"><button type="button" class="btn btn-ghost" onclick="CERT.close('blotterModal')">Close</button></div>
   </div>
@@ -303,7 +317,8 @@ let TAB = <?php echo json_encode($tab); ?>;
 /* ───────── helpers ───────── */
 function pill(status, cls){ return '<span class="pill ' + cls + '">' + esc(status) + '</span>'; }
 function kv(rows){ return '<dl class="kv">' + rows.filter(r => r).map(r => '<dt>' + esc(r[0]) + '</dt><dd>' + (r[2] ? r[1] : esc(r[1] == null || r[1] === '' ? '—' : r[1])) + '</dd>').join('') + '</dl>'; }
-function section(title, html, icon){ return '<section class="rounded-2xl border border-slate-100 p-4"><p class="section-title mb-3 flex items-center gap-1.5">' + (icon ? '<span class="material-symbols-outlined text-sm">' + icon + '</span>' : '') + esc(title) + '</p>' + html + '</section>'; }
+function section(title, html, icon){ return '<section class="sec-box"><div class="sec-head"><span class="material-symbols-outlined">' + (icon || 'info') + '</span><h4>' + esc(title) + '</h4></div>' + html + '</section>'; }
+function initials(name){ const p = String(name || '').trim().split(/\s+/); return ((p[0] || '').charAt(0) + (p.length > 1 ? p[p.length - 1].charAt(0) : '')).toUpperCase() || '?'; }
 
 function eligibilityHTML(el, opts){
     opts = opts || {};
@@ -316,7 +331,7 @@ function eligibilityHTML(el, opts){
     if (b.length) {
         h += section('Active blotter cases', '<div class="overflow-x-auto"><table class="mini-table"><thead><tr><th>Blotter ID</th><th>Role</th><th>Date</th><th>Case</th><th>Status</th><th></th></tr></thead><tbody>' +
             b.map(c => '<tr><td class="font-mono font-bold">' + esc(c.blotter_no) + '</td><td>' + esc(c.role) + '</td><td>' + esc(c.date) + '</td><td>' + esc(c.case) + '</td><td><span class="pill bg-amber-50 text-amber-700 border-amber-200">' + esc(c.status) + '</span></td>' +
-                '<td class="text-right"><button type="button" class="btn btn-ghost !py-1.5" onclick="Blotter.view(' + c.id + ')"><span class="material-symbols-outlined">visibility</span>View</button></td></tr>').join('') +
+                '<td class="text-right"><button type="button" class="btn btn-ghost btn-sm" onclick="Blotter.view(' + c.id + ')"><span class="material-symbols-outlined">visibility</span>View</button></td></tr>').join('') +
             '</tbody></table></div>', 'gavel');
     }
     if ((el.unclaimed || []).length) {
@@ -344,6 +359,8 @@ function paintCounts(c){
     b.classList.toggle('hidden', !c.new_online);
     b.classList.toggle('pulse', c.new_online > 0);
 }
+const PER_PAGE = 10;
+let ROWS = [], PAGE = 1;
 async function loadList(){
     const q = document.getElementById('q').value.trim(), dt = document.getElementById('docFilter').value;
     const tb = document.getElementById('rows');
@@ -351,21 +368,51 @@ async function loadList(){
         const d = await CERT.getJSON(API + '?action=list&tab=' + encodeURIComponent(TAB) + '&q=' + encodeURIComponent(q) + '&doc_type=' + encodeURIComponent(dt));
         if (!d.success) throw new Error(d.message);
         paintCounts(d.counts); lastNew = d.counts.new_online;
-        if (!d.rows.length) { tb.innerHTML = '<tr><td colspan="7" class="px-4 py-12 text-center text-slate-400"><span class="material-symbols-outlined text-4xl text-slate-300">inbox</span><p class="mt-1">No requests here.</p></td></tr>'; return; }
-        const btn = { preview:['Preview','preview','btn-dark'], review:['Review','rate_review','btn-accent'], view:['View','visibility','btn-ghost'] };
-        tb.innerHTML = d.rows.map(r => {
-            const b = btn[r.action];
-            return '<tr class="' + (r.is_new ? 'row-new' : '') + '">' +
-                '<td class="px-4 py-3"><div class="font-mono text-xs font-bold text-slate-800">' + esc(r.ref) + (r.is_new ? ' <span class="pill bg-red-50 text-red-600 border-red-200 ml-1">New</span>' : '') + '</div><div class="font-mono text-[11px] text-slate-400">' + esc(r.doc_number || '—') + '</div></td>' +
-                '<td class="px-4 py-3"><div class="font-bold text-slate-800">' + esc(r.resident) + '</div><div class="text-[11px] text-slate-400 font-mono">' + esc(r.resident_code) + '</div></td>' +
-                '<td class="px-4 py-3"><div class="font-semibold text-slate-700">' + esc(r.doc_type) + '</div><div class="text-[11px] text-slate-400 truncate max-w-[220px]">' + esc(r.purpose) + '</div></td>' +
-                '<td class="px-4 py-3"><span class="pill ' + (r.type === 'online' ? 'bg-violet-50 text-violet-700 border-violet-200' : 'bg-slate-50 text-slate-600 border-slate-200') + '"><span class="material-symbols-outlined">' + (r.type === 'online' ? 'language' : 'directions_walk') + '</span>' + esc(r.type) + '</span></td>' +
-                '<td class="px-4 py-3 whitespace-nowrap"><div class="text-slate-700 font-semibold">' + esc(r.date) + '</div><div class="text-[11px] text-slate-400">' + esc(r.time) + '</div></td>' +
-                '<td class="px-4 py-3"><span class="pill ' + r.status_class + '"><span class="material-symbols-outlined">' + r.status_icon + '</span>' + esc(r.status) + '</span>' + (r.pickup_until ? '<div class="text-[10px] text-slate-400 mt-1">Pick up by ' + esc(r.pickup_until) + '</div>' : '') + '</td>' +
-                '<td class="px-4 py-3 text-right"><button type="button" class="btn ' + b[2] + '" onclick="openRow(' + r.id + ',\'' + r.action + '\')"><span class="material-symbols-outlined">' + b[1] + '</span>' + b[0] + '</button></td></tr>';
-        }).join('');
-    } catch (e) { tb.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-rose-600 font-semibold">' + esc(e.message) + '</td></tr>'; }
+        ROWS = d.rows; PAGE = 1; drawRows();
+    } catch (e) { tb.innerHTML = '<tr><td colspan="6" class="py-10 text-center text-rose-600 font-bold">' + esc(e.message) + '</td></tr>'; document.getElementById('pager').classList.add('hidden'); }
 }
+function drawRows(){
+    const tb = document.getElementById('rows'), pager = document.getElementById('pager');
+    const type = document.getElementById('typeFilter').value;
+    const rows = ROWS.filter(r => !type || r.type === type);
+    const pages = Math.max(1, Math.ceil(rows.length / PER_PAGE));
+    PAGE = Math.min(PAGE, pages);
+    if (!rows.length) {
+        tb.innerHTML = '<tr><td colspan="6" class="text-center py-16 text-slate-400"><span class="material-symbols-outlined text-4xl block mb-2 text-slate-200">manage_search</span>' +
+            (document.getElementById('q').value.trim() || type || document.getElementById('docFilter').value ? 'No requests match your search.' : 'No requests here.') + '</td></tr>';
+        pager.classList.add('hidden'); return;
+    }
+    const btn = { preview:['Preview','preview','btn-dark'], review:['Review','rate_review','btn-dark'], view:['View','visibility','btn-ghost'] };
+    tb.innerHTML = rows.slice((PAGE - 1) * PER_PAGE, PAGE * PER_PAGE).map(r => {
+        const b = btn[r.action];
+        const typePill = r.type === 'online'
+            ? '<span class="pill bg-violet-50 text-violet-600 border-violet-100">Online</span>'
+            : '<span class="pill bg-slate-50 text-slate-500 border-slate-200">Walk-in</span>';
+        return '<tr class="group ' + (r.is_new ? 'row-new' : '') + '">' +
+            '<td><div class="flex items-center gap-3"><div class="avatar">' + esc(initials(r.resident)) + '</div><div>' +
+                '<p class="text-sm font-bold text-slate-700 leading-tight">' + esc(r.resident) + '</p>' +
+                '<p class="text-[10px] text-slate-400 font-bold uppercase tracking-tighter mt-0.5">' + esc(r.resident_code || '—') + '</p></div></div></td>' +
+            '<td><p class="text-xs font-semibold text-slate-700">' + esc(r.doc_type) + '</p>' +
+                '<div class="flex items-center gap-1.5 mt-1">' + typePill + (r.purpose ? '<span class="text-[10px] text-slate-400 font-bold truncate max-w-[180px]">' + esc(r.purpose) + '</span>' : '') + '</div></td>' +
+            '<td><p class="text-xs font-bold text-slate-700 font-mono">' + esc(r.ref) + (r.is_new ? ' <span class="pill bg-rose-50 text-rose-600 border-rose-100 ml-1">New</span>' : '') + '</p>' +
+                '<p class="text-[10px] text-slate-400 font-bold font-mono mt-0.5">' + esc(r.doc_number || '—') + '</p></td>' +
+            '<td class="whitespace-nowrap"><p class="text-xs font-semibold text-slate-700">' + esc(r.date) + '</p><p class="text-[10px] text-slate-400 font-bold mt-0.5">' + esc(r.time) + '</p></td>' +
+            '<td><span class="pill ' + r.status_class + '"><span class="material-symbols-outlined">' + r.status_icon + '</span>' + esc(r.status) + '</span>' +
+                (r.pickup_until ? '<p class="text-[10px] text-slate-400 font-bold mt-1">Pick up by ' + esc(r.pickup_until) + '</p>' : '') + '</td>' +
+            '<td class="text-right"><button type="button" class="btn btn-sm ' + b[2] + '" onclick="openRow(' + r.id + ',\'' + r.action + '\')"><span class="material-symbols-outlined">' + b[1] + '</span>' + b[0] + '</button></td></tr>';
+    }).join('');
+    // Pagination (same look as the Resident table)
+    if (pages <= 1) { pager.classList.add('hidden'); return; }
+    const from = (PAGE - 1) * PER_PAGE + 1, to = Math.min(PAGE * PER_PAGE, rows.length);
+    const nav = (p, label, dis, active) => '<button type="button" ' + (dis ? 'disabled ' : '') + 'onclick="goPage(' + p + ')" class="' +
+        (active ? 'bg-primary text-white shadow' : (dis ? 'pointer-events-none text-slate-300 bg-slate-50' : 'text-slate-500 bg-white border border-slate-200 hover:border-indigo-300 hover:text-indigo-600')) + '">' + label + '</button>';
+    let nums = '';
+    for (let p = Math.max(1, PAGE - 2); p <= Math.min(pages, PAGE + 2); p++) nums += nav(p, p, false, p === PAGE);
+    pager.innerHTML = '<p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Showing <strong class="text-slate-600">' + from + '</strong>–<strong class="text-slate-600">' + to + '</strong> of <strong class="text-slate-600">' + rows.length + '</strong> requests</p>' +
+        '<nav class="flex items-center gap-1">' + nav(PAGE - 1, '<span class="material-symbols-outlined text-sm">chevron_left</span> Prev', PAGE <= 1) + nums + nav(PAGE + 1, 'Next <span class="material-symbols-outlined text-sm">chevron_right</span>', PAGE >= pages) + '</nav>';
+    pager.classList.remove('hidden');
+}
+function goPage(p){ PAGE = p; drawRows(); }
 function openRow(id, action){
     if (action === 'preview') Preview.open(id);
     else if (action === 'review') Review.open(id);
@@ -373,6 +420,7 @@ function openRow(id, action){
 }
 document.getElementById('q').addEventListener('input', () => { clearTimeout(listTimer); listTimer = setTimeout(loadList, 250); });
 document.getElementById('docFilter').addEventListener('change', loadList);
+document.getElementById('typeFilter').addEventListener('change', () => { PAGE = 1; drawRows(); });
 
 // Bubble: poll the number of new online requests every 45 s.
 let lastNew = null;
@@ -443,12 +491,12 @@ const WalkIn = (function(){
         if (!d.success) { card.innerHTML = '<p class="text-sm text-rose-600">' + esc(d.message) + '</p>'; return; }
         st.resident = d.resident; st.elig = d.eligibility; st.blotterAck = false;
         const r = d.resident;
-        card.innerHTML = '<div class="rounded-2xl border border-slate-100 bg-slate-50 p-4 flex gap-4 items-start"><span class="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-black text-lg shrink-0">' + esc(r.name.charAt(0)) + '</span><div class="flex-1 min-w-0">' +
+        card.innerHTML = '<div class="rounded-3xl border border-slate-100 bg-slate-50 p-5 flex gap-4 items-start"><span class="w-12 h-12 rounded-2xl bg-primary text-white flex items-center justify-center font-black text-sm shrink-0 shadow-md">' + esc(initials(r.name)) + '</span><div class="flex-1 min-w-0">' +
             '<p class="font-black text-slate-800">' + esc(r.name) + ' <span class="font-mono text-xs text-indigo-600">' + esc(r.code) + '</span></p><p class="text-xs text-slate-500">' + esc(r.address) + '</p>' +
-            '<div class="flex flex-wrap gap-1.5 mt-2 text-[11px] font-bold text-slate-600"><span class="px-2 py-1 rounded-lg bg-white border border-slate-200">' + esc(r.sex) + '</span><span class="px-2 py-1 rounded-lg bg-white border border-slate-200">' + esc(r.age) + ' yrs · born ' + esc(r.birth_date) + '</span><span class="px-2 py-1 rounded-lg bg-white border border-slate-200">' + esc(r.civil_status) + '</span><span class="px-2 py-1 rounded-lg bg-white border border-slate-200">' + esc(r.contact) + '</span></div></div></div>';
+            '<div class="flex flex-wrap gap-1.5 mt-3"><span class="pill bg-white text-slate-500 border-slate-200">' + esc(r.sex) + '</span><span class="pill bg-white text-slate-500 border-slate-200">' + esc(r.age) + ' yrs · born ' + esc(r.birth_date) + '</span><span class="pill bg-white text-slate-500 border-slate-200">' + esc(r.civil_status) + '</span><span class="pill bg-white text-slate-500 border-slate-200">' + esc(r.contact) + '</span></div></div></div>';
     }
     function drawDocs(){
-        document.getElementById('wiDocs').innerHTML = DOC_TYPES.map((t, i) => '<button type="button" class="doc-opt' + (st.doc === t.doc_type ? ' sel' : '') + '" data-i="' + i + '"><span class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0"><span class="material-symbols-outlined">description</span></span><span class="min-w-0"><span class="block font-black text-slate-800">' + esc(t.doc_type) + '</span><span class="block text-[11px] text-slate-400">' + esc(t.description || t.doc_code || '') + '</span></span></button>').join('');
+        document.getElementById('wiDocs').innerHTML = DOC_TYPES.map((t, i) => '<button type="button" class="doc-opt' + (st.doc === t.doc_type ? ' sel' : '') + '" data-i="' + i + '"><span class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0"><span class="material-symbols-outlined">description</span></span><span class="min-w-0"><span class="block text-sm font-black text-slate-800">' + esc(t.doc_type) + '</span><span class="block text-[11px] text-slate-400">' + esc(t.description || t.doc_code || '') + '</span></span></button>').join('');
         document.querySelectorAll('#wiDocs .doc-opt').forEach(b => b.addEventListener('click', async () => {
             const t = DOC_TYPES[Number(b.dataset.i)];
             st.doc = t.doc_type; drawDocs();

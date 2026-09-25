@@ -34,30 +34,34 @@ $chart = $a ? cert_analytics_chart_data($a) : null;
 <body <?php echo $theme_attrs['body'] ?? ''; ?>>
 <div class="flex min-h-screen">
     <?php require __DIR__ . '/../../sidebar.php'; ?>
-    <div class="flex-1 min-w-0 main-wrapper">
+    <div class="flex-1 flex flex-col min-w-0 main-wrapper">
         <?php require __DIR__ . '/../../header.php'; ?>
-        <main class="p-4 md:p-6 lg:p-8 space-y-4">
-            <section class="hero-band rounded-2xl p-5 md:p-6 text-white relative overflow-hidden">
+        <main class="p-4 md:p-6 lg:p-8 space-y-7">
+            <!-- ── Hero Band (same as Resident Analytics) ── -->
+            <section class="hero-band rounded-2xl p-6 md:p-8 text-white relative overflow-hidden">
                 <div class="absolute -right-12 -top-12 w-64 h-64 opacity-10 rounded-full blur-3xl pointer-events-none" style="background:var(--accent-400);"></div>
-                <div class="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <div class="absolute left-1/3 bottom-0 w-48 h-48 opacity-10 rounded-full blur-2xl pointer-events-none" style="background:var(--accent-300);"></div>
+                <div class="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
                     <div>
-                        <div class="flex items-center gap-2 text-white/60 text-[10px] font-black uppercase tracking-[0.18em] mb-1"><span class="material-symbols-outlined text-base">monitoring</span> Legal Documents</div>
-                        <h1 class="text-2xl font-black tracking-tight leading-none">Certificate Analytics</h1>
-                        <p class="text-white/65 text-xs mt-1.5 font-medium">Requests, releases and turnaround from recorded certificate requests · <?php echo h($periodLabel); ?></p>
+                        <div class="flex items-center gap-2 text-white/60 text-[10px] font-black uppercase tracking-[0.18em] mb-2"><span class="material-symbols-outlined text-base">analytics</span>Certificate Management</div>
+                        <h1 class="text-2xl md:text-3xl font-black tracking-tight leading-none">Certificate Analytics</h1>
+                        <p class="text-white/65 text-sm mt-2 font-medium max-w-2xl">Requests, releases and turnaround from recorded certificate requests · <?php echo h($periodLabel); ?></p>
                     </div>
-                    <div class="flex flex-wrap gap-2 shrink-0">
-                        <button type="button" onclick="openReport('pdf')" class="inline-flex items-center gap-1.5 bg-white text-slate-900 hover:bg-white/90 px-4 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-wider"><span class="material-symbols-outlined text-base">save</span>Save as PDF</button>
-                        <button type="button" onclick="openReport('print')" class="inline-flex items-center gap-1.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white px-4 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-wider"><span class="material-symbols-outlined text-base">print</span>Print</button>
-                        <a href="legal_docu.php" class="inline-flex items-center gap-1.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white px-4 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-wider"><span class="material-symbols-outlined text-base">arrow_back</span>Back</a>
+                    <div class="flex flex-wrap gap-3">
+                        <button type="button" onclick="openReport('pdf')" class="hero-btn hero-btn-white"><span class="material-symbols-outlined">picture_as_pdf</span>Save as PDF</button>
+                        <button type="button" onclick="openReport('print')" class="hero-btn"><span class="material-symbols-outlined">print</span>Print</button>
+                        <a href="legal_docu.php" class="hero-btn"><span class="material-symbols-outlined">arrow_back</span>Back to Certificates</a>
                     </div>
                 </div>
             </section>
 
-            <form method="get" class="bg-white rounded-2xl p-4 card flex flex-wrap items-end gap-3">
-                <div><label class="section-title" for="fromDate">Start Date</label><input type="date" name="from" id="fromDate" value="<?php echo h($p['from']); ?>" max="<?php echo date('Y-m-d'); ?>" required class="mt-1 block rounded-lg border-slate-200 text-sm font-semibold py-2"></div>
-                <div><label class="section-title" for="toDate">End Date</label><input type="date" name="to" id="toDate" value="<?php echo h($p['to']); ?>" max="<?php echo date('Y-m-d'); ?>" required class="mt-1 block rounded-lg border-slate-200 text-sm font-semibold py-2"></div>
-                <button class="px-4 py-2.5 rounded-lg bg-slate-900 text-white text-[10px] font-black uppercase tracking-wider">Apply</button>
-                <p class="ml-auto text-[11px] text-slate-400">Default: last 30 days. Everything on this page follows the range.</p>
+            <form method="get" class="card p-5 md:p-6 flex flex-wrap items-end gap-4">
+                <div class="flex items-center gap-3 mr-2"><span class="material-symbols-outlined text-white bg-primary p-2 rounded-xl">date_range</span>
+                    <div><h2 class="text-sm font-black text-slate-800">Date Range</h2><p class="text-[10px] text-slate-400 font-bold">Everything on this page follows the range.</p></div></div>
+                <div><label class="field-label" for="fromDate">Start Date</label><input type="date" name="from" id="fromDate" value="<?php echo h($p['from']); ?>" max="<?php echo date('Y-m-d'); ?>" required class="input !w-auto"></div>
+                <div><label class="field-label" for="toDate">End Date</label><input type="date" name="to" id="toDate" value="<?php echo h($p['to']); ?>" max="<?php echo date('Y-m-d'); ?>" required class="input !w-auto"></div>
+                <button class="btn btn-dark"><span class="material-symbols-outlined">filter_alt</span>Apply</button>
+                <p class="ml-auto text-[10px] text-slate-400 font-bold uppercase tracking-widest">Default: last 30 days</p>
             </form>
 
             <?php if ($db_error): ?>
@@ -65,19 +69,19 @@ $chart = $a ? cert_analytics_chart_data($a) : null;
             <?php else: ?>
 
             <!-- AI Analytics Overview -->
-            <section class="bg-white rounded-2xl card overflow-hidden">
-                <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between gap-3">
+            <section class="card overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-50 flex items-center justify-between gap-3">
                     <div class="flex items-center gap-2.5">
-                        <span class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-fuchsia-500 text-white flex items-center justify-center"><span class="material-symbols-outlined text-lg">auto_awesome</span></span>
+                        <span class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-fuchsia-500 text-white flex items-center justify-center shadow-md"><span class="material-symbols-outlined">auto_awesome</span></span>
                         <div><p class="section-title">AI Analytics Overview</p><p id="aiMeta" class="text-[11px] text-slate-400">Checking for a saved analysis…</p></div>
                     </div>
-                    <button type="button" id="aiRefresh" class="px-3 py-1.5 rounded-lg bg-slate-900 text-white text-[10px] font-black uppercase tracking-wider inline-flex items-center gap-1 disabled:opacity-40"><span class="material-symbols-outlined text-sm">auto_awesome</span><span id="aiBtnLabel">Generate AI Analytics</span></button>
+                    <button type="button" id="aiRefresh" class="btn btn-dark btn-sm"><span class="material-symbols-outlined text-sm">auto_awesome</span><span id="aiBtnLabel">Generate AI Analytics</span></button>
                 </div>
-                <div id="aiBody" class="p-4"><p class="text-xs text-slate-400">AI analysis is not generated automatically. Click <strong>Generate AI Analytics</strong> to analyze <?php echo h($periodLabel); ?>.</p></div>
+                <div id="aiBody" class="p-6"><p class="text-xs text-slate-400">AI analysis is not generated automatically. Click <strong>Generate AI Analytics</strong> to analyze <?php echo h($periodLabel); ?>.</p></div>
             </section>
 
             <!-- Cards -->
-            <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+            <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
                 <?php foreach ([
                     ['Total Requests', $t['total'], 'text-slate-900', $a['days'] . ' day(s)'],
                     ['Walk-in vs Online', $t['walkin'] . ' / ' . $t['online'], 'text-indigo-600', $t['total'] ? round($t['online'] / $t['total'] * 100) . '% online' : '—'],
@@ -90,12 +94,12 @@ $chart = $a ? cert_analytics_chart_data($a) : null;
                     ['Walk-in Avg', cert_fmt_duration($t['avg_walkin_min']), 'text-slate-900', 'Online avg ' . cert_fmt_duration($t['avg_online_min'])],
                     ['Most Requested', $t['top_document'] ?: '—', 'text-slate-900 text-base', $t['top_document_n'] ? $t['top_document_n'] . ' request(s)' : 'None recorded'],
                 ] as [$lbl, $val, $cls, $sub]): ?>
-                <div class="card bg-white rounded-xl px-3.5 py-3"><p class="section-title"><?php echo h($lbl); ?></p><p class="text-xl font-black mt-1 truncate <?php echo $cls; ?>" title="<?php echo h($val); ?>"><?php echo h($val); ?></p><p class="text-[10px] text-slate-400"><?php echo h($sub); ?></p></div>
+                <div class="stat-card !p-5"><p class="stat-label"><?php echo h($lbl); ?></p><p class="text-2xl font-black mt-1 truncate <?php echo $cls; ?>" title="<?php echo h($val); ?>"><?php echo h($val); ?></p><p class="text-[10px] text-slate-400 font-bold mt-0.5"><?php echo h($sub); ?></p></div>
                 <?php endforeach; ?>
             </div>
 
             <!-- Charts -->
-            <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-3">
+            <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
                 <?php foreach ([
                     'time' => ['Requests Over Time', 'Walk-in vs online per ' . ($a['monthly'] ? 'month' : 'day'), 'md:col-span-2'],
                     'status' => ['Status Breakdown', 'Current status of requests in the range', ''],
@@ -107,34 +111,34 @@ $chart = $a ? cert_analytics_chart_data($a) : null;
                     'purok' => ['Top Puroks', 'Where requests come from', ''],
                     'proc' => ['Processing Time Trend', 'Average hours from request to release', 'md:col-span-2 xl:col-span-3'],
                 ] as $key => [$title, $sub, $span]): ?>
-                <section class="bg-white rounded-2xl card p-4 <?php echo $span; ?>">
-                    <div class="mb-2"><p class="section-title"><?php echo h($title); ?></p><p class="text-[11px] text-slate-400"><?php echo h($sub); ?></p></div>
+                <section class="card p-6 <?php echo $span; ?>">
+                    <div class="mb-4"><h3 class="text-sm font-black text-slate-800"><?php echo h($title); ?></h3><p class="text-[9px] text-slate-400 font-bold mt-1"><?php echo h($sub); ?></p></div>
                     <div class="chart-box"><canvas id="chart-<?php echo $key; ?>"></canvas><p id="empty-<?php echo $key; ?>" class="hidden absolute inset-0 items-center justify-center text-xs text-slate-400">None recorded in this period.</p></div>
                 </section>
                 <?php endforeach; ?>
             </div>
 
             <!-- Tables -->
-            <div class="grid xl:grid-cols-2 gap-3">
-                <section class="bg-white rounded-2xl card overflow-hidden">
-                    <div class="px-4 py-3 border-b border-slate-100"><p class="section-title">Top Documents</p></div>
-                    <table class="min-w-full text-xs"><thead class="bg-slate-50 text-[10px] uppercase tracking-widest text-slate-400 text-left"><tr><th class="px-4 py-2.5">Document</th><th class="px-2 py-2.5 text-center">Requests</th><th class="px-2 py-2.5 text-center">Online</th><th class="px-2 py-2.5 text-center">Released</th><th class="px-4 py-2.5 text-center">Avg processing</th></tr></thead>
+            <div class="grid xl:grid-cols-2 gap-6">
+                <section class="card overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-50"><p class="text-sm font-black text-slate-800">Top Documents</p></div>
+                    <table class="min-w-full text-xs"><thead class="bg-slate-50/50 text-[10px] font-bold uppercase tracking-widest text-slate-400 text-left"><tr><th class="px-4 py-2.5">Document</th><th class="px-2 py-2.5 text-center">Requests</th><th class="px-2 py-2.5 text-center">Online</th><th class="px-2 py-2.5 text-center">Released</th><th class="px-4 py-2.5 text-center">Avg processing</th></tr></thead>
                     <tbody class="divide-y divide-slate-100">
                     <?php foreach ($a['by_document'] as $d): ?><tr><td class="px-4 py-2.5 font-bold text-slate-800"><?php echo h($d['label']); ?></td><td class="px-2 py-2.5 text-center font-bold"><?php echo $d['n']; ?></td><td class="px-2 py-2.5 text-center"><?php echo $d['online']; ?></td><td class="px-2 py-2.5 text-center text-emerald-600 font-bold"><?php echo $d['released']; ?></td><td class="px-4 py-2.5 text-center"><?php echo h($d['avg']); ?></td></tr><?php endforeach; ?>
                     <?php if (!$a['by_document']): ?><tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">None recorded in this period.</td></tr><?php endif; ?>
                     </tbody></table>
                 </section>
-                <section class="bg-white rounded-2xl card overflow-hidden">
-                    <div class="px-4 py-3 border-b border-slate-100"><p class="section-title">Recent Releases</p></div>
-                    <div class="overflow-x-auto"><table class="min-w-full text-xs"><thead class="bg-slate-50 text-[10px] uppercase tracking-widest text-slate-400 text-left"><tr><th class="px-4 py-2.5">Doc No.</th><th class="px-2 py-2.5">Resident</th><th class="px-2 py-2.5">Document</th><th class="px-2 py-2.5">Released</th><th class="px-4 py-2.5">Took</th></tr></thead>
+                <section class="card overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-50"><p class="text-sm font-black text-slate-800">Recent Releases</p></div>
+                    <div class="overflow-x-auto"><table class="min-w-full text-xs"><thead class="bg-slate-50/50 text-[10px] font-bold uppercase tracking-widest text-slate-400 text-left"><tr><th class="px-4 py-2.5">Doc No.</th><th class="px-2 py-2.5">Resident</th><th class="px-2 py-2.5">Document</th><th class="px-2 py-2.5">Released</th><th class="px-4 py-2.5">Took</th></tr></thead>
                     <tbody class="divide-y divide-slate-100">
                     <?php foreach ($a['recent_releases'] as $r): ?><tr><td class="px-4 py-2.5 font-mono font-bold"><?php echo h($r['doc_number']); ?></td><td class="px-2 py-2.5"><div class="font-bold text-slate-800"><?php echo h($r['resident']); ?></div><div class="text-[10px] text-slate-400 font-mono"><?php echo h($r['code']); ?></div></td><td class="px-2 py-2.5"><?php echo h($r['doc_type']); ?> <span class="text-slate-400">(<?php echo h($r['type']); ?>)</span></td><td class="px-2 py-2.5 whitespace-nowrap"><?php echo h($r['released']); ?><div class="text-[10px] text-slate-400"><?php echo h($r['by']); ?></div></td><td class="px-4 py-2.5"><?php echo h($r['took']); ?></td></tr><?php endforeach; ?>
                     <?php if (!$a['recent_releases']): ?><tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">None recorded in this period.</td></tr><?php endif; ?>
                     </tbody></table></div>
                 </section>
                 <section class="bg-white rounded-2xl card overflow-hidden xl:col-span-2">
-                    <div class="px-4 py-3 border-b border-slate-100"><p class="section-title">Expired / Unclaimed</p><p class="text-[11px] text-slate-400">Online documents not picked up (expire <?php echo CERT_PICKUP_DAYS; ?> days after approval)</p></div>
-                    <div class="overflow-x-auto"><table class="min-w-full text-xs"><thead class="bg-slate-50 text-[10px] uppercase tracking-widest text-slate-400 text-left"><tr><th class="px-4 py-2.5">Doc / Ref No.</th><th class="px-2 py-2.5">Resident</th><th class="px-2 py-2.5">Contact</th><th class="px-2 py-2.5">Document</th><th class="px-2 py-2.5">Approved</th><th class="px-2 py-2.5">Pick up by</th><th class="px-4 py-2.5">Status</th></tr></thead>
+                    <div class="px-6 py-4 border-b border-slate-50"><p class="text-sm font-black text-slate-800">Expired / Unclaimed</p><p class="text-[11px] text-slate-400">Online documents not picked up (expire <?php echo CERT_PICKUP_DAYS; ?> days after approval)</p></div>
+                    <div class="overflow-x-auto"><table class="min-w-full text-xs"><thead class="bg-slate-50/50 text-[10px] font-bold uppercase tracking-widest text-slate-400 text-left"><tr><th class="px-4 py-2.5">Doc / Ref No.</th><th class="px-2 py-2.5">Resident</th><th class="px-2 py-2.5">Contact</th><th class="px-2 py-2.5">Document</th><th class="px-2 py-2.5">Approved</th><th class="px-2 py-2.5">Pick up by</th><th class="px-4 py-2.5">Status</th></tr></thead>
                     <tbody class="divide-y divide-slate-100">
                     <?php foreach ($a['unclaimed'] as $u): $m = cert_status_meta($u['status']); ?><tr><td class="px-4 py-2.5 font-mono font-bold"><?php echo h($u['doc_number']); ?></td><td class="px-2 py-2.5"><div class="font-bold text-slate-800"><?php echo h($u['resident']); ?></div><div class="text-[10px] text-slate-400 font-mono"><?php echo h($u['code']); ?></div></td><td class="px-2 py-2.5"><?php echo h($u['contact'] ?: '—'); ?></td><td class="px-2 py-2.5"><?php echo h($u['doc_type']); ?></td><td class="px-2 py-2.5"><?php echo h($u['approved']); ?></td><td class="px-2 py-2.5"><?php echo h($u['deadline']); ?></td><td class="px-4 py-2.5"><span class="pill <?php echo h($m['class']); ?>"><?php echo h($u['status']); ?></span></td></tr><?php endforeach; ?>
                     <?php if (!$a['unclaimed']): ?><tr><td colspan="7" class="px-4 py-8 text-center text-slate-400">None recorded in this period.</td></tr><?php endif; ?>
@@ -150,7 +154,7 @@ $chart = $a ? cert_analytics_chart_data($a) : null;
 <div id="reportModal" class="modal-back">
   <div class="modal-box" style="max-width:440px">
     <div class="modal-body">
-      <div class="flex items-start justify-between"><div><p class="section-title">Certificate Analytics Report</p><h2 id="reportModalTitle" class="text-lg font-black text-slate-800 mt-0.5"></h2><p class="text-[11px] text-slate-400"><?php echo h($periodLabel); ?></p></div><button type="button" onclick="CERT.close('reportModal')" class="text-slate-400"><span class="material-symbols-outlined">close</span></button></div>
+      <div class="flex items-start justify-between"><div><h3 id="reportModalTitle" class="modal-title"></h3><p class="modal-sub">Certificate Analytics Report</p><p class="text-xs text-slate-400 font-semibold mt-1"><?php echo h($periodLabel); ?></p></div><button type="button" onclick="CERT.close('reportModal')" class="modal-close"><span class="material-symbols-outlined">close</span></button></div>
       <p class="text-sm font-bold text-slate-700 mt-5">Include AI Analytics findings?</p>
       <div class="mt-2 space-y-2">
         <label class="flex items-start gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100 cursor-pointer"><input type="radio" name="reportAi" value="1" class="mt-0.5"><span><span class="block text-sm font-bold text-slate-700">Yes, include AI findings</span><span class="block text-[11px] text-slate-400">Uses the AI analysis already generated on this page.</span></span></label>

@@ -24,61 +24,74 @@ $openId = (int)($_GET['open'] ?? 0);
     <?php require __DIR__ . '/partials/cert_head.php'; ?>
     <link rel="stylesheet" href="assets/cert_editor.css?v=<?php echo @filemtime(__DIR__ . '/assets/cert_editor.css'); ?>">
     <style>
-        .type-card { transition:transform .2s, box-shadow .2s; }
-        .type-card:hover { transform:translateY(-2px); box-shadow:0 16px 36px -14px rgba(15,23,42,.25); }
-        .thumb { aspect-ratio: 8.5/11; background:#f8fafc; border-radius:.75rem; overflow:hidden; display:flex; align-items:center; justify-content:center; }
+        .type-card { background:#fff; border-radius:32px; border:1px solid #f1f5f9; box-shadow:0 1px 2px rgba(15,23,42,.05); padding:1rem; display:flex; flex-direction:column; gap:.9rem; transition:transform .2s, box-shadow .2s; }
+        .type-card:hover { transform:translateY(-2px); box-shadow:0 16px 36px -14px rgba(15,23,42,.18); }
+        .thumb { height:240px; background:#f8fafc; border-radius:1.5rem; overflow:hidden; display:flex; align-items:center; justify-content:center; border:1px solid #f1f5f9; }
         .thumb img { width:100%; height:100%; object-fit:cover; object-position:top; }
-        .fchk { display:flex; align-items:center; gap:.5rem; padding:.45rem .6rem; border:1px solid #e2e8f0; border-radius:.6rem; font-size:.78rem; font-weight:600; color:#334155; cursor:pointer; background:#fff; }
-        .fchk:has(input:checked) { border-color:var(--accent-400,#60a5fa); background:#eff6ff; color:#1e3a8a; }
-        .fchk input { accent-color:var(--accent-600); }
+        .fchk { display:flex; align-items:center; gap:.5rem; padding:.55rem .7rem; border:1px solid #f1f5f9; border-radius:.75rem; font-size:.78rem; font-weight:700; color:#334155; cursor:pointer; background:#f8fafc; transition:all .15s; }
+        .fchk:has(input:checked) { border-color:#c7d2fe; background:#eef2ff; color:var(--accent-700); }
+        .fchk input { accent-color:var(--accent-600); border-radius:.25rem; }
         #editorOverlay { position:fixed; inset:0; z-index:70; background:#0f172a; display:none; flex-direction:column; }
         #editorOverlay.open { display:flex; }
         #editorHost { flex:1; min-height:0; }
-        .drop { border:2px dashed #cbd5e1; border-radius:1rem; padding:1rem; text-align:center; cursor:pointer; background:#f8fafc; }
-        .drop:hover { border-color:var(--accent-400,#60a5fa); }
+        .drop { border:2px dashed #cbd5e1; border-radius:1.5rem; padding:1.25rem; text-align:center; cursor:pointer; background:#f8fafc; transition:all .15s; }
+        .drop:hover { border-color:var(--accent-400,#818cf8); background:#eef2ff; }
     </style>
 </head>
 <body <?php echo $theme_attrs['body'] ?? ''; ?>>
 <div class="flex min-h-screen">
     <?php require __DIR__ . '/../../sidebar.php'; ?>
-    <div class="flex-1 min-w-0 main-wrapper">
+    <div class="flex-1 flex flex-col min-w-0 main-wrapper">
         <?php require __DIR__ . '/../../header.php'; ?>
-        <main class="p-4 md:p-6 lg:p-8 space-y-4">
-            <section class="hero-band rounded-2xl p-5 md:p-6 text-white relative overflow-hidden">
+        <main class="p-4 md:p-6 lg:p-8 space-y-8">
+            <!-- ── Hero Band (same as Resident Management) ── -->
+            <div class="hero-band rounded-2xl p-6 md:p-8 text-white relative overflow-hidden">
                 <div class="absolute -right-12 -top-12 w-64 h-64 opacity-10 rounded-full blur-3xl pointer-events-none" style="background:var(--accent-400);"></div>
-                <div class="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <div class="absolute left-1/3 bottom-0 w-48 h-48 opacity-10 rounded-full blur-2xl pointer-events-none" style="background:var(--accent-300);"></div>
+                <div class="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
-                        <div class="flex items-center gap-2 text-white/60 text-[10px] font-black uppercase tracking-[0.18em] mb-1">
-                            <span class="material-symbols-outlined text-base">design_services</span> Certificates
-                        </div>
-                        <h1 class="text-2xl font-black tracking-tight leading-none">Certificate Templates</h1>
-                        <p class="text-white/65 text-xs mt-1.5 font-medium">Build the documents the barangay issues — template image, fields, requirements and layout.</p>
+                        <h1 class="text-2xl md:text-3xl font-black tracking-tight leading-none">Certificate Templates</h1>
+                        <p class="text-white/60 text-sm mt-2 font-medium">Build the documents the barangay issues — template image, fields, requirements and layout.</p>
                     </div>
-                    <div class="flex flex-wrap gap-2 shrink-0">
+                    <div class="flex flex-wrap gap-3 flex-shrink-0">
+                        <a href="legal_docu.php" class="hero-btn"><span class="material-symbols-outlined">arrow_back</span>Back to Certificates</a>
                         <?php if ($canCreate): ?>
-                        <button type="button" onclick="Wizard.start()" class="inline-flex items-center gap-1.5 bg-white text-slate-900 hover:bg-white/90 px-4 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-wider"><span class="material-symbols-outlined text-base">add</span>Add Document</button>
+                        <button type="button" onclick="Wizard.start()" class="hero-btn hero-btn-primary"><span class="material-symbols-outlined">note_add</span>Add Document</button>
                         <?php endif; ?>
-                        <a href="legal_docu.php" class="inline-flex items-center gap-1.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white px-4 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-wider"><span class="material-symbols-outlined text-base">arrow_back</span>Back</a>
                     </div>
                 </div>
-            </section>
+            </div>
 
             <?php if ($db_error): ?>
-                <div class="rounded-xl border border-rose-200 bg-rose-50 text-rose-700 px-4 py-3 text-sm font-semibold"><?php echo h($db_error); ?></div>
+                <div class="rounded-2xl border border-rose-200 bg-rose-50 text-rose-700 px-5 py-4 text-sm font-bold"><?php echo h($db_error); ?></div>
             <?php endif; ?>
 
-            <section class="bg-white rounded-2xl card p-4">
-                <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
-                    <div><p class="section-title">Document Types</p><p class="text-[11px] text-slate-400">Click a document to open its layout. "Not finished" documents are hidden from Issue Walk-In and online requests.</p></div>
-                    <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3">
-                        <span class="material-symbols-outlined text-slate-400 text-lg">search</span>
-                        <input id="typeSearch" type="search" placeholder="Search documents" class="border-0 bg-transparent text-sm py-2 focus:ring-0">
-                    </div>
+            <!-- ── Search row ── -->
+            <div class="grid grid-cols-12 gap-4">
+                <div class="col-span-12 md:col-span-8 relative">
+                    <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xl">search</span>
+                    <input id="typeSearch" type="search" placeholder="Search documents by name or code…" class="search-pill">
                 </div>
-                <div id="typeGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3">
+                <div class="col-span-12 md:col-span-4">
+                    <select id="typeStatus" class="select-pill">
+                        <option value="">All Documents</option>
+                        <option value="active">Active</option>
+                        <option value="draft">Not finished</option>
+                        <option value="disabled">Disabled</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <div class="flex items-center gap-3 mb-4">
+                    <span class="material-symbols-outlined text-white bg-primary p-2 rounded-xl shadow-md">folder_open</span>
+                    <div><h2 class="text-base font-black text-slate-800 leading-tight">Document Types</h2>
+                        <p class="text-[10px] text-slate-400 font-bold mt-0.5">Click a document to open its layout. "Not finished" documents are hidden from Issue Walk-In and online requests.</p></div>
+                </div>
+                <div id="typeGrid" class="grid sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
                     <p class="text-sm text-slate-400">Loading…</p>
                 </div>
-            </section>
+            </div>
         </main>
     </div>
 </div>
@@ -88,15 +101,16 @@ $openId = (int)($_GET['open'] ?? 0);
   <div class="modal-box" style="max-width:860px">
     <div class="modal-head">
       <div>
-        <p class="section-title" id="wizEyebrow">Add Document</p>
-        <h2 class="text-lg font-black text-slate-800" id="wizTitle">New document type</h2>
-        <div class="steps mt-3" id="wizSteps"></div>
+        <h3 class="modal-title" id="wizTitle">New document type</h3>
+        <p class="modal-sub" id="wizEyebrow">Add Document</p>
+        <div class="steps mt-4" id="wizSteps"></div>
       </div>
-      <button type="button" class="text-slate-400 hover:text-slate-700" onclick="Wizard.close()"><span class="material-symbols-outlined">close</span></button>
+      <button type="button" class="modal-close" onclick="Wizard.close()"><span class="material-symbols-outlined">close</span></button>
     </div>
     <div class="modal-body">
       <!-- Step 1 -->
       <div data-step="1" class="space-y-4">
+        <div class="sec-head"><span class="material-symbols-outlined">badge</span><h4>Document Information</h4></div>
         <div><label class="field-label" for="wName">Document name *</label><input id="wName" class="input" maxlength="100" placeholder="e.g. Barangay Clearance"></div>
         <div class="grid sm:grid-cols-2 gap-4">
           <div><label class="field-label" for="wCode">Document code (optional)</label><input id="wCode" class="input font-mono uppercase" maxlength="20" placeholder="Auto from the name, e.g. BC"><p class="text-[11px] text-slate-400 mt-1">Left empty, the initials of the name are used (kept unique).</p></div>
@@ -106,6 +120,7 @@ $openId = (int)($_GET['open'] ?? 0);
       </div>
       <!-- Step 2 -->
       <div data-step="2" class="space-y-4 hidden">
+        <div class="sec-head"><span class="material-symbols-outlined">image</span><h4>Template &amp; Fields</h4></div>
         <div class="rounded-xl bg-slate-50 border border-slate-100 p-3 text-[11px] text-slate-500 flex gap-2"><span class="material-symbols-outlined text-base text-slate-400">info</span>Prefilled template: upload the blank certificate (with the barangay's letterhead and lines). The checked fields are printed on top of it at the positions you set in the layout step.</div>
         <div class="grid sm:grid-cols-2 gap-4">
           <div><label class="field-label" for="wPaper">Paper size</label>
@@ -132,12 +147,14 @@ $openId = (int)($_GET['open'] ?? 0);
       </div>
       <!-- Step 3 -->
       <div data-step="3" class="space-y-3 hidden">
+        <div class="sec-head"><span class="material-symbols-outlined">checklist</span><h4>Requirements</h4></div>
         <p class="text-sm text-slate-600">Requirements the resident must present. In Issue Walk-In <strong>all</strong> of them must be checked before continuing.</p>
         <div class="flex gap-2"><input id="wReqInput" class="input" maxlength="255" placeholder="e.g. Valid ID"><button type="button" class="btn btn-dark" onclick="Wizard.addReq()"><span class="material-symbols-outlined">add</span>Add</button></div>
         <ul id="wReqs" class="space-y-2"></ul>
       </div>
       <!-- Step 4 -->
       <div data-step="4" class="space-y-3 hidden">
+        <div class="sec-head"><span class="material-symbols-outlined">edit_note</span><h4>Extra Information Fields</h4></div>
         <p class="text-sm text-slate-600">Extra information asked when the document is issued — e.g. <em>Company Name</em> for a work-purpose clearance. The values are saved with the request.</p>
         <div id="wExtras" class="space-y-2"></div>
         <button type="button" class="btn btn-ghost" onclick="Wizard.addExtra()"><span class="material-symbols-outlined">add</span>Add field</button>
@@ -154,15 +171,15 @@ $openId = (int)($_GET['open'] ?? 0);
 
 <!-- Step 5: Layout editor -->
 <div id="editorOverlay">
-  <div class="flex items-center justify-between gap-3 px-4 py-2.5 bg-slate-900 text-white">
+  <div class="flex items-center justify-between gap-3 px-5 py-3 hero-band text-white">
     <div class="min-w-0">
-      <p class="text-[10px] font-black uppercase tracking-[0.18em] text-white/50">Step 5 · Layout</p>
+      <p class="text-[10px] font-black uppercase tracking-[0.18em] text-white/60">Step 5 · Layout</p>
       <p class="font-black truncate" id="edTitle"></p>
     </div>
     <div class="flex items-center gap-2">
       <span class="text-[11px] text-white/60 hidden sm:inline" id="edPaper"></span>
-      <button type="button" class="btn bg-white/10 text-white border border-white/20" onclick="Editor.details()"><span class="material-symbols-outlined">tune</span>Details</button>
-      <button type="button" class="btn bg-white text-slate-900" onclick="Editor.close()"><span class="material-symbols-outlined">close</span>Close</button>
+      <button type="button" class="hero-btn" onclick="Editor.details()"><span class="material-symbols-outlined">tune</span>Details</button>
+      <button type="button" class="hero-btn hero-btn-white" onclick="Editor.close()"><span class="material-symbols-outlined">close</span>Close</button>
     </div>
   </div>
   <div id="editorHost"></div>
@@ -193,27 +210,29 @@ async function loadTypes(){
 function drawTypes(){
     const q = (document.getElementById('typeSearch').value || '').toLowerCase();
     const grid = document.getElementById('typeGrid');
-    const list = TYPES.filter(t => !q || t.doc_type.toLowerCase().includes(q) || (t.doc_code || '').toLowerCase().includes(q));
-    if (!list.length) { grid.innerHTML = '<div class="col-span-full text-center py-10"><span class="material-symbols-outlined text-4xl text-slate-300">description</span><p class="text-sm text-slate-400 mt-2">' + (TYPES.length ? 'No document matches your search.' : 'No document types yet. Click <strong>Add Document</strong> to create one.') + '</p></div>'; return; }
+    const st = document.getElementById('typeStatus').value;
+    const list = TYPES.filter(t => (!q || t.doc_type.toLowerCase().includes(q) || (t.doc_code || '').toLowerCase().includes(q))
+        && (!st || (st === 'draft' ? t.is_draft : (st === 'active' ? !t.is_draft && t.is_active : !t.is_draft && !t.is_active))));
+    if (!list.length) { grid.innerHTML = '<div class="col-span-full text-center py-16 bg-white rounded-[32px] border border-slate-100"><span class="material-symbols-outlined text-4xl block mb-2 text-slate-200">manage_search</span><p class="text-sm text-slate-400">' + (TYPES.length ? 'No document matches your search.' : 'No document types yet. Click <strong>Add Document</strong> to create one.') + '</p></div>'; return; }
     grid.innerHTML = list.map(t => {
         const badge = t.is_draft ? '<span class="pill bg-amber-50 text-amber-700 border-amber-200"><span class="material-symbols-outlined">edit_note</span>Not finished</span>'
             : (t.is_active ? '<span class="pill bg-emerald-50 text-emerald-700 border-emerald-200"><span class="material-symbols-outlined">check_circle</span>Active</span>'
                            : '<span class="pill bg-slate-100 text-slate-500 border-slate-200"><span class="material-symbols-outlined">block</span>Disabled</span>');
-        return '<div class="type-card bg-white rounded-2xl card p-3 flex flex-col gap-3">' +
-            '<button type="button" class="thumb border border-slate-100" onclick="openType(' + t.id + ')">' + (t.bg_image ? '<img src="' + CERT.esc(t.bg_image) + '" alt="">' : '<span class="material-symbols-outlined text-5xl text-slate-300">description</span>') + '</button>' +
-            '<div class="flex items-start justify-between gap-2"><div class="min-w-0"><p class="font-black text-slate-800 truncate">' + CERT.esc(t.doc_type) + '</p>' +
-            '<p class="text-[11px] text-slate-400 font-mono">' + CERT.esc(t.doc_code || '—') + ' · ' + CERT.esc(t.paper_label) + '</p></div>' + badge + '</div>' +
-            '<div class="flex flex-wrap gap-1.5 text-[10px] font-bold text-slate-500">' +
-            '<span class="px-2 py-1 rounded-lg bg-slate-50">' + t.field_count + ' fields</span>' +
-            '<span class="px-2 py-1 rounded-lg bg-slate-50">' + t.req_count + ' requirements</span>' +
-            '<span class="px-2 py-1 rounded-lg bg-slate-50">' + t.extra_count + ' extra info</span>' +
-            '<span class="px-2 py-1 rounded-lg bg-slate-50">' + t.request_count + ' issued/requested</span></div>' +
-            (CAN_UPDATE ? '<div class="flex gap-1.5 mt-auto">' +
-                (t.is_draft ? '<button class="btn btn-dark flex-1" onclick="Wizard.edit(' + t.id + ')"><span class="material-symbols-outlined">play_arrow</span>Continue</button>'
-                            : '<button class="btn btn-dark flex-1" onclick="Editor.open(' + t.id + ')"><span class="material-symbols-outlined">dashboard_customize</span>Layout</button>') +
-                '<button class="btn btn-ghost" title="Edit details" onclick="Wizard.edit(' + t.id + ')"><span class="material-symbols-outlined">edit</span></button>' +
-                (!t.is_draft ? '<button class="btn btn-ghost" title="' + (t.is_active ? 'Disable' : 'Enable') + '" onclick="toggleType(' + t.id + ',' + (t.is_active ? 0 : 1) + ')"><span class="material-symbols-outlined">' + (t.is_active ? 'toggle_on' : 'toggle_off') + '</span></button>' : '') +
-                '<button class="btn btn-ghost text-red-600" title="Delete" onclick="deleteType(' + t.id + ')"><span class="material-symbols-outlined">delete</span></button>' +
+        return '<div class="type-card">' +
+            '<button type="button" class="thumb" onclick="openType(' + t.id + ')">' + (t.bg_image ? '<img src="' + CERT.esc(t.bg_image) + '" alt="">' : '<span class="material-symbols-outlined text-5xl text-slate-200">description</span>') + '</button>' +
+            '<div class="flex items-start justify-between gap-2 px-1"><div class="min-w-0"><p class="text-sm font-bold text-slate-700 leading-tight truncate">' + CERT.esc(t.doc_type) + '</p>' +
+            '<p class="text-[10px] text-slate-400 font-bold uppercase tracking-tighter mt-0.5">' + CERT.esc(t.doc_code || '—') + ' | ' + CERT.esc(t.paper_label) + '</p></div>' + badge + '</div>' +
+            '<div class="flex flex-wrap gap-1 px-1">' +
+            '<span class="pill bg-indigo-50 text-indigo-600 border-indigo-100">' + t.field_count + ' fields</span>' +
+            '<span class="pill bg-emerald-50 text-emerald-600 border-emerald-100">' + t.req_count + ' requirements</span>' +
+            '<span class="pill bg-amber-50 text-amber-600 border-amber-100">' + t.extra_count + ' extra info</span>' +
+            '<span class="pill bg-slate-50 text-slate-500 border-slate-200">' + t.request_count + ' issued</span></div>' +
+            (CAN_UPDATE ? '<div class="flex items-center gap-1 mt-auto pt-2 border-t border-slate-50">' +
+                (t.is_draft ? '<button class="btn btn-dark btn-sm flex-1" onclick="Wizard.edit(' + t.id + ')"><span class="material-symbols-outlined">play_arrow</span>Continue</button>'
+                            : '<button class="btn btn-dark btn-sm flex-1" onclick="Editor.open(' + t.id + ')"><span class="material-symbols-outlined">dashboard_customize</span>Layout</button>') +
+                '<button class="icon-btn" title="Edit details" onclick="Wizard.edit(' + t.id + ')"><span class="material-symbols-outlined text-xl">edit_square</span></button>' +
+                (!t.is_draft ? '<button class="icon-btn" title="' + (t.is_active ? 'Disable' : 'Enable') + '" onclick="toggleType(' + t.id + ',' + (t.is_active ? 0 : 1) + ')"><span class="material-symbols-outlined text-xl">' + (t.is_active ? 'toggle_on' : 'toggle_off') + '</span></button>' : '') +
+                '<button class="icon-btn danger" title="Delete" onclick="deleteType(' + t.id + ')"><span class="material-symbols-outlined text-xl">delete</span></button>' +
             '</div>' : '') +
         '</div>';
     }).join('');
@@ -235,6 +254,7 @@ async function deleteType(id){
     CERT.toast(d.message, d.success ? 'success' : 'error'); loadTypes();
 }
 document.getElementById('typeSearch').addEventListener('input', drawTypes);
+document.getElementById('typeStatus').addEventListener('change', drawTypes);
 
 /* ───────── Wizard (steps 1–4) ───────── */
 const Wizard = (function(){
@@ -342,7 +362,7 @@ const Wizard = (function(){
     }
     function drawReqs(){
         const ul = document.getElementById('wReqs');
-        ul.innerHTML = s.requirements.length ? s.requirements.map((r, i) => '<li class="flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white"><span class="material-symbols-outlined text-slate-400 text-lg">checklist</span><span class="flex-1 text-sm font-semibold text-slate-700">' + CERT.esc(r) + '</span><button type="button" class="text-slate-400 hover:text-red-600" onclick="Wizard.delReq(' + i + ')"><span class="material-symbols-outlined">close</span></button></li>').join('')
+        ul.innerHTML = s.requirements.length ? s.requirements.map((r, i) => '<li class="flex items-center gap-2 px-4 py-3 rounded-2xl border border-slate-100 bg-slate-50"><span class="material-symbols-outlined text-slate-400 text-lg">checklist</span><span class="flex-1 text-sm font-semibold text-slate-700">' + CERT.esc(r) + '</span><button type="button" class="text-slate-400 hover:text-red-600" onclick="Wizard.delReq(' + i + ')"><span class="material-symbols-outlined">close</span></button></li>').join('')
             : '<li class="text-sm text-slate-400">No requirements yet.</li>';
     }
     function addReq(){
@@ -356,7 +376,7 @@ const Wizard = (function(){
         const host = document.getElementById('wExtras');
         s.extra_fields.forEach(e => { if (e.print === undefined) e.print = s.selected_fields.includes('extra.' + e.field_key); });
         host.innerHTML = s.extra_fields.length ? s.extra_fields.map((e, i) =>
-            '<div class="rounded-xl border border-slate-200 p-3 grid sm:grid-cols-[1fr_140px] gap-2 items-start">' +
+            '<div class="rounded-2xl border border-slate-100 bg-slate-50/60 p-4 grid sm:grid-cols-[1fr_150px] gap-3 items-start">' +
             '<input class="input" maxlength="150" placeholder="Label, e.g. Company Name" value="' + CERT.esc(e.label) + '" oninput="Wizard.setExtra(' + i + ',\'label\',this.value)">' +
             '<select class="input" onchange="Wizard.setExtra(' + i + ',\'input_type\',this.value)">' + ['text','number','date','textarea','select'].map(t => '<option value="' + t + '"' + (e.input_type === t ? ' selected' : '') + '>' + ({text:'Text',number:'Number',date:'Date',textarea:'Long text',select:'Dropdown'})[t] + '</option>').join('') + '</select>' +
             (e.input_type === 'select' ? '<input class="input sm:col-span-2" placeholder="Choices, separated by commas" value="' + CERT.esc((e.options || []).join(', ')) + '" oninput="Wizard.setExtra(' + i + ',\'options\',this.value)">' : '') +
