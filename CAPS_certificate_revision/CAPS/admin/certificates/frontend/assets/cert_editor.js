@@ -28,7 +28,7 @@
     function mount(host, cfg) {
         const state = {
             positions: (cfg.positions || []).map(function (p) { return Object.assign({}, p); }),
-            selected: null,
+            sel: [],          // selected field keys (multi-select); the last one is the "primary"
             dirty: false,
         };
         const labelOf = {};
@@ -75,17 +75,25 @@
         }
         function scale() { return pageEl ? parseFloat(pageEl.dataset.scale || '1') : 1; }
 
+        const HINT = 'Click a field to edit it · Ctrl/Shift + click to select several · drag to move (selected fields move together).';
+        function isSel(k) { return state.sel.indexOf(k) >= 0; }
+        function selPositions() { return state.positions.filter(function (p) { return isSel(p.field_key); }); }
+        function primary() { return state.sel.length ? find(state.sel[state.sel.length - 1]) : null; }
+        function showFit() {
+            const tooLong = Array.prototype.map.call(pageEl.querySelectorAll('.cert-field[data-overflow]'), function (el) { return labelOf[el.dataset.key] || el.dataset.key; });
+            fitNote.textContent = tooLong.length ? 'Too long for its blank: ' + tooLong.join(', ') + '. Make the width (↔) bigger so it stays readable.' : '';
+        }
+
         function draw() {
             pageEl = CertRender.into(canvas, model(), { width: Math.max(280, canvas.clientWidth - 24), noResize: true });
             pageEl.querySelectorAll('.cert-field').forEach(function (el) {
                 el.classList.add('ce-field');
                 if (el.dataset.overflow) el.title = 'Too long for this blank — make the width bigger or the font smaller';
-                if (el.dataset.key === state.selected) el.classList.add('ce-selected');
+                if (isSel(el.dataset.key)) el.classList.add('ce-selected');
                 el.addEventListener('pointerdown', startDrag);
             });
             pageEl.addEventListener('pointerdown', function (e) { if (e.target === pageEl || e.target.tagName === 'IMG') select(null); });
-            const tooLong = Array.prototype.map.call(pageEl.querySelectorAll('.cert-field[data-overflow]'), function (el) { return labelOf[el.dataset.key] || el.dataset.key; });
-            fitNote.textContent = tooLong.length ? 'Too long for its blank: ' + tooLong.join(', ') + '. Make the width (↔) bigger so it stays readable.' : '';
+            showFit();
         }
 
         function find(key) { return state.positions.find(function (p) { return p.field_key === key; }); }
@@ -99,16 +107,16 @@
                 html += '<p class="ce-group">' + esc(g.title) + '</p>';
                 items.forEach(function (i) {
                     const on = !!find(i.key);
-                    html += '<button type="button" class="ce-item' + (on ? ' on' : '') + (state.selected === i.key ? ' sel' : '') + '" data-key="' + esc(i.key) + '">' +
+                    html += '<button type="button" class="ce-item' + (on ? ' on' : '') + (isSel(i.key) ? ' sel' : '') + '" data-key="' + esc(i.key) + '">' +
                         '<span class="material-symbols-outlined">' + (on ? 'check_box' : 'check_box_outline_blank') + '</span>' +
                         '<span class="ce-item-label">' + esc(i.label) + '</span></button>';
                 });
             });
             list.innerHTML = html || '<p class="ce-empty">No field matches your search.</p>';
             list.querySelectorAll('.ce-item').forEach(function (b) {
-                b.addEventListener('click', function () {
+                b.addEventListener('click', function (e) {
                     const key = b.dataset.key;
-                    if (!find(key)) addField(key); else select(key);
+                    if (!find(key)) addField(key); else select(key, e.ctrlKey || e.metaKey || e.shiftKey);
                 });
             });
         }
@@ -116,104 +124,129 @@
         function addField(key) {
             // New fields start near the middle, cascading so they don't stack.
             const n = state.positions.length;
+            const ref = primary();
             state.positions.push({
                 field_key: key, field_label: labelOf[key] || key,
                 pos_x: 50, pos_y: clamp(30 + (n % 10) * 5, 5, 95), width: null,
-                font_size: 16, font_weight: 'normal', text_align: 'center', text_color: '#000000', uppercase: 0,
+                font_size: ref ? ref.font_size : 16, font_weight: 'normal', text_align: 'center', text_color: '#000000', uppercase: 0,
             });
             state.dirty = true;
             select(key);
         }
 
-        function select(key) {
-            state.selected = key;
+        /** select(key) = only this one · select(key, true) = add/remove it · select(null) = none · select('*') = all */
+        function select(key, additive) {
+            if (key === '*') state.sel = state.positions.map(function (p) { return p.field_key; });
+            else if (key === null || key === undefined) state.sel = [];
+            else if (additive) state.sel = isSel(key) ? state.sel.filter(function (k) { return k !== key; }) : state.sel.concat([key]);
+            else state.sel = [key];
             draw(); drawList(); drawProps();
         }
 
         function drawProps() {
-            const p = state.selected && find(state.selected);
-            if (!p) { props.innerHTML = '<span class="ce-hint">Click a field on the page or in the list to edit it. Drag it onto the correct line.</span>'; return; }
-            props.innerHTML =
-                '<span class="ce-chip">' + esc(labelOf[p.field_key] || p.field_label || p.field_key) + '</span>' +
-                '<label class="ce-prop" title="Font size (px)"><span class="material-symbols-outlined">format_size</span><input type="number" min="6" max="96" data-p="font_size" value="' + p.font_size + '"></label>' +
-                '<button type="button" class="ce-tog ce-wide" data-t="size_all" title="Use this font size for every field on the page">Same size for all</button>' +
-                '<button type="button" class="ce-tog' + (p.font_weight === 'bold' ? ' on' : '') + '" data-t="bold" title="Bold"><span class="material-symbols-outlined">format_bold</span></button>' +
-                '<button type="button" class="ce-tog' + (Number(p.uppercase) ? ' on' : '') + '" data-t="upper" title="UPPERCASE"><span class="material-symbols-outlined">match_case</span></button>' +
+            const p = primary();
+            const ps = selPositions();
+            const tools = '<span class="ce-sel-tools">' +
+                '<button type="button" class="ce-tog ce-wide" data-s="all" title="Select every field on the page (Ctrl+A)"><span class="material-symbols-outlined">select_all</span>Select all</button>' +
+                (ps.length ? '<button type="button" class="ce-tog ce-wide" data-s="none" title="Clear selection (Esc)">Clear</button>' : '') + '</span>';
+            if (!p) { props.innerHTML = tools + '<span class="ce-hint">' + HINT + '</span>'; bindSel(); return; }
+            const same = function (k) { return ps.every(function (x) { return String(x[k] == null ? '' : x[k]) === String(p[k] == null ? '' : p[k]); }); };
+            props.innerHTML = tools +
+                '<span class="ce-chip">' + (ps.length > 1 ? ps.length + ' fields selected' : esc(labelOf[p.field_key] || p.field_label || p.field_key)) + '</span>' +
+                '<label class="ce-prop" title="Font size (px)"><span class="material-symbols-outlined">format_size</span><input type="number" min="6" max="96" data-p="font_size" value="' + (same('font_size') ? p.font_size : '') + '" placeholder="mixed"></label>' +
+                '<button type="button" class="ce-tog' + (ps.every(function (x) { return x.font_weight === 'bold'; }) ? ' on' : '') + '" data-t="bold" title="Bold"><span class="material-symbols-outlined">format_bold</span></button>' +
+                '<button type="button" class="ce-tog' + (ps.every(function (x) { return Number(x.uppercase); }) ? ' on' : '') + '" data-t="upper" title="UPPERCASE"><span class="material-symbols-outlined">match_case</span></button>' +
                 ['left', 'center', 'right'].map(function (a) {
-                    return '<button type="button" class="ce-tog' + (p.text_align === a ? ' on' : '') + '" data-a="' + a + '" title="Align ' + a + '"><span class="material-symbols-outlined">format_align_' + a + '</span></button>';
+                    return '<button type="button" class="ce-tog' + (ps.every(function (x) { return x.text_align === a; }) ? ' on' : '') + '" data-a="' + a + '" title="Align ' + a + '"><span class="material-symbols-outlined">format_align_' + a + '</span></button>';
                 }).join('') +
-                '<label class="ce-prop" title="Width (% of page, empty = auto)"><span class="material-symbols-outlined">width</span><input type="number" min="2" max="100" step="1" placeholder="auto" data-p="width" value="' + (p.width || '') + '"></label>' +
+                '<label class="ce-prop" title="Width (% of page, empty = auto)"><span class="material-symbols-outlined">width</span><input type="number" min="2" max="100" step="1" placeholder="' + (same('width') ? 'auto' : 'mixed') + '" data-p="width" value="' + (same('width') && p.width ? p.width : '') + '"></label>' +
                 '<label class="ce-prop" title="Text color"><input type="color" data-p="text_color" value="' + esc(p.text_color || '#000000') + '"></label>' +
-                '<button type="button" class="ce-tog ce-del" data-t="remove" title="Remove from page"><span class="material-symbols-outlined">delete</span></button>';
+                '<button type="button" class="ce-tog ce-del" data-t="remove" title="Remove from page (Delete)"><span class="material-symbols-outlined">delete</span></button>';
+            bindSel();
+            // Every change applies to all selected fields.
             props.querySelectorAll('[data-p]').forEach(function (inp) {
                 inp.addEventListener('input', function () {
                     const k = inp.dataset.p;
-                    if (k === 'width') p.width = inp.value === '' ? null : clamp(parseFloat(inp.value) || 0, 2, 100);
-                    else if (k === 'font_size') p.font_size = clamp(parseInt(inp.value, 10) || 14, 6, 96);
-                    else p[k] = inp.value;
+                    ps.forEach(function (x) {
+                        if (k === 'width') x.width = inp.value === '' ? null : clamp(parseFloat(inp.value) || 0, 2, 100);
+                        else if (k === 'font_size') { if (inp.value !== '') x.font_size = clamp(parseInt(inp.value, 10) || 14, 6, 96); }
+                        else x[k] = inp.value;
+                    });
                     state.dirty = true; redrawSelected();
                 });
             });
             props.querySelectorAll('[data-a]').forEach(function (b) {
-                b.addEventListener('click', function () { p.text_align = b.dataset.a; state.dirty = true; draw(); drawProps(); });
+                b.addEventListener('click', function () { ps.forEach(function (x) { x.text_align = b.dataset.a; }); state.dirty = true; draw(); drawProps(); });
             });
             props.querySelectorAll('[data-t]').forEach(function (b) {
                 b.addEventListener('click', function () {
                     const t = b.dataset.t;
-                    if (t === 'bold') p.font_weight = p.font_weight === 'bold' ? 'normal' : 'bold';
-                    if (t === 'upper') p.uppercase = Number(p.uppercase) ? 0 : 1;
-                    if (t === 'size_all') {
-                        state.positions.forEach(function (x) { x.font_size = p.font_size; });
-                        status.textContent = 'All fields now use ' + p.font_size + ' px. Long values shrink a little to stay on their line.';
-                    }
-                    if (t === 'remove') {
-                        state.positions = state.positions.filter(function (x) { return x !== p; });
-                        state.selected = null; state.dirty = true; draw(); drawList(); drawProps(); return;
-                    }
+                    if (t === 'bold') { const on = !ps.every(function (x) { return x.font_weight === 'bold'; }); ps.forEach(function (x) { x.font_weight = on ? 'bold' : 'normal'; }); }
+                    if (t === 'upper') { const on = !ps.every(function (x) { return Number(x.uppercase); }); ps.forEach(function (x) { x.uppercase = on ? 1 : 0; }); }
+                    if (t === 'remove') { removeSelected(); return; }
                     state.dirty = true; draw(); drawProps();
                 });
             });
         }
+        function bindSel() {
+            props.querySelectorAll('[data-s]').forEach(function (b) {
+                b.addEventListener('click', function () { select(b.dataset.s === 'all' ? '*' : null); });
+            });
+        }
+        function removeSelected() {
+            state.positions = state.positions.filter(function (x) { return !isSel(x.field_key); });
+            state.sel = []; state.dirty = true; draw(); drawList(); drawProps();
+        }
 
         function redrawSelected() {
-            const p = find(state.selected);
-            const el = pageEl && pageEl.querySelector('.cert-field[data-key="' + CSS.escape(state.selected) + '"]');
-            if (p && el) {
-                CertRender.applyFieldStyle(el, p); CertRender.fitText(pageEl);
-                const tooLong = Array.prototype.map.call(pageEl.querySelectorAll('.cert-field[data-overflow]'), function (x) { return labelOf[x.dataset.key] || x.dataset.key; });
-                fitNote.textContent = tooLong.length ? 'Too long for its blank: ' + tooLong.join(', ') + '. Make the width (↔) bigger so it stays readable.' : '';
-            }
+            if (!pageEl) return;
+            selPositions().forEach(function (p) {
+                const el = pageEl.querySelector('.cert-field[data-key="' + CSS.escape(p.field_key) + '"]');
+                if (el) CertRender.applyFieldStyle(el, p);
+            });
+            CertRender.fitText(pageEl);
+            showFit();
         }
 
         function startDrag(e) {
-            const el = e.currentTarget;
-            const key = el.dataset.key;
-            if (state.selected !== key) { select(key); }
-            const p = find(key);
-            if (!p) return;
+            const key = e.currentTarget.dataset.key;
+            if (e.ctrlKey || e.metaKey || e.shiftKey) { select(key, true); return; } // add/remove from selection
+            if (!isSel(key)) select(key);
             e.preventDefault();
-            const target = pageEl.querySelector('.cert-field[data-key="' + CSS.escape(key) + '"]');
             const rect = pageEl.getBoundingClientRect();
-            const startX = e.clientX, startY = e.clientY, ox = p.pos_x, oy = p.pos_y;
+            const startX = e.clientX, startY = e.clientY;
+            // Every selected field moves together, keeping their distances.
+            const moving = selPositions().map(function (p) {
+                return { p: p, ox: p.pos_x, oy: p.pos_y, el: pageEl.querySelector('.cert-field[data-key="' + CSS.escape(p.field_key) + '"]') };
+            });
             function move(ev) {
-                p.pos_x = round2(clamp(ox + (ev.clientX - startX) / rect.width * 100, 0, 100));
-                p.pos_y = round2(clamp(oy + (ev.clientY - startY) / rect.height * 100, 0, 100));
+                const dx = (ev.clientX - startX) / rect.width * 100, dy = (ev.clientY - startY) / rect.height * 100;
+                moving.forEach(function (m) {
+                    m.p.pos_x = round2(clamp(m.ox + dx, 0, 100));
+                    m.p.pos_y = round2(clamp(m.oy + dy, 0, 100));
+                    if (m.el) CertRender.applyFieldStyle(m.el, m.p);
+                });
                 state.dirty = true;
-                CertRender.applyFieldStyle(target, p);
             }
-            function up() { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); }
+            function up() { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); CertRender.fitText(pageEl); showFit(); }
             window.addEventListener('pointermove', move);
             window.addEventListener('pointerup', up);
         }
 
-        // Arrow keys nudge the selected field (Shift = bigger steps).
+        // Arrow keys nudge the selected fields (Shift = bigger steps), Delete removes them, Ctrl+A selects all, Esc clears.
         function onKey(e) {
-            if (!state.selected || !host.isConnected || /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
-            const p = find(state.selected); if (!p) return;
+            if (!host.isConnected || /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') { e.preventDefault(); select('*'); return; }
+            if (!state.sel.length) return;
+            if (e.key === 'Escape') { select(null); return; }
             const step = e.shiftKey ? 1 : 0.2;
             const d = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[e.key];
-            if (d) { e.preventDefault(); p.pos_x = round2(clamp(p.pos_x + d[0], 0, 100)); p.pos_y = round2(clamp(p.pos_y + d[1], 0, 100)); state.dirty = true; redrawSelected(); }
-            if (e.key === 'Delete') { state.positions = state.positions.filter(function (x) { return x !== p; }); state.selected = null; state.dirty = true; draw(); drawList(); drawProps(); }
+            if (d) {
+                e.preventDefault();
+                selPositions().forEach(function (p) { p.pos_x = round2(clamp(p.pos_x + d[0], 0, 100)); p.pos_y = round2(clamp(p.pos_y + d[1], 0, 100)); });
+                state.dirty = true; redrawSelected();
+            }
+            if (e.key === 'Delete') removeSelected();
         }
         document.addEventListener('keydown', onKey);
 
@@ -246,7 +279,7 @@
                         // Checked fields with no matching blank are taken off the page instead of floating somewhere.
                         const removed = state.positions.filter(function (p) { return unplaced.indexOf(p.field_key) >= 0; });
                         state.positions = state.positions.filter(function (p) { return unplaced.indexOf(p.field_key) < 0; });
-                        state.selected = null; state.dirty = true; draw(); drawList(); drawProps();
+                        state.sel = []; state.dirty = true; draw(); drawList(); drawProps();
                         status.textContent = 'AI placed ' + list.length + ' field(s).' +
                             (removed.length ? ' No matching blank for: ' + removed.map(function (p) { return labelOf[p.field_key] || p.field_key; }).join(', ') + ' (removed — add it from the list if needed).' : '') +
                             ' Check them, fix any mistakes, then click Save — nothing is saved yet.';

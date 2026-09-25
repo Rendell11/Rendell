@@ -129,7 +129,7 @@ foreach ($parsed as $p) {
 // like the printed body text instead of a mix of sizes. Long values shrink to fit on screen/print.
 $hs = array_values(array_filter(array_column($out, '_h')));
 sort($hs);
-$font = $hs ? (int)max(12, min(18, round($hs[intdiv(count($hs), 2)] / 100 * $paperH * 0.72))) : 14;
+$font = $hs ? (int)max(14, min(18, round($hs[intdiv(count($hs), 2)] / 100 * $paperH * 0.8))) : 15;
 foreach ($out as &$o) { $o['font_size'] = $font; unset($o['_h']); }
 unset($o);
 cert_log_activity('AI Auto Detect', 'AI suggested positions for ' . count($out) . ' field(s) on ' . $docType . ' (not saved)');

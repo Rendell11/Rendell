@@ -11,7 +11,9 @@
 .ce-prop input[type=color] { width:26px; height:24px; border:0; padding:0; background:transparent; }
 .ce-tog { width:32px; height:32px; display:inline-flex; align-items:center; justify-content:center; border:1px solid #e2e8f0; border-radius:.5rem; background:#fff; color:#475569; }
 .ce-tog .material-symbols-outlined { font-size:18px; }
-.ce-tog.ce-wide { width:auto; padding:0 .6rem; font-size:.66rem; font-weight:800; }
+.ce-tog.ce-wide { width:auto; padding:0 .6rem; font-size:.66rem; font-weight:800; gap:.25rem; }
+.ce-sel-tools { display:inline-flex; gap:.35rem; padding-right:.5rem; margin-right:.25rem; border-right:1px solid #e2e8f0; }
+.ce-prop input::placeholder { color:#94a3b8; font-weight:600; }
 .ce-tog.on { background:#0f172a; color:#fff; border-color:#0f172a; }
 .ce-tog.ce-del { color:#dc2626; margin-left:.25rem; }
 .ce-canvas { flex:1; overflow:auto; padding:12px; min-height:0; }
