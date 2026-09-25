@@ -56,7 +56,7 @@ if (!$canPrint) cert_log_activity('View Document', ($req['doc_number'] ?: '#' . 
 <div class="banner view"><?php echo h($req['DocType'] . ' · ' . ($req['doc_number'] ?: '—') . ' · ' . $req['Status']); ?> — view only. <?php echo $req['Status'] === CERT_ST_RELEASED ? 'Released documents cannot be edited or reprinted.' : 'Use Print &amp; Release on the Certificates page to print.'; ?></div>
 <?php endif; ?>
 <div id="host"></div>
-<script src="../frontend/assets/cert_render.js"></script>
+<script src="../frontend/assets/cert_render.js?v=<?php echo @filemtime(__DIR__ . '/../frontend/assets/cert_render.js'); ?>"></script>
 <script>
 (function(){
     const model = <?php echo json_encode($model, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP); ?>;

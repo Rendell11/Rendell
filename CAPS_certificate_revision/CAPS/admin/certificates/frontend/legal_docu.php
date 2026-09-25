@@ -29,7 +29,7 @@ $tab = in_array($_GET['tab'] ?? '', ['pending', 'queue', 'released', 'expired', 
     <?php require __DIR__ . '/partials/cert_head.php'; ?>
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
-    <link rel="stylesheet" href="assets/cert_editor.css">
+    <link rel="stylesheet" href="assets/cert_editor.css?v=<?php echo @filemtime(__DIR__ . '/assets/cert_editor.css'); ?>">
     <style>
         .stat { transition:transform .2s, box-shadow .2s; }
         .stat:hover { transform:translateY(-2px); box-shadow:0 16px 36px -14px rgba(15,23,42,.2); }
@@ -291,8 +291,8 @@ $tab = in_array($_GET['tab'] ?? '', ['pending', 'queue', 'released', 'expired', 
   </div>
 </div>
 
-<script src="assets/cert_render.js"></script>
-<script src="assets/cert_editor.js"></script>
+<script src="assets/cert_render.js?v=<?php echo @filemtime(__DIR__ . '/assets/cert_render.js'); ?>"></script>
+<script src="assets/cert_editor.js?v=<?php echo @filemtime(__DIR__ . '/assets/cert_editor.js'); ?>"></script>
 <script>
 const API = '../backend/cert_actions.php';
 const DOC_TYPES = <?php echo json_encode(array_map(fn($t) => ['doc_type' => $t['doc_type'], 'doc_code' => $t['doc_code'], 'description' => $t['description'] ?? ''], $docTypes), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG); ?>;

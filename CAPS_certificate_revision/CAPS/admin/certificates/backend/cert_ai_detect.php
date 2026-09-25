@@ -112,7 +112,8 @@ function ai_detect_to_position(array $p): ?array {
     }
     if ($x < 0 || $x > 100 || $y < 0 || $y > 100) return null; // out of the page: skip instead of piling up in a corner
     return ['pos_x' => round($x, 2), 'pos_y' => round($y, 2), 'width' => $w !== null ? round(min(100, $w), 2) : null, 'text_align' => $align,
-            'height' => isset($y1, $y2) && $y2 > $y1 ? $y2 - $y1 : null];
+            'height' => isset($y1, $y2) && $y2 > $y1 ? $y2 - $y1 : null,
+            'bottom' => isset($y2) ? $y2 : null]; // the underline
 }
 
 $out = []; $seen = [];
@@ -123,14 +124,20 @@ foreach ($parsed as $p) {
     $seen[$p['field_key']] = true;
     $c = cert_clean_position(['field_key' => $p['field_key'], 'font_size' => 14] + $pos);
     $out[] = ['field_key' => $c['field_key'], 'pos_x' => $c['pos_x'], 'pos_y' => $c['pos_y'], 'width' => $c['width'], 'text_align' => $c['text_align'],
-              'font_size' => 14, '_h' => $pos['height'] ?? null];
+              'font_size' => 14, '_h' => $pos['height'] ?? null, '_b' => $pos['bottom'] ?? null];
 }
 // ONE font size for the whole document, from the typical (median) line height, so fields look
 // like the printed body text instead of a mix of sizes. Long values shrink to fit on screen/print.
 $hs = array_values(array_filter(array_column($out, '_h')));
 sort($hs);
 $font = $hs ? (int)max(14, min(18, round($hs[intdiv(count($hs), 2)] / 100 * $paperH * 0.8))) : 15;
-foreach ($out as &$o) { $o['font_size'] = $font; unset($o['_h']); }
+foreach ($out as &$o) {
+    $o['font_size'] = $font;
+    // pos_y is the middle of the text. Put the text ON the underline (its bottom just above the
+    // line) instead of centering it on the line, which made the underline strike through the text.
+    if ($o['_b'] !== null) $o['pos_y'] = round(max(0, $o['_b'] - ($font * 0.62 + 1) / $paperH * 100), 2);
+    unset($o['_h'], $o['_b']);
+}
 unset($o);
 cert_log_activity('AI Auto Detect', 'AI suggested positions for ' . count($out) . ' field(s) on ' . $docType . ' (not saved)');
 $dropped = array_values(array_diff($preferred, array_column($out, 'field_key')));

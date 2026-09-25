@@ -22,7 +22,7 @@ $openId = (int)($_GET['open'] ?? 0);
 <html <?php require_once __DIR__ . '/../../theme_loader.php'; echo $theme_attrs['html'] ?? ''; ?>>
 <head>
     <?php require __DIR__ . '/partials/cert_head.php'; ?>
-    <link rel="stylesheet" href="assets/cert_editor.css">
+    <link rel="stylesheet" href="assets/cert_editor.css?v=<?php echo @filemtime(__DIR__ . '/assets/cert_editor.css'); ?>">
     <style>
         .type-card { transition:transform .2s, box-shadow .2s; }
         .type-card:hover { transform:translateY(-2px); box-shadow:0 16px 36px -14px rgba(15,23,42,.25); }
@@ -168,8 +168,8 @@ $openId = (int)($_GET['open'] ?? 0);
   <div id="editorHost"></div>
 </div>
 
-<script src="assets/cert_render.js"></script>
-<script src="assets/cert_editor.js"></script>
+<script src="assets/cert_render.js?v=<?php echo @filemtime(__DIR__ . '/assets/cert_render.js'); ?>"></script>
+<script src="assets/cert_editor.js?v=<?php echo @filemtime(__DIR__ . '/assets/cert_editor.js'); ?>"></script>
 <script>
 const API = '../backend/template_actions.php';
 const CAN_UPDATE = <?php echo $canUpdate ? 'true' : 'false'; ?>;
