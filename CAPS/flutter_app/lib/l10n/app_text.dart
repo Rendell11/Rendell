@@ -394,6 +394,32 @@ abstract class AppText {
   String get no;
   String get viewProfile;
   String valueLabel(String value);
+
+  // ── Officials ───────────────────────────────────────────────────
+  String get officialsSubtitle;
+  String get officialsLoadFailed;
+  String get noOfficials;
+  String get punongBarangay;
+  String get executiveOfficers;
+  String get kagawads;
+  String get otherOfficials;
+  String committeeOn(String c);
+  String termRange(String start, String end);
+  String get termNotSet;
+  String officialPosition(String p);
+
+  // ── Announcements ───────────────────────────────────────────────
+  String get announcementsSubtitle;
+  String get announcementsLoadFailed;
+  String newAnnouncementsCount(int n);
+  String get searchAnnouncements;
+  String get newLabel;
+  String get endedLabel;
+  String postedOn(String date);
+  String attachmentsCount(int n);
+  String get attachmentAtBarangay;
+  String get viewAll;
+  String announcementCategory(String c);
 }
 
 /// The strings for the current app language.

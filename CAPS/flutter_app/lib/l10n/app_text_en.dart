@@ -833,4 +833,54 @@ class AppTextEn extends AppText {
   String get viewProfile => 'View profile';
   @override
   String valueLabel(String value) => value;
+
+  // ── Officials
+  @override
+  String get officialsSubtitle => 'Current barangay officials';
+  @override
+  String get officialsLoadFailed => 'Could not load the officials.';
+  @override
+  String get noOfficials => 'No officials listed yet.';
+  @override
+  String get punongBarangay => 'Punong Barangay';
+  @override
+  String get executiveOfficers => 'Barangay Officers';
+  @override
+  String get kagawads => 'Sangguniang Barangay (Kagawad)';
+  @override
+  String get otherOfficials => 'Other Officials';
+  @override
+  String committeeOn(String c) => 'Committee on $c';
+  @override
+  String termRange(String start, String end) => 'Term: $start – $end';
+  @override
+  String get termNotSet => 'Term not set';
+  @override
+  String officialPosition(String p) => p;
+
+  // ── Announcements
+  @override
+  String get announcementsSubtitle => 'News and advisories from the barangay';
+  @override
+  String get announcementsLoadFailed => 'Could not load the announcements.';
+  @override
+  String newAnnouncementsCount(int n) =>
+      n == 1 ? '1 new announcement' : '$n new announcements';
+  @override
+  String get searchAnnouncements => 'Search announcements…';
+  @override
+  String get newLabel => 'New';
+  @override
+  String get endedLabel => 'Ended';
+  @override
+  String postedOn(String date) => 'Posted $date';
+  @override
+  String attachmentsCount(int n) => n == 1 ? '1 attachment' : '$n attachments';
+  @override
+  String get attachmentAtBarangay =>
+      'To get a copy of these files, visit the Barangay Hall.';
+  @override
+  String get viewAll => 'View all';
+  @override
+  String announcementCategory(String c) => c;
 }

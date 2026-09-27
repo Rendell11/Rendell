@@ -873,4 +873,67 @@ class AppTextFil extends AppText {
         'Filipino' => 'Pilipino',
         _ => value
       };
+
+  // ── Officials
+  @override
+  String get officialsSubtitle => 'Mga kasalukuyang opisyal ng barangay';
+  @override
+  String get officialsLoadFailed => 'Hindi ma-load ang mga opisyal.';
+  @override
+  String get noOfficials => 'Wala pang nakalistang opisyal.';
+  @override
+  String get punongBarangay => 'Punong Barangay';
+  @override
+  String get executiveOfficers => 'Mga Opisyal ng Barangay';
+  @override
+  String get kagawads => 'Sangguniang Barangay (Kagawad)';
+  @override
+  String get otherOfficials => 'Iba pang Opisyal';
+  @override
+  String committeeOn(String c) => 'Komite sa $c';
+  @override
+  String termRange(String start, String end) => 'Termino: $start – $end';
+  @override
+  String get termNotSet => 'Walang nakatakdang termino';
+  @override
+  String officialPosition(String p) => switch (p) {
+        'Barangay Captain' => 'Punong Barangay',
+        'Barangay Secretary' => 'Kalihim ng Barangay',
+        'Barangay Treasurer' => 'Ingat-yaman ng Barangay',
+        'SK Chairperson' => 'SK Chairperson',
+        _ => p
+      };
+
+  // ── Announcements
+  @override
+  String get announcementsSubtitle => 'Mga balita at abiso mula sa barangay';
+  @override
+  String get announcementsLoadFailed => 'Hindi ma-load ang mga anunsyo.';
+  @override
+  String newAnnouncementsCount(int n) => '$n bagong anunsyo';
+  @override
+  String get searchAnnouncements => 'Hanapin ang anunsyo…';
+  @override
+  String get newLabel => 'Bago';
+  @override
+  String get endedLabel => 'Tapos na';
+  @override
+  String postedOn(String date) => 'Inilabas $date';
+  @override
+  String attachmentsCount(int n) => '$n attachment';
+  @override
+  String get attachmentAtBarangay =>
+      'Para sa kopya ng mga file na ito, pumunta sa Barangay Hall.';
+  @override
+  String get viewAll => 'Tingnan lahat';
+  @override
+  String announcementCategory(String c) => switch (c) {
+        'General' => 'Pangkalahatan',
+        'Health Advisory' => 'Abiso sa Kalusugan',
+        'Health' => 'Kalusugan',
+        'Community Event' => 'Kaganapan sa Komunidad',
+        'Emergency Notice' => 'Emergency',
+        'Others' => 'Iba pa',
+        _ => c
+      };
 }

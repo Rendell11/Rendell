@@ -7,7 +7,12 @@ import '../theme/app_theme.dart';
 import '../widgets/wave_background.dart';
 import '../screens/login_screen.dart';
 import '../chat/chat_screen.dart';
+import '../announcements/announcement_api.dart';
+import '../announcements/announcement_detail_screen.dart';
+import '../announcements/announcement_widgets.dart';
+import '../announcements/announcements_screen.dart';
 import '../complaint/complaint_screen.dart';
+import '../officials/officials_screen.dart';
 import '../settings/app_settings.dart';
 import '../settings/settings_screen.dart';
 import '../profile/profile_api.dart';
@@ -67,9 +72,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
     // keep future Settings changes in sync.
     AppSettings.instance.bindResident(resident.residentId);
     _loadPhoto();
+    _loadAnnouncements();
   }
 
   String? _photoUrl;
+  List<Announcement> _latest = const [];
+  bool _annLoading = true;
+
+  /// Latest 3 announcements for the dashboard card.
+  Future<void> _loadAnnouncements() async {
+    final api = AnnouncementApi();
+    final res = await api.list(resident.residentId);
+    api.dispose();
+    if (!mounted) return;
+    setState(() {
+      _annLoading = false;
+      if (res.ok) _latest = (res.data ?? const []).take(3).toList();
+    });
+  }
+
+  Future<void> _openAnnouncements(BuildContext context) async {
+    await Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => AnnouncementsScreen(resident: resident)));
+    _loadAnnouncements(); // refresh "New" badges
+  }
+
+  Future<void> _openAnnouncement(BuildContext context, Announcement a) async {
+    if (a.isNew) {
+      final api = AnnouncementApi();
+      await api.markRead(resident.residentId, a.id);
+      api.dispose();
+    }
+    if (!context.mounted) return;
+    await Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => AnnouncementDetailScreen(announcement: a.asRead())));
+    _loadAnnouncements();
+  }
 
   /// Profile picture for the avatars (initials until it loads / if none).
   Future<void> _loadPhoto() async {
@@ -143,9 +181,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  /// Open a module. 'chat' and 'complaints' are live; the rest show the
-  /// "coming soon" note.
+  /// Open a module. Announcements, officials, complaints and chat are live;
+  /// the rest show the "coming soon" note.
   void _openModule(BuildContext context, ResidentModule m) {
+    if (m.id == 'announcements') {
+      _openAnnouncements(context);
+      return;
+    }
+    if (m.id == 'officials') {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const OfficialsScreen()),
+      );
+      return;
+    }
     if (m.id == 'complaints') {
       Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => ComplaintScreen(resident: resident)),
@@ -183,9 +231,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   const SizedBox(height: 10),
                   _servicesGrid(context),
                   const SizedBox(height: 20),
-                  _sectionLabel(tr.latestAnnouncements),
+                  Row(children: [
+                    Expanded(child: _sectionLabel(tr.latestAnnouncements)),
+                    if (_latest.isNotEmpty)
+                      TextButton(
+                        onPressed: () => _openAnnouncements(context),
+                        child: Text(tr.viewAll),
+                      ),
+                  ]),
                   const SizedBox(height: 10),
-                  _announcementsCard(),
+                  _announcementsCard(context),
                   const SizedBox(height: 16),
                   _sectionLabel(tr.recentRequests),
                   const SizedBox(height: 10),
@@ -711,8 +766,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // ── Announcements (empty state until wired) ─────────────────────────────
-  Widget _announcementsCard() {
+  // ── Latest announcements (3 newest; empty state when none) ─────────────
+  Widget _announcementsCard(BuildContext context) {
+    if (_annLoading) {
+      return _white(
+        child: Center(
+            child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: CircularProgressIndicator(color: AppColors.primary),
+        )),
+      );
+    }
+    if (_latest.isNotEmpty) {
+      return _white(
+        padding: EdgeInsets.zero,
+        child: Material(
+          type: MaterialType.transparency,
+          child: Column(children: [
+            for (var i = 0; i < _latest.length; i++) ...[
+              if (i > 0) Divider(height: 1, color: AppColors.border),
+              _announcementRow(context, _latest[i]),
+            ],
+          ]),
+        ),
+      );
+    }
     return _white(
       padding: EdgeInsets.zero,
       child: Padding(
@@ -726,6 +804,62 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     color: AppColors.slate400,
                     fontWeight: FontWeight.w700,
                     fontSize: 13)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _announcementRow(BuildContext context, Announcement a) {
+    final color = AnnouncementStyle.category(a.category);
+    return InkWell(
+      onTap: () => _openAnnouncement(context, a),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: SizedBox(
+                width: 56,
+                height: 56,
+                child: a.cover != null
+                    ? AnnouncementImage(a.cover!, height: 56)
+                    : Container(
+                        color: color.withValues(alpha: .12),
+                        child: Icon(AnnouncementStyle.icon(a.category),
+                            color: color),
+                      ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Wrap(spacing: 6, runSpacing: 4, children: [
+                    AnnouncementPill(
+                        tr.announcementCategory(a.category), color),
+                    if (a.isNew)
+                      AnnouncementPill(tr.newLabel, const Color(0xFFDB2777)),
+                  ]),
+                  const SizedBox(height: 6),
+                  Text(a.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: 13,
+                          height: 1.25,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.slate800)),
+                  const SizedBox(height: 3),
+                  Text(tr.postedOn(AnnouncementStyle.date(a.datePosted)),
+                      style:
+                          TextStyle(fontSize: 11, color: AppColors.slate400)),
+                ],
+              ),
+            ),
           ],
         ),
       ),
