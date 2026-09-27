@@ -55,6 +55,9 @@ class ProfileAvatar extends StatelessWidget {
       child: ClipOval(
         child: Image.network(
           '${ApiConfig.baseUrl}/$photoUrl',
+          // Flutter web: XAMPP serves the file without CORS headers, so fall
+          // back to a plain <img> element instead of failing.
+          webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
           width: size,
           height: size,
           fit: BoxFit.cover,

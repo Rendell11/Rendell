@@ -35,6 +35,22 @@ if ($rid <= 0) {
     respond(false, L('Kailangan ang resident_id.', 'resident_id is required.'), null, 400);
 }
 
+// ── Self-heal: some CAPS databases don't have residents.ProfilePhoto yet.
+//    Add it once so uploads can be saved (no manual SQL needed).
+try {
+    $has = $pdo->query(
+        "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'residents'
+           AND COLUMN_NAME = 'ProfilePhoto'"
+    )->fetchColumn();
+    if ((int) $has === 0) {
+        $pdo->exec("ALTER TABLE residents ADD COLUMN ProfilePhoto VARCHAR(512) NULL
+                    COMMENT 'Relative path to uploaded profile picture' AFTER Email");
+    }
+} catch (Throwable $e) {
+    error_log('[profile.php migrate] ' . $e->getMessage());
+}
+
 /** The resident row, or null when missing / not an Active portal account. */
 function profile_row(PDO $pdo, int $rid): ?array
 {
@@ -150,8 +166,10 @@ if ($action === 'upload_photo') {
     $dir = UPLOAD_DIR . '/' . PROFILE_PHOTO_SUB;
     if (!is_dir($dir)) @mkdir($dir, 0775, true);
     $name = 'resident_' . $rid . '_' . bin2hex(random_bytes(6)) . '.' . $ext;
-    if (!move_uploaded_file($f['tmp_name'], $dir . '/' . $name)) {
-        respond(false, L('Hindi na-save ang larawan. Subukan muli.', 'The photo was not saved. Please try again.'), null, 500);
+    if (!is_dir($dir) || !is_writable($dir) || !move_uploaded_file($f['tmp_name'], $dir . '/' . $name)) {
+        error_log('[profile.php upload] cannot write to ' . $dir);
+        respond(false, L('Hindi ma-save ang larawan sa server (uploads folder). Ipaalam sa admin.',
+            'The server could not store the photo (uploads folder). Please tell the admin.'), null, 500);
     }
     $path = UPLOAD_URL . '/' . PROFILE_PHOTO_SUB . '/' . $name;
     try {
@@ -159,7 +177,8 @@ if ($action === 'upload_photo') {
     } catch (Throwable $e) {
         @unlink($dir . '/' . $name);
         error_log('[profile.php upload] ' . $e->getMessage());
-        respond(false, L('Hindi na-save ang larawan. Subukan muli.', 'The photo was not saved. Please try again.'), null, 500);
+        respond(false, L('Hindi ma-save ang larawan sa database. Ipaalam sa admin.',
+            'The photo could not be saved in the database. Please tell the admin.'), null, 500);
     }
     profile_delete_photo($r['ProfilePhoto'] ?? null);
     respond(true, L('Na-update ang profile picture.', 'Profile picture updated.'), ['photo_url' => profile_photo_url($path)]);

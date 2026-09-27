@@ -337,13 +337,16 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
         context: context,
         builder: (_) => Dialog(
           insetPadding: const EdgeInsets.all(12),
-          child: InteractiveViewer(child: Image.network(url)),
+          child: InteractiveViewer(
+              child: Image.network(url,
+                  webHtmlElementStrategy: WebHtmlElementStrategy.fallback)),
         ),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(14),
         child: Image.network(
           url,
+          webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
           height: 200,
           width: double.infinity,
           fit: BoxFit.cover,

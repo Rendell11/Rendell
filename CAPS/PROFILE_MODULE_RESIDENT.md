@@ -54,7 +54,7 @@ Only **Active** residents are allowed. Photos are saved in
 `user/backend/uploads/profile_photos/resident_14_ab12cd34ef56.jpg`, so the
 admin side can show it as `CAPS/<ProfilePhoto>`.
 
-**No SQL needed.** `residents.ProfilePhoto` already exists.
+**No SQL needed.** If `residents.ProfilePhoto` is missing (some CAPS databases), `profile.php` adds it automatically (`VARCHAR(512) NULL`).
 
 ## Later (not built yet)
 
