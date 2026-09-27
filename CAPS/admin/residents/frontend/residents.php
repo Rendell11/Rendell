@@ -406,10 +406,24 @@ require_once __DIR__ . '/../../theme_loader.php';
                                         data-bdate="<?= $res['BirthDate'] ?>">
                                         <td class="px-8 py-5">
                                             <div class="flex items-center gap-3">
+                                                <?php
+                                                // Profile picture uploaded by the resident in the app
+                                                // (residents.ProfilePhoto is relative to the CAPS root).
+                                                $resPhoto = trim((string)($res['ProfilePhoto'] ?? ''));
+                                                $resPhotoOk = $resPhoto !== ''
+                                                    && strpos($resPhoto, '..') === false
+                                                    && is_file(__DIR__ . '/../../../' . ltrim($resPhoto, '/'));
+                                                ?>
+                                                <?php if ($resPhotoOk): ?>
+                                                <img src="../../../<?= htmlspecialchars(ltrim($resPhoto, '/')) ?>"
+                                                    alt="<?= htmlspecialchars($res['FullName']) ?>"
+                                                    class="w-9 h-9 rounded-xl object-cover bg-slate-100 shrink-0">
+                                                <?php else: ?>
                                                 <div
                                                     class="w-9 h-9 bg-slate-100 text-slate-500 rounded-xl flex items-center justify-center font-bold text-[10px]">
                                                     <?= substr($res['FirstName'], 0, 1) . substr($res['LastName'], 0, 1) ?>
                                                 </div>
+                                                <?php endif; ?>
                                                 <div>
                                                     <p class="text-sm font-bold text-slate-700 leading-tight name-cell">
                                                         <?= htmlspecialchars($res['FullName']) ?></p>
