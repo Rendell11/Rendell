@@ -78,7 +78,12 @@ $_theme_head_loaded = true;
 
 try {
     // All complaints with complainant name
-    $complaints_sql = "SELECT c.*, CONCAT(r.FirstName, ' ', r.LastName) as ComplainantName
+    // Anonymous complaints never show the resident's name (the resident_id is
+    // kept only so the resident can track it in the app).
+    $complaints_sql = "SELECT c.*,
+                              CASE WHEN c.is_anonymous = 1 THEN NULL
+                                   ELSE COALESCE(CONCAT(r.FirstName, ' ', r.LastName), c.complainant_name)
+                              END as ComplainantName
                        FROM complaints c
                        LEFT JOIN residents r ON c.resident_id = r.ResidentID
                        ORDER BY c.created_at DESC";

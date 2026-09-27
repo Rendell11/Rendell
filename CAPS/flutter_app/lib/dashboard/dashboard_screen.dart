@@ -6,6 +6,7 @@ import '../theme/app_theme.dart';
 import '../widgets/wave_background.dart';
 import '../screens/login_screen.dart';
 import '../chat/chat_screen.dart';
+import '../complaint/complaint_screen.dart';
 
 /// ─────────────────────────────────────────────────────────────────────────
 /// RESIDENT DASHBOARD (landing page after login)
@@ -32,7 +33,7 @@ const List<ResidentModule> kModules = [
   ResidentModule('Household', Icons.groups_outlined, Color(0xFF1D63DA)),
   ResidentModule('Announcements', Icons.campaign_outlined, Color(0xFF0EA5E9)),
   ResidentModule('Request Document', Icons.description_outlined, Color(0xFF16A34A)),
-  ResidentModule('Incident', Icons.report_problem_outlined, Color(0xFFF59E0B)),
+  ResidentModule('Complaints', Icons.report_problem_outlined, Color(0xFFF59E0B)),
   ResidentModule('Officials', Icons.badge_outlined, Color(0xFF6366F1)),
   ResidentModule('Chat', Icons.chat_bubble_outline, Color(0xFFDB2777)),
 ];
@@ -93,8 +94,15 @@ class DashboardScreen extends StatelessWidget {
         SnackBar(content: Text('$feature — malapit nang idagdag.')),
       );
 
-  /// Open a module. 'Chat' is live; the rest show the "coming soon" note.
+  /// Open a module. 'Chat' and 'Complaints' are live; the rest show the
+  /// "coming soon" note.
   void _openModule(BuildContext context, String label) {
+    if (label == 'Complaints') {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => ComplaintScreen(resident: resident)),
+      );
+      return;
+    }
     if (label == 'Chat') {
       Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => ChatScreen(resident: resident)),

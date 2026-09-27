@@ -36,7 +36,7 @@ if ($complaint_id === '' || !in_array($new_status, $allowed_statuses, true)) {
 }
 
 try {
-    $check = $pdo->prepare('SELECT title, status FROM complaints WHERE complaint_id = ? LIMIT 1');
+    $check = $pdo->prepare('SELECT id, resident_id, title, status FROM complaints WHERE complaint_id = ? LIMIT 1');
     $check->execute([$complaint_id]);
     $complaint = $check->fetch(PDO::FETCH_ASSOC);
 
@@ -47,8 +47,26 @@ try {
         exit;
     }
 
-    $stmt = $pdo->prepare('UPDATE complaints SET admin_reply = ?, status = ? WHERE complaint_id = ?');
+    // notif_read = 0 → the resident app shows a "New reply" badge until opened.
+    $stmt = $pdo->prepare('UPDATE complaints SET admin_reply = ?, status = ?, notif_read = 0 WHERE complaint_id = ?');
     $stmt->execute([$admin_message, $new_status, $complaint_id]);
+
+    // In-app notification for the resident (best-effort; table may not exist yet).
+    if (!empty($complaint['resident_id'])) {
+        try {
+            $pdo->prepare(
+                "INSERT INTO resident_notifications (resident_id, notif_type, title, message, ref_table, ref_id)
+                 VALUES (?, 'complaint_update', ?, ?, 'complaints', ?)"
+            )->execute([
+                (int)$complaint['resident_id'],
+                "Complaint {$complaint_id}: {$new_status}",
+                $admin_message !== '' ? $admin_message : "Your complaint \"{$complaint['title']}\" is now {$new_status}.",
+                (int)$complaint['id'],
+            ]);
+        } catch (Throwable $e) {
+            error_log('[CAPS Complaint] resident notification: ' . $e->getMessage());
+        }
+    }
 
     log_activity(
         'Complaints',
