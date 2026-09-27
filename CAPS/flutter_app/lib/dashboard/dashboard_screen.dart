@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_text.dart';
 import '../models/resident.dart';
 import '../services/session_service.dart';
 import '../theme/app_theme.dart';
@@ -7,6 +8,8 @@ import '../widgets/wave_background.dart';
 import '../screens/login_screen.dart';
 import '../chat/chat_screen.dart';
 import '../complaint/complaint_screen.dart';
+import '../settings/app_settings.dart';
+import '../settings/settings_screen.dart';
 
 /// ─────────────────────────────────────────────────────────────────────────
 /// RESIDENT DASHBOARD (landing page after login)
@@ -23,25 +26,43 @@ import '../complaint/complaint_screen.dart';
 
 /// One resident module (used by both the drawer and the quick-access grid).
 class ResidentModule {
-  final String label;
+  /// Stable id used for navigation; the visible [label] is localized.
+  final String id;
   final IconData icon;
   final Color color;
-  const ResidentModule(this.label, this.icon, this.color);
+  const ResidentModule(this.id, this.icon, this.color);
+
+  String get label => tr.moduleLabel(id);
 }
 
 const List<ResidentModule> kModules = [
-  ResidentModule('Household', Icons.groups_outlined, Color(0xFF1D63DA)),
-  ResidentModule('Announcements', Icons.campaign_outlined, Color(0xFF0EA5E9)),
-  ResidentModule('Request Document', Icons.description_outlined, Color(0xFF16A34A)),
-  ResidentModule('Complaints', Icons.report_problem_outlined, Color(0xFFF59E0B)),
-  ResidentModule('Officials', Icons.badge_outlined, Color(0xFF6366F1)),
-  ResidentModule('Chat', Icons.chat_bubble_outline, Color(0xFFDB2777)),
+  ResidentModule('household', Icons.groups_outlined, Color(0xFF1D63DA)),
+  ResidentModule('announcements', Icons.campaign_outlined, Color(0xFF0EA5E9)),
+  ResidentModule('documents', Icons.description_outlined, Color(0xFF16A34A)),
+  ResidentModule('complaints', Icons.report_problem_outlined, Color(0xFFF59E0B)),
+  ResidentModule('officials', Icons.badge_outlined, Color(0xFF6366F1)),
+  ResidentModule('chat', Icons.chat_bubble_outline, Color(0xFFDB2777)),
 ];
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key, required this.resident});
 
   final Resident resident;
+
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  Resident get resident => widget.resident;
+
+  @override
+  void initState() {
+    super.initState();
+    // Signed in: load this resident's saved preferences from the server and
+    // keep future Settings changes in sync.
+    AppSettings.instance.bindResident(resident.residentId);
+  }
 
   // Placeholder stats (wire to API later).
   int get _total => 0;
@@ -58,30 +79,30 @@ class DashboardScreen extends StatelessWidget {
 
   String get _greeting {
     final h = DateTime.now().hour;
-    if (h < 12) return 'Good morning';
-    if (h < 17) return 'Good afternoon';
-    return 'Good evening';
+    if (h < 12) return tr.goodMorning;
+    if (h < 17) return tr.goodAfternoon;
+    return tr.goodEvening;
   }
 
   Future<void> _logout(BuildContext context) async {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Mag-logout?'),
-        content: const Text(
-            'Kakailanganin mong mag-login ulit gamit ang email at password.'),
+        title: Text(tr.logoutConfirmTitle),
+        content: Text(tr.logoutConfirmBody),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Kanselahin')),
+              child: Text(tr.cancel)),
           FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Mag-logout')),
+              child: Text(tr.logout)),
         ],
       ),
     );
     if (ok != true) return;
     await SessionService().clear();
+    AppSettings.instance.unbindResident();
     if (!context.mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -91,25 +112,31 @@ class DashboardScreen extends StatelessWidget {
 
   void _soon(BuildContext context, String feature) =>
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$feature — malapit nang idagdag.')),
+        SnackBar(content: Text(tr.comingSoon(feature))),
       );
 
-  /// Open a module. 'Chat' and 'Complaints' are live; the rest show the
+  void _openSettings(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => SettingsScreen(resident: resident)),
+    );
+  }
+
+  /// Open a module. 'chat' and 'complaints' are live; the rest show the
   /// "coming soon" note.
-  void _openModule(BuildContext context, String label) {
-    if (label == 'Complaints') {
+  void _openModule(BuildContext context, ResidentModule m) {
+    if (m.id == 'complaints') {
       Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => ComplaintScreen(resident: resident)),
       );
       return;
     }
-    if (label == 'Chat') {
+    if (m.id == 'chat') {
       Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => ChatScreen(resident: resident)),
       );
       return;
     }
-    _soon(context, label);
+    _soon(context, m.label);
   }
 
   @override
@@ -130,19 +157,19 @@ class DashboardScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   _statCards(context),
                   const SizedBox(height: 20),
-                  _sectionLabel('Quick Access'),
+                  _sectionLabel(tr.quickAccess),
                   const SizedBox(height: 10),
                   _servicesGrid(context),
                   const SizedBox(height: 20),
-                  _sectionLabel('Latest Announcements'),
+                  _sectionLabel(tr.latestAnnouncements),
                   const SizedBox(height: 10),
                   _announcementsCard(),
                   const SizedBox(height: 16),
-                  _sectionLabel('Recent Requests'),
+                  _sectionLabel(tr.recentRequests),
                   const SizedBox(height: 10),
                   _recentRequestsCard(context),
                   const SizedBox(height: 16),
-                  _sectionLabel('Request Summary'),
+                  _sectionLabel(tr.requestSummary),
                   const SizedBox(height: 10),
                   _summaryCard(),
                   const SizedBox(height: 16),
@@ -160,7 +187,7 @@ class DashboardScreen extends StatelessWidget {
   // ── APP BAR ─────────────────────────────────────────────────────────────
   PreferredSizeWidget _appBar(BuildContext context) {
     return AppBar(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: AppColors.appBar,
       elevation: 0,
       titleSpacing: 0,
       leadingWidth: 44,
@@ -168,7 +195,7 @@ class DashboardScreen extends StatelessWidget {
         builder: (ctx) => IconButton(
           icon: const Icon(Icons.menu, color: Colors.white),
           onPressed: () => Scaffold.of(ctx).openDrawer(),
-          tooltip: 'Mga Module',
+          tooltip: tr.modules,
         ),
       ),
       title: Row(
@@ -187,20 +214,20 @@ class DashboardScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('Barangay Biñang 2nd',
+                const Text('Barangay Biñang 2nd',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                         color: Colors.white,
                         fontSize: 14,
                         fontWeight: FontWeight.w800)),
-                Text('Resident Portal',
-                    style: TextStyle(
+                Text(tr.residentPortal,
+                    style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 10,
                         fontWeight: FontWeight.w600)),
@@ -213,7 +240,7 @@ class DashboardScreen extends StatelessWidget {
         // Notifications with badge
         IconButton(
           onPressed: () => _openNotifications(context),
-          tooltip: 'Notifications',
+          tooltip: tr.notifications,
           icon: Stack(
             clipBehavior: Clip.none,
             children: [
@@ -248,17 +275,17 @@ class DashboardScreen extends StatelessWidget {
 
   Widget _profileMenu(BuildContext context) {
     return PopupMenuButton<String>(
-      tooltip: 'Profile',
+      tooltip: tr.profile,
       offset: const Offset(0, 48),
       shape:
           RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       onSelected: (v) {
         switch (v) {
           case 'profile':
-            _soon(context, 'My Profile');
+            _openSettings(context);
             break;
           case 'settings':
-            _soon(context, 'Settings');
+            _openSettings(context);
             break;
           case 'logout':
             _logout(context);
@@ -283,16 +310,16 @@ class DashboardScreen extends StatelessWidget {
           ),
         ),
         const PopupMenuDivider(),
-        _menuItem('profile', Icons.person_outline, 'My Profile'),
-        _menuItem('settings', Icons.settings_outlined, 'Settings'),
+        _menuItem('profile', Icons.person_outline, tr.myProfile),
+        _menuItem('settings', Icons.settings_outlined, tr.settings),
         const PopupMenuDivider(),
         PopupMenuItem(
           value: 'logout',
           child: Row(children: [
-            Icon(Icons.logout, size: 18, color: AppColors.danger),
+            const Icon(Icons.logout, size: 18, color: AppColors.danger),
             const SizedBox(width: 10),
-            Text('Logout',
-                style: TextStyle(
+            Text(tr.logout,
+                style: const TextStyle(
                     color: AppColors.danger, fontWeight: FontWeight.w700)),
           ]),
         ),
@@ -338,8 +365,8 @@ class DashboardScreen extends StatelessWidget {
               Icon(Icons.notifications_outlined,
                   color: AppColors.primary, size: 20),
               const SizedBox(width: 8),
-              const Text('Notifications',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+              Text(tr.notifications,
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
             ]),
             const SizedBox(height: 24),
             Center(
@@ -348,7 +375,7 @@ class DashboardScreen extends StatelessWidget {
                   Icon(Icons.notifications_off_outlined,
                       size: 44, color: AppColors.slate200),
                   const SizedBox(height: 10),
-                  Text('Wala pang notifications',
+                  Text(tr.noNotifications,
                       style: TextStyle(
                           color: AppColors.slate400,
                           fontWeight: FontWeight.w700)),
@@ -409,7 +436,7 @@ class DashboardScreen extends StatelessWidget {
                 Row(children: [
                   CircleAvatar(
                     radius: 18,
-                    backgroundColor: Colors.white.withOpacity(.25),
+                    backgroundColor: Colors.white.withValues(alpha: .25),
                     child: Text(_initials,
                         style: const TextStyle(
                             color: Colors.white,
@@ -428,9 +455,9 @@ class DashboardScreen extends StatelessWidget {
                                 color: Colors.white,
                                 fontWeight: FontWeight.w700,
                                 fontSize: 13)),
-                        Text('Active Resident',
+                        Text(tr.activeResident,
                             style: TextStyle(
-                                color: Colors.white.withOpacity(.7),
+                                color: Colors.white.withValues(alpha: .7),
                                 fontSize: 11)),
                       ],
                     ),
@@ -444,27 +471,27 @@ class DashboardScreen extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.symmetric(vertical: 8),
               children: [
-                _drawerItem(context, Icons.dashboard_outlined, 'Dashboard',
+                _drawerItem(context, Icons.dashboard_outlined, tr.dashboard,
                     active: true, onTap: () => Navigator.pop(context)),
                 const Divider(height: 1),
                 for (final m in kModules)
                   _drawerItem(context, m.icon, m.label, iconColor: m.color,
                       onTap: () {
                     Navigator.pop(context);
-                    _openModule(context, m.label);
+                    _openModule(context, m);
                   }),
                 const Divider(height: 1),
-                _drawerItem(context, Icons.person_outline, 'My Profile',
+                _drawerItem(context, Icons.person_outline, tr.myProfile,
                     onTap: () {
                   Navigator.pop(context);
-                  _soon(context, 'My Profile');
+                  _openSettings(context);
                 }),
-                _drawerItem(context, Icons.settings_outlined, 'Settings',
+                _drawerItem(context, Icons.settings_outlined, tr.settings,
                     onTap: () {
                   Navigator.pop(context);
-                  _soon(context, 'Settings');
+                  _openSettings(context);
                 }),
-                _drawerItem(context, Icons.logout, 'Logout',
+                _drawerItem(context, Icons.logout, tr.logout,
                     iconColor: AppColors.danger, onTap: () {
                   Navigator.pop(context);
                   _logout(context);
@@ -488,7 +515,7 @@ class DashboardScreen extends StatelessWidget {
               fontSize: 14,
               fontWeight: active ? FontWeight.w800 : FontWeight.w600,
               color: active ? AppColors.primary : AppColors.slate800)),
-      tileColor: active ? AppColors.primary.withOpacity(.06) : null,
+      tileColor: active ? AppColors.primary.withValues(alpha: .06) : null,
       onTap: onTap,
     );
   }
@@ -506,7 +533,7 @@ class DashboardScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-              color: AppColors.primary.withOpacity(.30),
+              color: AppColors.primary.withValues(alpha: .30),
               blurRadius: 24,
               offset: const Offset(0, 10)),
         ],
@@ -517,9 +544,9 @@ class DashboardScreen extends StatelessWidget {
             width: 60,
             height: 60,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(.20),
+              color: Colors.white.withValues(alpha: .20),
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: Colors.white.withOpacity(.30)),
+              border: Border.all(color: Colors.white.withValues(alpha: .30)),
             ),
             alignment: Alignment.center,
             child: Text(_initials,
@@ -533,9 +560,9 @@ class DashboardScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('RESIDENT ACCOUNT',
+                Text(tr.residentAccount.toUpperCase(),
                     style: TextStyle(
-                        color: Colors.white.withOpacity(.6),
+                        color: Colors.white.withValues(alpha: .6),
                         fontSize: 10,
                         fontWeight: FontWeight.w900,
                         letterSpacing: 1.5)),
@@ -554,7 +581,7 @@ class DashboardScreen extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                          color: Colors.white.withOpacity(.65),
+                          color: Colors.white.withValues(alpha: .65),
                           fontSize: 13,
                           fontWeight: FontWeight.w500)),
                 ],
@@ -569,18 +596,23 @@ class DashboardScreen extends StatelessWidget {
   // ── Stat cards ──────────────────────────────────────────────────────────
   Widget _statCards(BuildContext context) {
     final cards = <_Stat>[
-      _Stat('Total Requests', _total, Icons.folder_open, const Color(0xFF6366F1)),
-      _Stat('Approved', _approved, Icons.check_circle, const Color(0xFF16A34A)),
-      _Stat('Pending', _pending, Icons.hourglass_top, const Color(0xFFF59E0B)),
-      _Stat('Reservations', _reservations, Icons.build, const Color(0xFF8B5CF6)),
+      _Stat(tr.totalRequests, _total, Icons.folder_open, const Color(0xFF6366F1)),
+      _Stat(tr.approved, _approved, Icons.check_circle, const Color(0xFF16A34A)),
+      _Stat(tr.pending, _pending, Icons.hourglass_top, const Color(0xFFF59E0B)),
+      _Stat(tr.reservations, _reservations, Icons.build, const Color(0xFF8B5CF6)),
     ];
-    return GridView.count(
-      crossAxisCount: 2,
+    // Height grows with the text size (Settings → Text size) so the card
+    // never overflows.
+    final scale = MediaQuery.textScalerOf(context).scale(1);
+    return GridView(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
-      childAspectRatio: 1.55,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        mainAxisExtent: 74 + 40 * scale,
+      ),
       children: [for (final s in cards) _statCard(context, s)],
     );
   }
@@ -609,7 +641,7 @@ class DashboardScreen extends StatelessWidget {
                 width: 34,
                 height: 34,
                 decoration: BoxDecoration(
-                    color: s.color.withOpacity(.12),
+                    color: s.color.withValues(alpha: .12),
                     borderRadius: BorderRadius.circular(10)),
                 child: Icon(s.icon, size: 18, color: s.color),
               ),
@@ -629,18 +661,21 @@ class DashboardScreen extends StatelessWidget {
   Widget _servicesGrid(BuildContext context) {
     // Show the first 6 as quick access; the rest live in the drawer.
     final quick = kModules.take(6).toList();
-    return GridView.count(
-      crossAxisCount: 3,
+    final scale = MediaQuery.textScalerOf(context).scale(1);
+    return GridView(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
-      childAspectRatio: .92,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        mainAxisExtent: 76 + 34 * scale,
+      ),
       children: [
         for (final s in quick)
           InkWell(
             borderRadius: BorderRadius.circular(18),
-            onTap: () => _openModule(context, s.label),
+            onTap: () => _openModule(context, s),
             child: _white(
               padding: const EdgeInsets.all(10),
               child: Column(
@@ -650,7 +685,7 @@ class DashboardScreen extends StatelessWidget {
                     width: 42,
                     height: 42,
                     decoration: BoxDecoration(
-                        color: s.color.withOpacity(.12),
+                        color: s.color.withValues(alpha: .12),
                         borderRadius: BorderRadius.circular(14)),
                     child: Icon(s.icon, color: s.color, size: 22),
                   ),
@@ -682,7 +717,7 @@ class DashboardScreen extends StatelessWidget {
           children: [
             Icon(Icons.campaign_outlined, size: 44, color: AppColors.slate200),
             const SizedBox(height: 10),
-            Text('No announcements yet',
+            Text(tr.noAnnouncements,
                 style: TextStyle(
                     color: AppColors.slate400,
                     fontWeight: FontWeight.w700,
@@ -703,16 +738,16 @@ class DashboardScreen extends StatelessWidget {
           children: [
             Icon(Icons.inbox_outlined, size: 44, color: AppColors.slate200),
             const SizedBox(height: 10),
-            Text('No requests yet',
+            Text(tr.noRequests,
                 style: TextStyle(
                     color: AppColors.slate400,
                     fontWeight: FontWeight.w700,
                     fontSize: 13)),
             const SizedBox(height: 8),
             TextButton.icon(
-              onPressed: () => _soon(context, 'Request Document'),
+              onPressed: () => _soon(context, tr.moduleLabel('documents')),
               icon: const Icon(Icons.add, size: 16),
-              label: const Text('Make your first request'),
+              label: Text(tr.makeFirstRequest),
             ),
           ],
         ),
@@ -758,7 +793,7 @@ class DashboardScreen extends StatelessWidget {
               child: LinearProgressIndicator(
                 value: pct / 100,
                 minHeight: 6,
-                backgroundColor: const Color(0xFFF1F5F9),
+                backgroundColor: AppColors.muted,
                 valueColor: AlwaysStoppedAnimation(color),
               ),
             ),
@@ -771,15 +806,15 @@ class DashboardScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          bar('Approved', _approved, const Color(0xFF16A34A)),
-          bar('Pending', _pending, const Color(0xFFF59E0B)),
-          bar('Rejected', 0, const Color(0xFFEF4444)),
+          bar(tr.approved, _approved, const Color(0xFF16A34A)),
+          bar(tr.pending, _pending, const Color(0xFFF59E0B)),
+          bar(tr.rejected, 0, const Color(0xFFEF4444)),
           Divider(color: AppColors.bgBottom, height: 8),
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('TOTAL',
+              Text(tr.total.toUpperCase(),
                   style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w900,
@@ -826,14 +861,14 @@ class DashboardScreen extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('BARANGAY OFFICE',
+                Text(tr.barangayOffice.toUpperCase(),
                     style: TextStyle(
-                        color: Colors.white.withOpacity(.5),
+                        color: Colors.white.withValues(alpha: .5),
                         fontSize: 9,
                         fontWeight: FontWeight.w900,
                         letterSpacing: 1.5)),
-                const Text('Need Assistance?',
-                    style: TextStyle(
+                Text(tr.needAssistance,
+                    style: const TextStyle(
                         color: Colors.white,
                         fontSize: 14,
                         fontWeight: FontWeight.w900)),
@@ -842,16 +877,16 @@ class DashboardScreen extends StatelessWidget {
           ]),
           const SizedBox(height: 14),
           Text(
-              'Bisitahin ang Barangay Hall o tumawag sa opisina para sa tulong sa iyong mga request at dokumento.',
+              tr.helpBody,
               style: TextStyle(
-                  color: Colors.white.withOpacity(.6),
+                  color: Colors.white.withValues(alpha: .6),
                   fontSize: 12,
                   height: 1.5,
                   fontWeight: FontWeight.w500)),
           const SizedBox(height: 14),
           _helpRow(Icons.call, '(044) 123-4567'),
           const SizedBox(height: 8),
-          _helpRow(Icons.schedule, 'Mon – Fri, 8:00 AM – 5:00 PM'),
+          _helpRow(Icons.schedule, tr.officeHours),
         ],
       ),
     );
@@ -863,7 +898,7 @@ class DashboardScreen extends StatelessWidget {
           const SizedBox(width: 8),
           Text(text,
               style: TextStyle(
-                  color: Colors.white.withOpacity(.7),
+                  color: Colors.white.withValues(alpha: .7),
                   fontSize: 12,
                   fontWeight: FontWeight.w700)),
         ],
@@ -884,12 +919,13 @@ class DashboardScreen extends StatelessWidget {
       Container(
         padding: padding ?? const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.bgBottom),
+          border: Border.all(
+              color: AppColors.isDark ? AppColors.border : AppColors.bgBottom),
           boxShadow: [
             BoxShadow(
-                color: AppColors.primary.withOpacity(.06),
+                color: AppColors.primary.withValues(alpha: .06),
                 blurRadius: 18,
                 offset: const Offset(0, 6)),
           ],

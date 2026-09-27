@@ -1,5 +1,7 @@
 import 'package:local_auth/local_auth.dart';
 
+import '../l10n/app_text.dart';
+
 /// Thin wrapper over local_auth for fingerprint / face unlock.
 class BiometricService {
   final LocalAuthentication _auth = LocalAuthentication();
@@ -16,11 +18,10 @@ class BiometricService {
   }
 
   /// Prompt the OS biometric sheet. Returns true only on a successful match.
-  Future<bool> authenticate(
-      [String reason = 'Kumpirmahin para buksan ang iyong account']) async {
+  Future<bool> authenticate([String? reason]) async {
     try {
       return await _auth.authenticate(
-        localizedReason: reason,
+        localizedReason: reason ?? tr.biometricConfirmReason,
         options: const AuthenticationOptions(
           stickyAuth: true,
           biometricOnly: false, // allow device PIN/pattern as fallback too

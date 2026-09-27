@@ -3,7 +3,7 @@
 declare(strict_types=1);
 require __DIR__ . '/lib.php';
 handle_preflight();
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') respond(false, 'POST lang ang tinatanggap.', null, 405);
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') respond(false, L('POST lang ang tinatanggap.', 'Only POST is accepted.'), null, 405);
 try {
     $r = request_password_reset((string)post('email', ''));
 } catch (Throwable $e) {

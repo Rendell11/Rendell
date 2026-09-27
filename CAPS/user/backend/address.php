@@ -15,7 +15,7 @@ try {
     switch ($action) {
         case 'profile':
             $p = get_barangay_profile();
-            respond($p !== null, $p !== null ? 'OK' : 'Hindi pa naka-configure ang barangay address.', $p);
+            respond($p !== null, $p !== null ? 'OK' : L('Hindi pa naka-configure ang barangay address.', 'The barangay address is not configured yet.'), $p);
             break;
         case 'streets':
             respond(true, 'OK', list_streets($barangay));

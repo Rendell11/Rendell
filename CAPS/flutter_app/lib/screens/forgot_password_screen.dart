@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_text.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/brand_header.dart';
@@ -31,7 +32,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     final email = _email.text.trim();
     if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email)) {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Ilagay ang wastong email address.')));
+          SnackBar(content: Text(tr.enterValidEmail)));
       return;
     }
     setState(() => _sending = true);
@@ -71,51 +72,50 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       children: [
         const BrandHeader(),
         const SizedBox(height: 14),
-        Text('FORGOT PASSWORD',
+        Text(tr.forgotPassword.toUpperCase(),
             style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
                 color: AppColors.heading2)),
         const SizedBox(height: 4),
         Text(
-            "Enter your registered email address and we'll send you a reset link.",
+            tr.forgotPasswordSub,
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 13, color: AppColors.slate400)),
         const SizedBox(height: 20),
         Align(
           alignment: Alignment.centerLeft,
-          child: FieldLabel('Email Address', required: true),
+          child: FieldLabel(tr.emailAddress, required: true),
         ),
         TextField(
           controller: _email,
           keyboardType: TextInputType.emailAddress,
-          decoration: AppTheme.field('Enter your registered email address',
+          decoration: AppTheme.field(tr.enterRegisteredEmail,
               icon: Icons.mail_outline),
         ),
         const SizedBox(height: 14),
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: const Color(0xFFEFF6FF),
-            border: Border.all(color: const Color(0xFFBFDBFE)),
+            color: AppColors.infoBg,
+            border: Border.all(color: AppColors.infoBorder),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.info_outline, size: 18, color: AppColors.accent),
+              const Icon(Icons.info_outline, size: 18, color: AppColors.accent),
               const SizedBox(width: 8),
-              const Expanded(
-                child: Text(
-                    'The reset link will expire in 1 hour. Check your spam folder if you don\'t see the email.',
-                    style: TextStyle(fontSize: 12, color: Color(0xFF1D4ED8))),
+              Expanded(
+                child: Text(tr.resetLinkExpiry,
+                    style: TextStyle(fontSize: 12, color: AppColors.infoText2)),
               ),
             ],
           ),
         ),
         const SizedBox(height: 20),
         PrimaryButton(
-          label: 'Send Reset Link',
+          label: tr.sendResetLink,
           icon: Icons.send,
           loading: _sending,
           onPressed: _send,
@@ -124,7 +124,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         TextButton.icon(
           onPressed: () => Navigator.of(context).pop(),
           icon: const Icon(Icons.arrow_back, size: 16),
-          label: const Text('Back to Login'),
+          label: Text(tr.backToLogin),
         ),
       ],
     );
@@ -139,27 +139,27 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           width: 80,
           height: 80,
           decoration: BoxDecoration(
-            color: const Color(0xFFECFDF5),
+            color: AppColors.successBg,
             shape: BoxShape.circle,
-            border: Border.all(color: const Color(0xFFA7F3D0), width: 2),
+            border: Border.all(color: AppColors.successBorder, width: 2),
           ),
           child: const Icon(Icons.mark_email_read,
               size: 44, color: AppColors.success),
         ),
         const SizedBox(height: 16),
-        Text('CHECK YOUR EMAIL',
+        Text(tr.checkYourEmail.toUpperCase(),
             style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
                 color: AppColors.heading2)),
         const SizedBox(height: 8),
         Text(
-            'If that email is registered, you will receive a password reset link shortly. Please check your inbox (and spam folder).',
+            tr.checkYourEmailSub,
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 13, color: AppColors.slate500)),
         const SizedBox(height: 20),
         PrimaryButton(
-          label: 'Back to Login',
+          label: tr.backToLogin,
           icon: Icons.arrow_back,
           onPressed: () => Navigator.of(context).pop(),
         ),

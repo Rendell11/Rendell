@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_text.dart';
 import '../models/resident.dart';
 import '../theme/app_theme.dart';
 import 'complaint_api.dart';
@@ -54,8 +55,8 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFEEF2FB),
-      appBar: complaintAppBar(_c.complaintId, 'Complaint Details'),
+      backgroundColor: AppColors.scaffold,
+      appBar: complaintAppBar(_c.complaintId, tr.complaintDetails),
       body: RefreshIndicator(
         color: AppColors.primary,
         onRefresh: _refresh,
@@ -68,17 +69,17 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
               children: [
                 _header(),
                 const SizedBox(height: 16),
-                const ComplaintSectionLabel('Status'),
+                ComplaintSectionLabel(tr.status),
                 ComplaintCard(child: _tracker()),
                 const SizedBox(height: 16),
-                const ComplaintSectionLabel('Sagot ng Barangay'),
+                ComplaintSectionLabel(tr.barangayReply),
                 _replyCard(),
                 const SizedBox(height: 16),
-                const ComplaintSectionLabel('Detalye'),
+                ComplaintSectionLabel(tr.details),
                 ComplaintCard(child: _details()),
                 if (_c.hasAttachment) ...[
                   const SizedBox(height: 16),
-                  const ComplaintSectionLabel('Attachment'),
+                  ComplaintSectionLabel(tr.attachment),
                   ComplaintCard(child: _attachment()),
                 ],
               ],
@@ -102,7 +103,7 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-              color: AppColors.primary.withOpacity(.30),
+              color: AppColors.primary.withValues(alpha: .30),
               blurRadius: 24,
               offset: const Offset(0, 10)),
         ],
@@ -118,7 +119,7 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                         fontFamily: 'monospace',
-                        color: Colors.white.withOpacity(.75),
+                        color: Colors.white.withValues(alpha: .75),
                         fontSize: 12,
                         fontWeight: FontWeight.w800)),
               ),
@@ -134,7 +135,7 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
                   Icon(ComplaintStyle.statusIcon(_c.status),
                       size: 12, color: color),
                   const SizedBox(width: 4),
-                  Text(_c.status.toUpperCase(),
+                  Text(tr.complaintStatusLabel(_c.status).toUpperCase(),
                       style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w900,
@@ -151,9 +152,9 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
                   height: 1.2,
                   fontWeight: FontWeight.w900)),
           const SizedBox(height: 6),
-          Text('Isinumite ${ComplaintStyle.dateTime(_c.createdAt)}',
+          Text(tr.submittedOn(ComplaintStyle.dateTime(_c.createdAt)),
               style: TextStyle(
-                  color: Colors.white.withOpacity(.7),
+                  color: Colors.white.withValues(alpha: .7),
                   fontSize: 12,
                   fontWeight: FontWeight.w500)),
         ],
@@ -164,7 +165,7 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
   // Filed → Ongoing → Resolved
   Widget _tracker() {
     const steps = ['Pending', 'Ongoing', 'Resolved'];
-    const labels = ['Naisumite', 'Inaaksyunan', 'Naresolba'];
+    final labels = tr.complaintSteps;
     final current = steps.indexOf(_c.status).clamp(0, 2);
     return Row(
       children: [
@@ -230,9 +231,7 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
             Icon(Icons.schedule, color: AppColors.slate400),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(
-                  'Wala pang sagot ang barangay. Ia-update ito kapag nasuri na '
-                  'ang iyong reklamo.',
+              child: Text(tr.noReplyYet,
                   style: TextStyle(
                       fontSize: 12.5, height: 1.4, color: AppColors.slate500)),
             ),
@@ -243,7 +242,7 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFFEFF6FF),
+        color: AppColors.infoBg,
         borderRadius: BorderRadius.circular(20),
         border: Border(left: BorderSide(color: AppColors.primary, width: 4)),
       ),
@@ -253,7 +252,7 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
           Row(children: [
             Icon(Icons.support_agent, size: 18, color: AppColors.primary),
             const SizedBox(width: 8),
-            Text('Barangay Admin',
+            Text(tr.barangayAdmin,
                 style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w900,
@@ -272,14 +271,15 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _row(Icons.label_outline, 'Kategorya', _c.category),
-        _row(Icons.flag_outlined, 'Priority', _c.priority,
+        _row(Icons.label_outline, tr.category,
+            tr.complaintCategoryLabel(_c.category)),
+        _row(Icons.flag_outlined, tr.priority, tr.priorityLabel(_c.priority),
             color: ComplaintStyle.priority(_c.priority)),
-        _row(Icons.location_on_outlined, 'Lugar', _c.location),
-        _row(Icons.person_outline, 'Nagsumite',
-            _c.isAnonymous ? 'Anonymous' : widget.resident.fullName),
+        _row(Icons.location_on_outlined, tr.place, _c.location),
+        _row(Icons.person_outline, tr.submittedBy,
+            _c.isAnonymous ? tr.anonymous : widget.resident.fullName),
         const Divider(height: 24),
-        Text('PAGLALARAWAN',
+        Text(tr.descriptionLabel.toUpperCase(),
             style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w900,
@@ -324,10 +324,10 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
     final url = _api.attachmentUrl(_c.attachmentUrl!);
     if (_c.attachmentIsPdf) {
       return Row(children: [
-        Icon(Icons.picture_as_pdf, color: AppColors.danger),
+        const Icon(Icons.picture_as_pdf, color: AppColors.danger),
         const SizedBox(width: 10),
         Expanded(
-          child: Text('May PDF na naka-attach sa reklamong ito.',
+          child: Text(tr.pdfAttached,
               style: TextStyle(fontSize: 12.5, color: AppColors.slate500)),
         ),
       ]);
@@ -349,9 +349,9 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
           fit: BoxFit.cover,
           errorBuilder: (_, __, ___) => Container(
             height: 90,
-            color: AppColors.bgTop,
+            color: AppColors.surfaceAlt,
             alignment: Alignment.center,
-            child: Text('Hindi ma-load ang larawan.',
+            child: Text(tr.imageLoadFailed,
                 style: TextStyle(fontSize: 12, color: AppColors.slate400)),
           ),
         ),

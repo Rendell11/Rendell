@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_text.dart';
 import '../models/access_request.dart';
 import '../services/api_service.dart';
 import '../services/session_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/brand_header.dart';
+import '../widgets/language_toggle.dart';
 import '../widgets/wave_background.dart';
 import 'forgot_password_screen.dart';
 import '../dashboard/dashboard_screen.dart';
@@ -45,7 +47,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _login() async {
     if (_email.text.trim().isEmpty || _password.text.isEmpty) {
-      _snack('Ilagay ang email at password.');
+      _snack(tr.enterEmailAndPassword);
       return;
     }
     setState(() => _loading = true);
@@ -76,7 +78,8 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       } else {
         Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => DashboardScreen(resident: resident)),
+          MaterialPageRoute(
+              builder: (_) => DashboardScreen(resident: resident)),
         );
       }
     } else {
@@ -87,7 +90,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _track() async {
     final email = _trackEmail.text.trim();
     if (email.isEmpty) {
-      setState(() => _trackError = 'Ilagay ang email address.');
+      setState(() => _trackError = tr.enterEmailAddress);
       return;
     }
     setState(() {
@@ -126,30 +129,34 @@ class _LoginScreenState extends State<LoginScreen> {
                       padding: const EdgeInsets.all(28),
                       child: Column(
                         children: [
+                          const Align(
+                            alignment: Alignment.centerRight,
+                            child: LanguageToggle(),
+                          ),
                           const BrandHeader(),
                           const SizedBox(height: 14),
-                          Text('RESIDENT LOGIN',
+                          Text(tr.residentLogin.toUpperCase(),
                               style: TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.w700,
                                   color: AppColors.heading2)),
                           const SizedBox(height: 2),
-                          Text('Sign in to your resident account',
+                          Text(tr.signInSubtitle,
                               style: TextStyle(
                                   fontSize: 13, color: AppColors.slate400)),
                           const SizedBox(height: 22),
                           _field(
-                            label: 'Email Address',
+                            label: tr.emailAddress,
                             controller: _email,
-                            hint: 'Enter your email address',
+                            hint: tr.enterEmailHint,
                             icon: Icons.mail_outline,
                             keyboardType: TextInputType.emailAddress,
                           ),
                           const SizedBox(height: 16),
                           _field(
-                            label: 'Password',
+                            label: tr.password,
                             controller: _password,
-                            hint: 'Enter your password',
+                            hint: tr.enterPasswordHint,
                             icon: Icons.lock_outline,
                             obscure: _obscure,
                             suffix: IconButton(
@@ -163,31 +170,31 @@ class _LoginScreenState extends State<LoginScreen> {
                                   setState(() => _obscure = !_obscure),
                             ),
                           ),
-                          Row(
-                            mainAxisAlignment:
-                                MainAxisAlignment.spaceBetween,
+                          // Wraps to two lines when the labels are long
+                          // (e.g. Filipino on a small phone).
+                          Wrap(
+                            alignment: WrapAlignment.spaceBetween,
+                            crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
-                              Flexible(
-                                child: InkWell(
-                                  onTap: () => setState(
-                                      () => _remember = !_remember),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Checkbox(
-                                        value: _remember,
-                                        visualDensity: VisualDensity.compact,
-                                        onChanged: (v) => setState(
-                                            () => _remember = v ?? true),
-                                      ),
-                                      Flexible(
-                                        child: Text('Remember me for 7 days',
-                                            style: TextStyle(
-                                                fontSize: 12,
-                                                color: AppColors.slate500)),
-                                      ),
-                                    ],
-                                  ),
+                              InkWell(
+                                onTap: () =>
+                                    setState(() => _remember = !_remember),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Checkbox(
+                                      value: _remember,
+                                      visualDensity: VisualDensity.compact,
+                                      onChanged: (v) =>
+                                          setState(() => _remember = v ?? true),
+                                    ),
+                                    Flexible(
+                                      child: Text(tr.rememberMe7Days,
+                                          style: TextStyle(
+                                              fontSize: 12,
+                                              color: AppColors.slate500)),
+                                    ),
+                                  ],
                                 ),
                               ),
                               TextButton(
@@ -196,13 +203,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                       builder: (_) =>
                                           const ForgotPasswordScreen()),
                                 ),
-                                child: const Text('Forgot password?'),
+                                child: Text(tr.forgotPasswordQ),
                               ),
                             ],
                           ),
                           const SizedBox(height: 4),
                           PrimaryButton(
-                            label: 'Sign In',
+                            label: tr.signIn,
                             icon: Icons.login,
                             loading: _loading,
                             onPressed: _login,
@@ -216,11 +223,13 @@ class _LoginScreenState extends State<LoginScreen> {
                               Icon(Icons.shield_outlined,
                                   size: 20, color: AppColors.primary),
                               const SizedBox(width: 8),
-                              Text('Secure Resident Login System',
-                                  style: TextStyle(
-                                      fontSize: 13,
-                                      color: AppColors.slate400,
-                                      fontWeight: FontWeight.w500)),
+                              Flexible(
+                                child: Text(tr.secureLoginSystem,
+                                    style: TextStyle(
+                                        fontSize: 13,
+                                        color: AppColors.slate400,
+                                        fontWeight: FontWeight.w500)),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 10),
@@ -233,9 +242,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 16),
                     _trackCard(),
                     const SizedBox(height: 16),
-                    Text('© ${DateTime.now().year} Barangay Biñang 2nd · Bocaue, Bulacan',
-                        style: TextStyle(
-                            fontSize: 11, color: AppColors.slate400)),
+                    Text(
+                        '© ${DateTime.now().year} Barangay Biñang 2nd · Bocaue, Bulacan',
+                        style:
+                            TextStyle(fontSize: 11, color: AppColors.slate400)),
                   ],
                 ),
               ),
@@ -251,13 +261,13 @@ class _LoginScreenState extends State<LoginScreen> {
       alignment: WrapAlignment.center,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        Text("Don't have an account yet? ",
+        Text('${tr.noAccountYet} ',
             style: TextStyle(fontSize: 12, color: AppColors.slate400)),
         GestureDetector(
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const RequestAccessScreen()),
           ),
-          child: Text('Request Access',
+          child: Text(tr.requestAccess,
               style: TextStyle(
                   fontSize: 12,
                   color: AppColors.primary,
@@ -272,13 +282,13 @@ class _LoginScreenState extends State<LoginScreen> {
       alignment: WrapAlignment.center,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        Text('Approved and have an access token? ',
+        Text('${tr.haveAccessToken} ',
             style: TextStyle(fontSize: 12, color: AppColors.slate400)),
         GestureDetector(
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const SetPasswordScreen()),
           ),
-          child: Text('Set Password',
+          child: Text(tr.setPassword,
               style: TextStyle(
                   fontSize: 12,
                   color: AppColors.primary,
@@ -297,16 +307,18 @@ class _LoginScreenState extends State<LoginScreen> {
             children: [
               Icon(Icons.manage_search, size: 22, color: AppColors.primary),
               const SizedBox(width: 8),
-              Text('TRACK REQUEST STATUS',
-                  style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.heading2,
-                      letterSpacing: 1)),
+              Expanded(
+                child: Text(tr.trackRequestStatus.toUpperCase(),
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.heading2,
+                        letterSpacing: 1)),
+              ),
             ],
           ),
           const SizedBox(height: 4),
-          Text('Enter your email to check the status of your submitted request.',
+          Text(tr.trackRequestSub,
               style: TextStyle(fontSize: 12, color: AppColors.slate400)),
           const SizedBox(height: 14),
           Row(
@@ -315,7 +327,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: TextField(
                   controller: _trackEmail,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: AppTheme.field('Enter your email address',
+                  decoration: AppTheme.field(tr.enterEmailHint,
                       icon: Icons.mail_outline),
                   onSubmitted: (_) => _track(),
                 ),
@@ -335,16 +347,16 @@ class _LoginScreenState extends State<LoginScreen> {
                             width: 18,
                             child: CircularProgressIndicator(
                                 strokeWidth: 2, color: Colors.white))
-                        : const Row(
+                        : Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text('Check',
-                                  style: TextStyle(
+                              Text(tr.check,
+                                  style: const TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.w700,
                                       fontSize: 13)),
-                              SizedBox(width: 4),
-                              Icon(Icons.search,
+                              const SizedBox(width: 4),
+                              const Icon(Icons.search,
                                   color: Colors.white, size: 16),
                             ],
                           ),
@@ -371,8 +383,8 @@ class _LoginScreenState extends State<LoginScreen> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        color: AppColors.surfaceAlt,
+        border: Border.all(color: AppColors.border),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
@@ -383,7 +395,7 @@ class _LoginScreenState extends State<LoginScreen> {
             children: [
               Expanded(
                 child: Text(r.fullName,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontWeight: FontWeight.w600,
                         color: AppColors.slate800)),
               ),
@@ -391,10 +403,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.12),
+                  color: color.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(50),
                 ),
-                child: Text(r.status.db,
+                child: Text(tr.accessStatusLabel(r.status.db),
                     style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
@@ -407,7 +419,7 @@ class _LoginScreenState extends State<LoginScreen> {
               style: TextStyle(fontSize: 12, color: AppColors.slate500)),
           if ((r.adminReason ?? '').isNotEmpty) ...[
             const SizedBox(height: 4),
-            Text('Admin: ${r.adminReason}',
+            Text('${tr.adminLabel}: ${r.adminReason}',
                 style: TextStyle(
                     fontSize: 11,
                     fontStyle: FontStyle.italic,
@@ -423,9 +435,9 @@ class _LoginScreenState extends State<LoginScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isError ? const Color(0xFFFEF2F2) : const Color(0xFFF8FAFC),
+        color: isError ? AppColors.dangerBg : AppColors.surfaceAlt,
         border: Border.all(
-            color: isError ? const Color(0xFFFCA5A5) : const Color(0xFFE2E8F0)),
+            color: isError ? AppColors.dangerBorder : AppColors.border),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(msg,
@@ -433,7 +445,7 @@ class _LoginScreenState extends State<LoginScreen> {
           style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: isError ? const Color(0xFF991B1B) : AppColors.slate500)),
+              color: isError ? AppColors.dangerText : AppColors.slate500)),
     );
   }
 
@@ -445,10 +457,10 @@ class _LoginScreenState extends State<LoginScreen> {
       case AccessStatus.pending:
       case AccessStatus.forProfiling:
       case AccessStatus.forCorrection:
-        return const Color(0xFF854D0E);
+        return AppColors.warnText;
       case AccessStatus.disapproved:
       case AccessStatus.rejected:
-        return const Color(0xFF991B1B);
+        return AppColors.dangerText;
     }
   }
 

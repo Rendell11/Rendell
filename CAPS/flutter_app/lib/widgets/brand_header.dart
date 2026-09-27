@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_text.dart';
 import '../theme/app_theme.dart';
 
 /// Logo + "BARANGAY BIÑANG 2ND / Bocaue, Bulacan" + blue divider + the
@@ -8,13 +9,15 @@ class BrandHeader extends StatelessWidget {
   const BrandHeader({
     super.key,
     this.logoSize = 80,
-    this.badgeText = 'Resident Portal',
+    this.badgeText,
     this.badgeIcon = Icons.home_rounded,
     this.showBadge = true,
   });
 
   final double logoSize;
-  final String badgeText;
+
+  /// Defaults to the localized "Resident Portal".
+  final String? badgeText;
   final IconData badgeIcon;
   final bool showBadge;
 
@@ -63,10 +66,15 @@ class BrandHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFE8F0FD), Color(0xFFD4E4FB)],
+        gradient: LinearGradient(
+          colors: [
+            AppColors.primary.withValues(alpha: AppColors.isDark ? .20 : .09),
+            AppColors.primary.withValues(alpha: AppColors.isDark ? .28 : .16),
+          ],
         ),
-        border: Border.all(color: const Color(0xFFB8D0F7)),
+        border: Border.all(
+            color: AppColors.primary
+                .withValues(alpha: AppColors.isDark ? .45 : .30)),
         borderRadius: BorderRadius.circular(50),
       ),
       child: Row(
@@ -75,7 +83,7 @@ class BrandHeader extends StatelessWidget {
           Icon(badgeIcon, size: 14, color: AppColors.primary),
           const SizedBox(width: 6),
           Text(
-            badgeText.toUpperCase(),
+            (badgeText ?? tr.residentPortal).toUpperCase(),
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
@@ -101,12 +109,13 @@ class GlassCard extends StatelessWidget {
     return Container(
       padding: padding ?? const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.bgBottom),
+        border: Border.all(
+            color: AppColors.isDark ? AppColors.border : AppColors.bgBottom),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withOpacity(0.08),
+            color: AppColors.primary.withValues(alpha: 0.08),
             blurRadius: 24,
             offset: const Offset(0, 4),
           ),
@@ -135,7 +144,7 @@ class SectionBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withOpacity(0.25),
+            color: AppColors.primary.withValues(alpha: 0.25),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -146,13 +155,15 @@ class SectionBadge extends StatelessWidget {
         children: [
           Icon(icon, size: 14, color: Colors.white),
           const SizedBox(width: 6),
-          Text(
-            label.toUpperCase(),
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
-              letterSpacing: 1,
+          Flexible(
+            child: Text(
+              label.toUpperCase(),
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+                letterSpacing: 1,
+              ),
             ),
           ),
         ],
@@ -175,7 +186,7 @@ class FieldLabel extends StatelessWidget {
       child: RichText(
         text: TextSpan(
           text: text.toUpperCase(),
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 10,
             fontWeight: FontWeight.w800,
             color: AppColors.slate500,
@@ -226,23 +237,30 @@ class PrimaryButton extends StatelessWidget {
                   child: CircularProgressIndicator(
                       strokeWidth: 2.5, color: Colors.white),
                 )
-              : Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      label.toUpperCase(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13.5,
-                        letterSpacing: 1,
-                      ),
+              // Long labels (e.g. Filipino) shrink to fit instead of overflowing.
+              : Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          label.toUpperCase(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13.5,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                        if (icon != null) ...[
+                          const SizedBox(width: 8),
+                          Icon(icon, color: Colors.white, size: 18),
+                        ],
+                      ],
                     ),
-                    if (icon != null) ...[
-                      const SizedBox(width: 8),
-                      Icon(icon, color: Colors.white, size: 18),
-                    ],
-                  ],
+                  ),
                 ),
         ),
       ),

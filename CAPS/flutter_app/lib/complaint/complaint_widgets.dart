@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_text.dart';
 import '../theme/app_theme.dart';
 
 /// Small UI pieces shared by the complaint screens. Colours follow the admin
@@ -44,24 +45,9 @@ class ComplaintStyle {
     }
   }
 
-  static const _months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-
-  /// "Sep 27, 2026" (no intl dependency needed).
+  /// "Sep 27, 2026" in the app language (no intl dependency needed).
   static String date(DateTime? d) =>
-      d == null ? '—' : '${_months[d.month - 1]} ${d.day}, ${d.year}';
+      d == null ? '—' : '${tr.monthsShort[d.month - 1]} ${d.day}, ${d.year}';
 
   /// "Sep 27, 2026 · 2:05 PM"
   static String dateTime(DateTime? d) {
@@ -85,7 +71,7 @@ class ComplaintPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(.12),
+        color: color.withValues(alpha: .12),
         borderRadius: BorderRadius.circular(50),
       ),
       child: Row(
@@ -119,12 +105,13 @@ class ComplaintCard extends StatelessWidget {
     return Container(
       padding: padding ?? const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.bgBottom),
+        border: Border.all(
+            color: AppColors.isDark ? AppColors.border : AppColors.bgBottom),
         boxShadow: [
           BoxShadow(
-              color: AppColors.primary.withOpacity(.06),
+              color: AppColors.primary.withValues(alpha: .06),
               blurRadius: 18,
               offset: const Offset(0, 6)),
         ],
@@ -156,7 +143,7 @@ class ComplaintSectionLabel extends StatelessWidget {
 PreferredSizeWidget complaintAppBar(String title, String subtitle,
     {List<Widget>? actions}) {
   return AppBar(
-    backgroundColor: const Color(0xFF0F172A),
+    backgroundColor: AppColors.appBar,
     foregroundColor: Colors.white,
     elevation: 0,
     title: Row(

@@ -63,6 +63,12 @@ class SessionService {
     return true;
   }
 
+  /// When the saved "stay signed in" session runs out, or null if none.
+  Future<DateTime?> sessionExpiry() async {
+    final at = DateTime.tryParse(await _s.read(key: _kLoginAt) ?? '');
+    return at?.add(const Duration(days: sessionDays));
+  }
+
   /// Full sign-out — wipes the session and the PIN/biometric setup.
   Future<void> clear() async {
     await _s.delete(key: _kResident);

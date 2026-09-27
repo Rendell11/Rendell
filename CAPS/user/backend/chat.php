@@ -117,7 +117,7 @@ if ($action === 'hotlines') {
 }
 
 if ($rid <= 0) {
-    respond(false, 'Kailangan ang resident_id.', null, 400);
+    respond(false, L('Kailangan ang resident_id.', 'resident_id is required.'), null, 400);
 }
 
 // ── LIST messages ────────────────────────────────────────────────────────────
@@ -147,7 +147,7 @@ if ($action === 'list') {
         ]);
     } catch (Throwable $e) {
         error_log('[chat.php list] ' . $e->getMessage());
-        respond(false, 'Hindi ma-load ang mensahe.', null, 500);
+        respond(false, L('Hindi ma-load ang mensahe.', 'Could not load the messages.'), null, 500);
     }
 }
 
@@ -156,7 +156,7 @@ if ($action === 'send') {
     $message  = trim($_POST['message'] ?? '');
     $category = trim($_POST['category'] ?? 'General');
     if ($message === '') {
-        respond(false, 'Walang laman ang mensahe.', null, 400);
+        respond(false, L('Walang laman ang mensahe.', 'The message is empty.'), null, 400);
     }
     try {
         // If the last thread is Resolved/Closed (or none), this starts a fresh
@@ -168,10 +168,10 @@ if ($action === 'send') {
                        VALUES (?, 'Resident', ?, ?, ?, 1, NOW())")
             ->execute([$rid, $message, $category ?: 'General', $newStatus]);
 
-        respond(true, 'Naipadala ang mensahe.', ['chat_id' => (int) $pdo->lastInsertId()]);
+        respond(true, L('Naipadala ang mensahe.', 'Message sent.'), ['chat_id' => (int) $pdo->lastInsertId()]);
     } catch (Throwable $e) {
         error_log('[chat.php send] ' . $e->getMessage());
-        respond(false, 'Hindi naipadala ang mensahe.', null, 500);
+        respond(false, L('Hindi naipadala ang mensahe.', 'Message not sent.'), null, 500);
     }
 }
 
@@ -180,11 +180,11 @@ if ($action === 'end') {
     try {
         $pdo->prepare("UPDATE emergency_chats SET Status = 'Resolved' WHERE ResidentID = ?")
             ->execute([$rid]);
-        respond(true, 'Naisara ang usapan.');
+        respond(true, L('Naisara ang usapan.', 'Conversation closed.'));
     } catch (Throwable $e) {
         error_log('[chat.php end] ' . $e->getMessage());
-        respond(false, 'Hindi naisara ang usapan.', null, 500);
+        respond(false, L('Hindi naisara ang usapan.', 'Could not close the conversation.'), null, 500);
     }
 }
 
-respond(false, 'Hindi wastong action.', null, 400);
+respond(false, L('Hindi wastong action.', 'Invalid action.'), null, 400);

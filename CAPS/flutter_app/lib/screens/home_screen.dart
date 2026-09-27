@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_text.dart';
 import '../models/resident.dart';
 import '../services/session_service.dart';
 import '../theme/app_theme.dart';
@@ -40,25 +41,25 @@ class HomeScreen extends StatelessWidget {
                     children: [
                       const BrandHeader(),
                       const SizedBox(height: 16),
-                      Icon(Icons.verified_user,
+                      const Icon(Icons.verified_user,
                           size: 56, color: AppColors.success),
                       const SizedBox(height: 12),
-                      Text('Kumusta, ${resident.fullName}!',
+                      Text(tr.helloName(resident.fullName),
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                               fontSize: 18, fontWeight: FontWeight.w700)),
                       if (resident.residentCode != null)
-                        Text('Resident Code: ${resident.residentCode}',
+                        Text('${tr.residentCode}: ${resident.residentCode}',
                             style: TextStyle(color: AppColors.slate500)),
                       const SizedBox(height: 8),
-                      Text('Aktibo na ang iyong resident portal account.',
+                      Text(tr.accountActive,
                           textAlign: TextAlign.center,
                           style: TextStyle(color: AppColors.slate500)),
                       const SizedBox(height: 24),
                       OutlinedButton.icon(
                         onPressed: () => _logout(context),
                         icon: const Icon(Icons.logout, size: 18),
-                        label: const Text('Mag-logout'),
+                        label: Text(tr.logout),
                       ),
                     ],
                   ),

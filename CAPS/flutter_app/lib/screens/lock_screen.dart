@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../models/resident.dart';
 import '../services/biometric_service.dart';
 import '../services/session_service.dart';
+import '../l10n/app_text.dart';
+import '../settings/app_settings.dart';
 import '../theme/app_theme.dart';
 import '../widgets/brand_header.dart';
 import '../widgets/pin_pad.dart';
@@ -51,7 +53,7 @@ class _LockScreenState extends State<LockScreen> {
     } else {
       setState(() {
         _attempts++;
-        _error = 'Maling PIN. Subukan ulit.';
+        _error = tr.wrongPin;
       });
       _padKey.currentState?.reset();
     }
@@ -67,6 +69,7 @@ class _LockScreenState extends State<LockScreen> {
 
   Future<void> _logout() async {
     await _session.clear();
+    AppSettings.instance.unbindResident();
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -88,14 +91,14 @@ class _LockScreenState extends State<LockScreen> {
                   padding: const EdgeInsets.all(28),
                   child: Column(
                     children: [
-                      const BrandHeader(
-                          badgeText: 'Locked', badgeIcon: Icons.lock),
+                      BrandHeader(
+                          badgeText: tr.locked, badgeIcon: Icons.lock),
                       const SizedBox(height: 14),
-                      Text('Kumusta, ${widget.resident.firstName}!',
+                      Text(tr.helloName(widget.resident.firstName),
                           style: const TextStyle(
                               fontSize: 18, fontWeight: FontWeight.w700)),
                       const SizedBox(height: 2),
-                      Text('Ilagay ang PIN para magpatuloy',
+                      Text(tr.enterPinToContinue,
                           style: TextStyle(
                               fontSize: 13, color: AppColors.slate400)),
                       const SizedBox(height: 24),
@@ -109,7 +112,7 @@ class _LockScreenState extends State<LockScreen> {
                       const SizedBox(height: 16),
                       TextButton(
                         onPressed: _logout,
-                        child: const Text('Hindi ikaw? Mag-log in gamit ang password'),
+                        child: Text(tr.notYouLogin),
                       ),
                     ],
                   ),

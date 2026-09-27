@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_text.dart';
 import '../models/resident.dart';
 import '../theme/app_theme.dart';
 import 'complaint_api.dart';
@@ -105,13 +106,13 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFEEF2FB),
+      backgroundColor: AppColors.scaffold,
       appBar: complaintAppBar(
-        'Complaints',
-        'Magsumite at subaybayan ang iyong reklamo',
+        tr.moduleLabel('complaints'),
+        tr.complaintsSubtitle,
         actions: [
           IconButton(
-            tooltip: 'I-refresh',
+            tooltip: tr.refresh,
             onPressed: () {
               setState(() => _loading = true);
               _load();
@@ -125,8 +126,8 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
-        label: const Text('File a Complaint',
-            style: TextStyle(fontWeight: FontWeight.w800)),
+        label: Text(tr.fileComplaint,
+            style: const TextStyle(fontWeight: FontWeight.w800)),
       ),
       body: _loading
           ? Center(child: CircularProgressIndicator(color: AppColors.primary))
@@ -147,7 +148,7 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
                       const SizedBox(height: 10),
                       _filterChips(),
                       const SizedBox(height: 16),
-                      const ComplaintSectionLabel('My Complaints'),
+                      ComplaintSectionLabel(tr.myComplaints),
                       ..._listBody(),
                     ],
                   ),
@@ -161,16 +162,16 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
         margin: const EdgeInsets.only(bottom: 14),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppColors.danger.withOpacity(.08),
+          color: AppColors.danger.withValues(alpha: .08),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.danger.withOpacity(.25)),
+          border: Border.all(color: AppColors.danger.withValues(alpha: .25)),
         ),
         child: Row(children: [
-          Icon(Icons.error_outline, color: AppColors.danger, size: 20),
+          const Icon(Icons.error_outline, color: AppColors.danger, size: 20),
           const SizedBox(width: 10),
           Expanded(
             child: Text(_error!,
-                style: TextStyle(
+                style: const TextStyle(
                     color: AppColors.danger,
                     fontSize: 12,
                     fontWeight: FontWeight.w700)),
@@ -187,13 +188,16 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
       ('Ongoing', s.ongoing, Icons.autorenew, ComplaintStyle.ongoing),
       ('Resolved', s.resolved, Icons.check_circle, ComplaintStyle.resolved),
     ];
-    return GridView.count(
-      crossAxisCount: 2,
+    final scale = MediaQuery.textScalerOf(context).scale(1);
+    return GridView(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
-      childAspectRatio: 1.9,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        mainAxisExtent: 34 + 52 * scale,
+      ),
       children: [
         for (final c in cards)
           InkWell(
@@ -208,7 +212,7 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
                     width: 38,
                     height: 38,
                     decoration: BoxDecoration(
-                        color: c.$4.withOpacity(.12),
+                        color: c.$4.withValues(alpha: .12),
                         borderRadius: BorderRadius.circular(12)),
                     child: Icon(c.$3, size: 20, color: c.$4),
                   ),
@@ -223,7 +227,11 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
                                 fontSize: 22,
                                 fontWeight: FontWeight.w900,
                                 color: c.$4)),
-                        Text(c.$1.toUpperCase(),
+                        Text(
+                            (c.$1 == 'Total'
+                                    ? tr.total
+                                    : tr.complaintStatusLabel(c.$1))
+                                .toUpperCase(),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
@@ -247,7 +255,7 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
         controller: _search,
         onChanged: (_) => setState(() {}),
         decoration: AppTheme.field(
-          'Hanapin (ID, pamagat, kategorya)…',
+          tr.searchComplaints,
           icon: Icons.search,
           suffix: _search.text.isEmpty
               ? null
@@ -268,12 +276,12 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
             Padding(
               padding: const EdgeInsets.only(right: 8),
               child: ChoiceChip(
-                label: Text(o),
+                label: Text(o == 'All' ? tr.all : tr.complaintStatusLabel(o)),
                 selected: _filter == o,
                 onSelected: (_) => setState(() => _filter = o),
                 selectedColor:
                     (o == 'All' ? AppColors.primary : ComplaintStyle.status(o))
-                        .withOpacity(.15),
+                        .withValues(alpha: .15),
                 labelStyle: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w800,
@@ -283,8 +291,8 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
                           : ComplaintStyle.status(o))
                       : AppColors.slate500,
                 ),
-                side: BorderSide(color: AppColors.bgBottom),
-                backgroundColor: Colors.white,
+                side: BorderSide(color: AppColors.border),
+                backgroundColor: AppColors.surface,
                 showCheckmark: false,
               ),
             ),
@@ -297,15 +305,14 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
   List<Widget> _listBody() {
     if (_data.complaints.isEmpty) {
       return [
-        _emptyState(Icons.inbox_outlined, 'Wala ka pang reklamo',
-            'Pindutin ang "File a Complaint" para magsumite ng reklamo sa barangay.'),
+        _emptyState(
+            Icons.inbox_outlined, tr.noComplaintsYet, tr.noComplaintsYetBody),
       ];
     }
     final items = _visible;
     if (items.isEmpty) {
       return [
-        _emptyState(Icons.search_off, 'Walang tugma',
-            'Walang reklamong tugma sa iyong hinahanap o filter.'),
+        _emptyState(Icons.search_off, tr.noMatches, tr.noMatchesBody),
       ];
     }
     return [
@@ -340,13 +347,22 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
                           color: AppColors.primary)),
                 ),
                 const SizedBox(width: 6),
-                if (c.isUnread) ...[
-                  const ComplaintPill('New reply', Color(0xFFDB2777),
-                      icon: Icons.mark_chat_unread_outlined),
-                  const SizedBox(width: 6),
-                ],
-                ComplaintPill(c.status, color,
-                    icon: ComplaintStyle.statusIcon(c.status)),
+                // Pills wrap under each other on narrow screens.
+                Flexible(
+                  flex: 2,
+                  child: Wrap(
+                    alignment: WrapAlignment.end,
+                    spacing: 6,
+                    runSpacing: 4,
+                    children: [
+                      if (c.isUnread)
+                        ComplaintPill(tr.newReply, const Color(0xFFDB2777),
+                            icon: Icons.mark_chat_unread_outlined),
+                      ComplaintPill(tr.complaintStatusLabel(c.status), color,
+                          icon: ComplaintStyle.statusIcon(c.status)),
+                    ],
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 10),
@@ -368,14 +384,15 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
               spacing: 12,
               runSpacing: 6,
               children: [
-                _meta(Icons.label_outline, c.category),
+                _meta(
+                    Icons.label_outline, tr.complaintCategoryLabel(c.category)),
                 _meta(Icons.calendar_today_outlined,
                     ComplaintStyle.date(c.createdAt)),
-                _meta(Icons.flag_outlined, c.priority,
+                _meta(Icons.flag_outlined, tr.priorityLabel(c.priority),
                     color: ComplaintStyle.priority(c.priority)),
                 if (c.isAnonymous)
-                  _meta(Icons.person_off_outlined, 'Anonymous'),
-                if (c.hasAttachment) _meta(Icons.attach_file, 'May attachment'),
+                  _meta(Icons.person_off_outlined, tr.anonymous),
+                if (c.hasAttachment) _meta(Icons.attach_file, tr.hasAttachment),
               ],
             ),
           ],

@@ -1,3 +1,5 @@
+import '../l10n/app_text.dart';
+
 /// Mirrors a row of the `access_requests` table (Barangay DB rebuild script).
 ///
 /// The resident self-service portal creates one of these when a resident asks
@@ -126,17 +128,17 @@ extension AccessStatusX on AccessStatus {
   String get description {
     switch (this) {
       case AccessStatus.pending:
-        return 'Nasa admin pa ang request mo. Maghintay ng abiso.';
+        return tr.statusPendingDesc;
       case AccessStatus.approved:
       case AccessStatus.matched:
-        return 'Aprubado! Maaari mo nang i-set ang password mo.';
+        return tr.statusApprovedDesc;
       case AccessStatus.forProfiling:
-        return 'Kailangan mo munang kumpletuhin ang profile mo.';
+        return tr.statusProfilingDesc;
       case AccessStatus.forCorrection:
-        return 'May kailangang itama sa request mo. Tingnan ang paalala ng admin.';
+        return tr.statusCorrectionDesc;
       case AccessStatus.disapproved:
       case AccessStatus.rejected:
-        return 'Hindi naaprubahan ang request. Tingnan ang dahilan ng admin.';
+        return tr.statusRejectedDesc;
     }
   }
 

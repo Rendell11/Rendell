@@ -96,7 +96,7 @@ class PinPadState extends State<PinPad> {
                 : const SizedBox(width: 74),
             _digit('0'),
             _key(
-                child: const Icon(Icons.backspace_outlined,
+                child: Icon(Icons.backspace_outlined,
                     color: AppColors.slate500),
                 onTap: _backspace),
           ],
@@ -107,7 +107,7 @@ class PinPadState extends State<PinPad> {
 
   Widget _digit(String d) => _key(
         child: Text(d,
-            style: const TextStyle(
+            style: TextStyle(
                 fontSize: 26,
                 fontWeight: FontWeight.w600,
                 color: AppColors.slate800)),
@@ -118,7 +118,7 @@ class PinPadState extends State<PinPad> {
     return Padding(
       padding: const EdgeInsets.all(8),
       child: Material(
-        color: Colors.white,
+        color: AppColors.surface,
         shape: const CircleBorder(),
         elevation: 1,
         child: InkWell(

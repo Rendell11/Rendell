@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/resident.dart';
 import '../services/biometric_service.dart';
 import '../services/session_service.dart';
+import '../l10n/app_text.dart';
 import '../theme/app_theme.dart';
 import '../widgets/brand_header.dart';
 import '../widgets/pin_pad.dart';
@@ -50,7 +51,7 @@ class _SetupPinScreenState extends State<SetupPinScreen> {
     }
     if (pin != _firstPin) {
       setState(() {
-        _error = 'Hindi magkatugma ang PIN. Subukan ulit.';
+        _error = tr.pinMismatch;
         _firstPin = null;
       });
       _padKey.currentState?.reset();
@@ -81,23 +82,20 @@ class _SetupPinScreenState extends State<SetupPinScreen> {
                   padding: const EdgeInsets.all(28),
                   child: Column(
                     children: [
-                      const BrandHeader(
-                          badgeText: 'Secure Access',
+                      BrandHeader(
+                          badgeText: tr.secureAccess,
                           badgeIcon: Icons.lock),
                       const SizedBox(height: 16),
                       Text(
-                          confirming
-                              ? 'KUMPIRMAHIN ANG PIN'
-                              : 'GUMAWA NG PIN',
+                          (confirming ? tr.confirmPin : tr.createPin)
+                              .toUpperCase(),
                           style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w700,
                               color: AppColors.heading2)),
                       const SizedBox(height: 4),
                       Text(
-                          confirming
-                              ? 'Ilagay muli ang 6-digit PIN mo.'
-                              : 'Pumili ng 6-digit PIN para sa mabilis na pag-login.',
+                          confirming ? tr.confirmPinSub : tr.createPinSub,
                           textAlign: TextAlign.center,
                           style: TextStyle(
                               fontSize: 13, color: AppColors.slate400)),
@@ -114,11 +112,11 @@ class _SetupPinScreenState extends State<SetupPinScreen> {
                           value: _enableBiometric,
                           onChanged: (v) =>
                               setState(() => _enableBiometric = v),
-                          title: const Text('I-enable ang biometrics',
-                              style: TextStyle(
+                          title: Text(tr.enableBiometrics,
+                              style: const TextStyle(
                                   fontSize: 14, fontWeight: FontWeight.w600)),
                           subtitle: Text(
-                              'Buksan gamit ang fingerprint o face',
+                              tr.enableBiometricsSub,
                               style: TextStyle(
                                   fontSize: 12, color: AppColors.slate400)),
                           secondary: Icon(Icons.fingerprint,

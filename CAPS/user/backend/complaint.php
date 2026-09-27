@@ -82,7 +82,7 @@ if ($action === 'categories') {
 }
 
 if ($rid <= 0) {
-    respond(false, 'Kailangan ang resident_id.', null, 400);
+    respond(false, L('Kailangan ang resident_id.', 'resident_id is required.'), null, 400);
 }
 
 /** The resident row (must be an Active portal account). */
@@ -150,10 +150,10 @@ function complaint_save_attachment(): array
     }
     $f = $_FILES['attachment'];
     if ($f['error'] !== UPLOAD_ERR_OK) {
-        return [null, 'Hindi na-upload ang file. Subukan muli.'];
+        return [null, L('Hindi na-upload ang file. Subukan muli.', 'The file was not uploaded. Please try again.')];
     }
     if ($f['size'] > COMPLAINT_MAX_BYTES) {
-        return [null, 'Masyadong malaki ang file. Hanggang 5 MB lang.'];
+        return [null, L('Masyadong malaki ang file. Hanggang 5 MB lang.', 'The file is too large. 5 MB max.')];
     }
     $mime = (new finfo(FILEINFO_MIME_TYPE))->file($f['tmp_name']);
     $ext  = [
@@ -167,7 +167,7 @@ function complaint_save_attachment(): array
         'application/pdf' => 'pdf',
     ][$mime] ?? null;
     if ($ext === null) {
-        return [null, 'Larawan (JPG/PNG/WEBP) o PDF lang ang puwedeng i-attach.'];
+        return [null, L('Larawan (JPG/PNG/WEBP) o PDF lang ang puwedeng i-attach.', 'Only images (JPG/PNG/WEBP) or a PDF can be attached.')];
     }
     $dir = UPLOAD_DIR . '/' . COMPLAINT_UPLOAD_SUB;
     if (!is_dir($dir)) {
@@ -175,7 +175,7 @@ function complaint_save_attachment(): array
     }
     $name = 'cmp_' . bin2hex(random_bytes(8)) . '.' . $ext;
     if (!move_uploaded_file($f['tmp_name'], $dir . '/' . $name)) {
-        return [null, 'Hindi na-save ang file. Subukan muli.'];
+        return [null, L('Hindi na-save ang file. Subukan muli.', 'The file was not saved. Please try again.')];
     }
     return [UPLOAD_URL . '/' . COMPLAINT_UPLOAD_SUB . '/' . $name, null];
 }
@@ -196,7 +196,7 @@ function complaint_new_code(PDO $pdo): string
 
 $resident = complaint_resident($pdo, $rid);
 if ($resident === null) {
-    respond(false, 'Hindi aktibo o hindi nahanap ang resident account.', null, 403);
+    respond(false, L('Hindi aktibo o hindi nahanap ang resident account.', 'The resident account is not active or was not found.'), null, 403);
 }
 
 // ── LIST ─────────────────────────────────────────────────────────────────────
@@ -232,7 +232,7 @@ if ($action === 'list') {
         ]);
     } catch (Throwable $e) {
         error_log('[complaint.php list] ' . $e->getMessage());
-        respond(false, 'Hindi ma-load ang mga reklamo.', null, 500);
+        respond(false, L('Hindi ma-load ang mga reklamo.', 'Could not load your complaints.'), null, 500);
     }
 }
 
@@ -249,7 +249,7 @@ if ($action === 'detail') {
         $stmt->execute([$id, $rid]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$row) {
-            respond(false, 'Hindi nahanap ang reklamo.', null, 404);
+            respond(false, L('Hindi nahanap ang reklamo.', 'Complaint not found.'), null, 404);
         }
         if ((int) ($row['notif_read'] ?? 1) === 0) {
             $pdo->prepare('UPDATE complaints SET notif_read = 1 WHERE id = ? AND resident_id = ?')
@@ -259,14 +259,14 @@ if ($action === 'detail') {
         respond(true, '', complaint_row($row));
     } catch (Throwable $e) {
         error_log('[complaint.php detail] ' . $e->getMessage());
-        respond(false, 'Hindi ma-load ang reklamo.', null, 500);
+        respond(false, L('Hindi ma-load ang reklamo.', 'Could not load the complaint.'), null, 500);
     }
 }
 
 // ── SUBMIT ───────────────────────────────────────────────────────────────────
 if ($action === 'submit') {
     if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
-        respond(false, 'POST lang ang tinatanggap.', null, 405);
+        respond(false, L('POST lang ang tinatanggap.', 'Only POST is accepted.'), null, 405);
     }
 
     $category    = post('category', '');
@@ -278,14 +278,14 @@ if ($action === 'submit') {
     $anonymous   = post('is_anonymous', '0') === '1' ? 1 : 0;
 
     $errors = [];
-    if (!in_array($category, COMPLAINT_CATEGORIES, true)) $errors[] = 'Pumili ng kategorya.';
-    if ($category === 'Other' && $other === '')          $errors[] = 'Ilagay kung anong uri ng reklamo.';
-    if ($title === '')                                    $errors[] = 'Ilagay ang pamagat.';
-    if ($description === '')                              $errors[] = 'Ilarawan ang reklamo.';
-    if ($location === '')                                 $errors[] = 'Ilagay ang lugar ng insidente.';
-    if (!in_array($priority, COMPLAINT_PRIORITIES, true)) $errors[] = 'Pumili ng priority.';
-    if (mb_strlen($title) > 255 || mb_strlen($other) > 255) $errors[] = 'Masyadong mahaba ang pamagat.';
-    if (mb_strlen($description) > 2000)                   $errors[] = 'Hanggang 2000 karakter lang ang paglalarawan.';
+    if (!in_array($category, COMPLAINT_CATEGORIES, true)) $errors[] = L('Pumili ng kategorya.', 'Choose a category.');
+    if ($category === 'Other' && $other === '')          $errors[] = L('Ilagay kung anong uri ng reklamo.', 'Enter what kind of complaint it is.');
+    if ($title === '')                                    $errors[] = L('Ilagay ang pamagat.', 'Enter a title.');
+    if ($description === '')                              $errors[] = L('Ilarawan ang reklamo.', 'Describe the complaint.');
+    if ($location === '')                                 $errors[] = L('Ilagay ang lugar ng insidente.', 'Enter where it happened.');
+    if (!in_array($priority, COMPLAINT_PRIORITIES, true)) $errors[] = L('Pumili ng priority.', 'Choose a priority.');
+    if (mb_strlen($title) > 255 || mb_strlen($other) > 255) $errors[] = L('Masyadong mahaba ang pamagat.', 'The title is too long.');
+    if (mb_strlen($description) > 2000)                   $errors[] = L('Hanggang 2000 karakter lang ang paglalarawan.', 'The description can be up to 2000 characters.');
     if ($errors) {
         respond(false, implode(' ', $errors), null, 422);
     }
@@ -341,14 +341,14 @@ if ($action === 'submit') {
             ]);
         } catch (Throwable $e) { /* activity_logs schema differs — ignore */ }
 
-        respond(true, 'Naisumite ang reklamo. Susuriin ito ng barangay.', [
+        respond(true, L('Naisumite ang reklamo. Susuriin ito ng barangay.', 'Complaint submitted. The barangay will review it.'), [
             'id'           => $id,
             'complaint_id' => $code,
         ]);
     } catch (Throwable $e) {
         error_log('[complaint.php submit] ' . $e->getMessage());
-        respond(false, 'Hindi naisumite ang reklamo.', null, 500);
+        respond(false, L('Hindi naisumite ang reklamo.', 'The complaint was not submitted.'), null, 500);
     }
 }
 
-respond(false, 'Hindi wastong action.', null, 400);
+respond(false, L('Hindi wastong action.', 'Invalid action.'), null, 400);

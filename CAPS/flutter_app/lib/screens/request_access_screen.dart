@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../l10n/app_text.dart';
 import '../models/access_request.dart';
 import '../models/barangay_profile.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/brand_header.dart';
+import '../widgets/language_toggle.dart';
 import '../widgets/wave_background.dart';
 
 /// Resident portal access request — faithful rebuild of SOE
@@ -54,7 +56,6 @@ class _RequestAccessScreenState extends State<RequestAccessScreen> {
   String? _validIdError;
   String? _selfieError;
 
-  bool _fil = false; // language toggle
   bool _submitting = false;
   bool _submitted = false;
 
@@ -85,14 +86,21 @@ class _RequestAccessScreenState extends State<RequestAccessScreen> {
 
   @override
   void dispose() {
-    for (final c in [_first, _middle, _last, _email, _contact, _house, _building, _birthCtrl]) {
+    for (final c in [
+      _first,
+      _middle,
+      _last,
+      _email,
+      _contact,
+      _house,
+      _building,
+      _birthCtrl
+    ]) {
       c.dispose();
     }
     _api.dispose();
     super.dispose();
   }
-
-  String t(String en, String fil) => _fil ? fil : en;
 
   Future<void> _pick(bool selfie) async {
     final x = await _picker.pickImage(
@@ -150,28 +158,21 @@ class _RequestAccessScreenState extends State<RequestAccessScreen> {
 
   Future<void> _submit() async {
     setState(() {
-      _validIdError = _validId == null ? t('Please upload a valid ID.',
-          'Mag-upload ng valid ID.') : null;
-      _selfieError = _selfie == null
-          ? t('Please upload a selfie holding your ID.',
-              'Mag-upload ng selfie hawak ang ID.')
-          : null;
+      _validIdError = _validId == null ? tr.raPleaseUploadAValid : null;
+      _selfieError = _selfie == null ? tr.raPleaseUploadASelfie : null;
     });
     final formOk = _formKey.currentState!.validate();
     _birthdate = _parseMMDDYYYY(_birthCtrl.text);
     if (_birthdate == null) {
-      _snack(t('Enter a valid date of birth (mm/dd/yyyy).',
-          'Maglagay ng wastong kapanganakan (mm/dd/yyyy).'));
+      _snack(tr.raEnterAValidDate);
       return;
     }
     if (_profile == null) {
-      _snack(t('Barangay address is not configured yet. Contact the barangay.',
-          'Hindi pa naka-set ang barangay address. Makipag-ugnayan sa barangay.'));
+      _snack(tr.raBarangayAddressIsNot);
       return;
     }
     if (_street == null || _area == null) {
-      _snack(t('Please select your street and purok/area.',
-          'Pumili ng kalye at purok/area.'));
+      _snack(tr.raPleaseSelectYourStreet);
       return;
     }
     if (!formOk || _validId == null || _selfie == null) return;
@@ -248,7 +249,7 @@ class _RequestAccessScreenState extends State<RequestAccessScreen> {
           _verificationSection(),
           const SizedBox(height: 16),
           PrimaryButton(
-            label: t('Submit Registration', 'Isumite ang Rehistrasyon'),
+            label: tr.raSubmitRegistration,
             icon: Icons.send,
             loading: _submitting,
             onPressed: _submit,
@@ -257,7 +258,7 @@ class _RequestAccessScreenState extends State<RequestAccessScreen> {
           TextButton.icon(
             onPressed: () => Navigator.of(context).pop(),
             icon: const Icon(Icons.arrow_back, size: 16),
-            label: Text(t('Back to Login', 'Bumalik sa Login')),
+            label: Text(tr.backToLogin),
           ),
         ],
       ),
@@ -269,9 +270,9 @@ class _RequestAccessScreenState extends State<RequestAccessScreen> {
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          Align(
+          const Align(
             alignment: Alignment.centerRight,
-            child: _langToggle(),
+            child: LanguageToggle(),
           ),
           const BrandHeader(showBadge: false),
           const SizedBox(height: 8),
@@ -287,50 +288,18 @@ class _RequestAccessScreenState extends State<RequestAccessScreen> {
               children: [
                 const Icon(Icons.how_to_reg, size: 16, color: Colors.white),
                 const SizedBox(width: 6),
-                Text(t('Request Portal Access', 'Humiling ng Access'),
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.5)),
+                Flexible(
+                  child: Text(tr.raRequestPortalAccess,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.5)),
+                ),
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _langToggle() {
-    Widget seg(String label, bool active, VoidCallback onTap) => GestureDetector(
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            decoration: BoxDecoration(
-              gradient: active
-                  ? LinearGradient(
-                      colors: [AppColors.primary, AppColors.primaryDark])
-                  : null,
-            ),
-            child: Text(label,
-                style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: active ? Colors.white : AppColors.slate500)),
-          ),
-        );
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
-        border: Border.all(color: AppColors.slate200),
-        borderRadius: BorderRadius.circular(50),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          seg('EN', !_fil, () => setState(() => _fil = false)),
-          seg('FIL', _fil, () => setState(() => _fil = true)),
         ],
       ),
     );
@@ -340,32 +309,27 @@ class _RequestAccessScreenState extends State<RequestAccessScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFEFF6FF),
-        border: Border.all(color: const Color(0xFFBFDBFE)),
+        color: AppColors.infoBg,
+        border: Border.all(color: AppColors.infoBorder),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.info_outline, color: AppColors.accent, size: 20),
+          const Icon(Icons.info_outline, color: AppColors.accent, size: 20),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                    t('Fill out the form to request access to the Resident Portal.',
-                        'Punan ang form upang humiling ng access sa Resident Portal.'),
-                    style: const TextStyle(
+                Text(tr.raFillOutTheForm,
+                    style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF1E40AF))),
+                        color: AppColors.infoText)),
                 const SizedBox(height: 2),
-                Text(
-                    t('Upload a valid ID to verify that you are a resident of Barangay Biñang 2nd. You will receive an email notification after the review.',
-                        'Mag-upload ng valid ID para patunayan na residente ka ng Barangay Biñang 2nd. May email ka na matatanggap pagkatapos ng review.'),
-                    style: const TextStyle(
-                        fontSize: 12, color: Color(0xFF2563EB))),
+                Text(tr.raUploadAValidId,
+                    style: TextStyle(fontSize: 12, color: AppColors.infoText2)),
               ],
             ),
           ),
@@ -379,24 +343,24 @@ class _RequestAccessScreenState extends State<RequestAccessScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionHead(Icons.person, t('Personal Information', 'Personal na Impormasyon'), '1'),
+          _sectionHead(Icons.person, tr.raPersonalInformation, '1'),
           const SizedBox(height: 16),
           Row(
             children: [
               Expanded(
-                  child: _input(t('First Name', 'Pangalan'), _first,
+                  child: _input(tr.raFirstName, _first,
                       hint: 'Juan',
                       required: true,
                       inputFormatters: [_TitleCaseFormatter()])),
               const SizedBox(width: 12),
               Expanded(
-                  child: _input(t('Middle Name', 'Gitnang Pangalan'), _middle,
+                  child: _input(tr.raMiddleName, _middle,
                       hint: 'Santos',
                       inputFormatters: [_TitleCaseFormatter()])),
             ],
           ),
           const SizedBox(height: 12),
-          _input(t('Last Name', 'Apelyido'), _last,
+          _input(tr.raLastName, _last,
               hint: 'dela Cruz',
               required: true,
               inputFormatters: [_TitleCaseFormatter()]),
@@ -404,23 +368,24 @@ class _RequestAccessScreenState extends State<RequestAccessScreen> {
           Row(
             children: [
               Expanded(
-                child: _input(t('Email Address', 'Email'), _email,
+                child: _input(tr.raEmailAddress, _email,
                     hint: 'juan@email.com',
                     icon: Icons.mail_outline,
                     required: true,
                     keyboardType: TextInputType.emailAddress, validator: (v) {
                   if (v == null || v.trim().isEmpty) {
-                    return t('Required.', 'Kailangan.');
+                    return tr.required;
                   }
-                  if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(v.trim())) {
-                    return t('Invalid email.', 'Maling email.');
+                  if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
+                      .hasMatch(v.trim())) {
+                    return tr.raInvalidEmail;
                   }
                   return null;
                 }),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _input(t('Contact Number', 'Contact Number'), _contact,
+                child: _input(tr.raContactNumber, _contact,
                     hint: '09XXXXXXXXX',
                     icon: Icons.call,
                     required: true,
@@ -430,10 +395,10 @@ class _RequestAccessScreenState extends State<RequestAccessScreen> {
                       LengthLimitingTextInputFormatter(11),
                     ], validator: (v) {
                   if (v == null || v.trim().isEmpty) {
-                    return t('Required.', 'Kailangan.');
+                    return tr.required;
                   }
                   if (!RegExp(r'^09\d{9}$').hasMatch(v.trim())) {
-                    return t('Format: 09XXXXXXXXX', 'Format: 09XXXXXXXXX');
+                    return tr.raFormat09xxxxxxxxx;
                   }
                   return null;
                 }),
@@ -441,7 +406,7 @@ class _RequestAccessScreenState extends State<RequestAccessScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          FieldLabel(t('Date of Birth', 'Kapanganakan'), required: true),
+          FieldLabel(tr.raDateOfBirth, required: true),
           TextFormField(
             controller: _birthCtrl,
             keyboardType: TextInputType.datetime,
@@ -450,15 +415,14 @@ class _RequestAccessScreenState extends State<RequestAccessScreen> {
               'mm/dd/yyyy',
               icon: Icons.cake_outlined,
               suffix: IconButton(
-                icon: const Icon(Icons.calendar_today,
+                icon: Icon(Icons.calendar_today,
                     size: 20, color: AppColors.slate400),
-                tooltip: t('Pick a date', 'Pumili ng petsa'),
+                tooltip: tr.raPickADate,
                 onPressed: _pickBirthdate,
               ),
             ),
-            validator: (v) => _parseMMDDYYYY(v ?? '') == null
-                ? t('Use mm/dd/yyyy', 'Gamitin ang mm/dd/yyyy')
-                : null,
+            validator: (v) =>
+                _parseMMDDYYYY(v ?? '') == null ? tr.raUseMmDdYyyy : null,
           ),
         ],
       ),
@@ -486,7 +450,7 @@ class _RequestAccessScreenState extends State<RequestAccessScreen> {
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.primary.withOpacity(0.25),
+                      color: AppColors.primary.withValues(alpha: 0.25),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -496,14 +460,16 @@ class _RequestAccessScreenState extends State<RequestAccessScreen> {
                     size: 20, color: Colors.white),
               ),
               const SizedBox(width: 12),
-              Text(t('ADDRESS INFORMATION', 'IMPORMASYON NG ADDRESS'),
-                  style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.slate800,
-                      letterSpacing: 0.5)),
-              const Spacer(),
-              Text(t('Step 2 of 3', 'Hakbang 2 ng 3'),
+              Expanded(
+                child: Text(tr.raAddressInformation,
+                    style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.slate800,
+                        letterSpacing: 0.5)),
+              ),
+              const SizedBox(width: 8),
+              Text(tr.stepOf(2, 3),
                   style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
@@ -525,19 +491,18 @@ class _RequestAccessScreenState extends State<RequestAccessScreen> {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                color: AppColors.surfaceAlt,
+                border: Border.all(color: AppColors.border),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Column(
                 children: [
                   Row(
                     children: [
-                      Expanded(child: _addrReadonly('Region', p.regionName)),
+                      Expanded(child: _addrReadonly(tr.region, p.regionName)),
                       const SizedBox(width: 12),
                       Expanded(
-                          child: _addrReadonly(
-                              t('Province', 'Probinsya'), p.provinceName)),
+                          child: _addrReadonly(tr.raProvince, p.provinceName)),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -545,8 +510,7 @@ class _RequestAccessScreenState extends State<RequestAccessScreen> {
                     children: [
                       Expanded(
                           child: _addrReadonly(
-                              t('City/Municipality', 'Lungsod/Munisipyo'),
-                              p.municipalityName)),
+                              tr.raCityMunicipality, p.municipalityName)),
                       const SizedBox(width: 12),
                       Expanded(
                           child: _addrReadonly('Barangay', p.barangayName)),
@@ -562,17 +526,14 @@ class _RequestAccessScreenState extends State<RequestAccessScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                  child: _input(
-                      t('House / Lot / Unit Number', 'House / Lot / Unit'),
-                      _house,
-                      hint: 'e.g. 123, Block 5 Lot 2, Unit 4A',
+                  child: _input(tr.raHouseLotUnitNumber, _house,
+                      hint: tr.raHouseHint,
                       required: true,
                       inputFormatters: [_TitleCaseFormatter()])),
               const SizedBox(width: 12),
               Expanded(
-                  child: _input(t('Building Name', 'Pangalan ng Building'),
-                      _building,
-                      hint: t('Optional', 'Opsyonal'),
+                  child: _input(tr.raBuildingName, _building,
+                      hint: tr.optional,
                       inputFormatters: [_TitleCaseFormatter()])),
             ],
           ),
@@ -582,12 +543,12 @@ class _RequestAccessScreenState extends State<RequestAccessScreen> {
             children: [
               Expanded(
                 child: _dropdownField<String>(
-                  label: t('Street', 'Kalye'),
+                  label: tr.raStreet,
                   required: true,
                   value: _street,
                   hint: _streets.isEmpty
-                      ? t('No streets configured', 'Walang kalye')
-                      : t('Select street', 'Pumili ng kalye'),
+                      ? tr.raNoStreetsConfigured
+                      : tr.raSelectStreet,
                   items: _streets
                       .map((s) => DropdownMenuItem(value: s, child: Text(s)))
                       .toList(),
@@ -599,20 +560,17 @@ class _RequestAccessScreenState extends State<RequestAccessScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: _dropdownField<AreaOption>(
-                  label: t('Subdivision / Village / Sitio / Purok',
-                      'Subdivision / Village / Sitio / Purok'),
+                  label: tr.raSubdivisionVillageSitioPurok,
                   required: true,
                   value: _area,
-                  hint: _areas.isEmpty
-                      ? t('No areas configured', 'Walang area')
-                      : t('Select area', 'Pumili ng area'),
+                  hint:
+                      _areas.isEmpty ? tr.raNoAreasConfigured : tr.raSelectArea,
                   items: _areas
                       .map((a) =>
                           DropdownMenuItem(value: a, child: Text(a.label)))
                       .toList(),
-                  onChanged: _areas.isEmpty
-                      ? null
-                      : (v) => setState(() => _area = v),
+                  onChanged:
+                      _areas.isEmpty ? null : (v) => setState(() => _area = v),
                 ),
               ),
             ],
@@ -620,7 +578,7 @@ class _RequestAccessScreenState extends State<RequestAccessScreen> {
           const SizedBox(height: 12),
           SizedBox(
             width: 200,
-            child: _addrReadonly('ZIP Code', p?.zipCode ?? '—', boxed: true),
+            child: _addrReadonly(tr.zipCode, p?.zipCode ?? '—', boxed: true),
           ),
         ],
       ),
@@ -643,14 +601,14 @@ class _RequestAccessScreenState extends State<RequestAccessScreen> {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: boxed ? Colors.white : Colors.transparent,
-            border: Border.all(color: const Color(0xFFE2E8F0)),
+            color: boxed ? AppColors.surface : Colors.transparent,
+            border: Border.all(color: AppColors.border),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Text(value.isEmpty ? '—' : value,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 13.5,
                   fontWeight: FontWeight.w600,
                   color: AppColors.slate800)),
@@ -686,18 +644,18 @@ class _RequestAccessScreenState extends State<RequestAccessScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFECFDF5),
-        border: Border.all(color: const Color(0xFFA7F3D0)),
+        color: AppColors.successBg,
+        border: Border.all(color: AppColors.successBorder),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
-          '${t('Default address', 'Default na address')}: '
+          '${tr.raDefaultAddress}: '
           '${p.regionName} · ${p.provinceName} · ${p.municipalityName} · ${p.barangayName}. '
-          '${t('You only need to enter your house number, building, street and subdivision/sitio/purok.', 'Ilagay na lang ang house number, building, kalye at subdivision/sitio/purok.')}',
-          style: const TextStyle(
+          '${tr.raYouOnlyNeedTo}',
+          style: TextStyle(
               fontSize: 11.5,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF15803D))),
+              color: AppColors.successText)),
     );
   }
 
@@ -705,20 +663,18 @@ class _RequestAccessScreenState extends State<RequestAccessScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFBEB),
-        border: Border.all(color: const Color(0xFFFDE68A)),
+        color: AppColors.warnBg,
+        border: Border.all(color: AppColors.warnBorder),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.warning_amber, size: 18, color: Color(0xFFB45309)),
+          Icon(Icons.warning_amber, size: 18, color: AppColors.warnText),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-                t('The barangay default address is not configured yet. Please contact the barangay office.',
-                    'Hindi pa naka-set ang default na address ng barangay. Makipag-ugnayan sa barangay.'),
-                style: const TextStyle(fontSize: 11.5, color: Color(0xFF92400E))),
+            child: Text(tr.raTheBarangayDefaultAddress,
+                style: TextStyle(fontSize: 11.5, color: AppColors.warnText)),
           ),
         ],
       ),
@@ -730,33 +686,32 @@ class _RequestAccessScreenState extends State<RequestAccessScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionHead(Icons.verified_user, t('Verification Requirement', 'Kinakailangan sa Beripikasyon'), '3'),
+          _sectionHead(Icons.verified_user, tr.raVerificationRequirement, '3'),
           const SizedBox(height: 16),
-          FieldLabel(t('Valid ID Upload', 'Valid ID Upload'), required: true),
+          FieldLabel(tr.raValidIdUpload, required: true),
           _uploadZone(
             hasFile: _validId != null,
             fileName: _validId?.name,
             bytes: _validIdBytes,
             onTap: () => _pick(false),
             icon: Icons.upload_file,
-            title: t('Click to upload your Valid ID', 'I-click para mag-upload ng Valid ID'),
-            sub: t('Accepted: JPG, PNG — Max 5MB', 'Tinatanggap: JPG, PNG — Max 5MB'),
+            title: tr.raClickToUploadYour,
+            sub: tr.raAcceptedJpgPngMax,
             error: _validIdError,
           ),
           const SizedBox(height: 6),
-          Text(
-              "(Driver's License, PhilSys ID, Voter's ID, Passport, etc.)",
+          Text(tr.raValidIdExamples,
               style: TextStyle(fontSize: 10, color: AppColors.slate400)),
           const SizedBox(height: 16),
-          FieldLabel(t('Selfie Holding Your ID', 'Selfie Hawak ang ID'), required: true),
+          FieldLabel(tr.raSelfieHoldingYourId, required: true),
           _uploadZone(
             hasFile: _selfie != null,
             fileName: _selfie?.name,
             bytes: _selfieBytes,
             onTap: () => _pick(true),
             icon: Icons.add_a_photo,
-            title: t('Click to upload your selfie with ID', 'I-click para mag-selfie na hawak ang ID'),
-            sub: t('JPG or PNG · Face + ID both visible', 'JPG o PNG · Mukha + ID kitang-kita'),
+            title: tr.raClickToUploadYour2,
+            sub: tr.raJpgOrPngFace,
             error: _selfieError,
             preview: true,
           ),
@@ -768,25 +723,11 @@ class _RequestAccessScreenState extends State<RequestAccessScreen> {
   }
 
   Widget _whatNext() {
-    final steps = _fil
-        ? const [
-            ['Isumite ang Form', 'Punan at isumite ang form kasama ang valid ID.'],
-            ['Susuriin ng Staff', 'Beberipikahin ng barangay staff ang info at ID mo.'],
-            ['Approve o Reject', 'Aabisuhan ka sa email ng desisyon.'],
-            ['Password Setup Link', 'Kung aprubado, may link na ipapadala.'],
-            ['Gawin ang Password', 'Itakda ang password gamit ang link.'],
-          ]
-        : const [
-            ['Submit Registration Form', 'Fill out and submit this form with your valid ID.'],
-            ['Staff Reviews Application', 'Barangay staff will verify your information and ID.'],
-            ['Approve or Reject Request', 'You will be notified of the decision via email.'],
-            ['Password Setup Link Sent', 'If approved, a password setup link will be sent.'],
-            ['Create Your Password', 'Set your secure password using the link provided.'],
-          ];
+    final steps = tr.raNextSteps;
     return Container(
       padding: const EdgeInsets.only(top: 16),
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: Color(0xFFF1F5F9))),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: AppColors.muted)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -795,7 +736,7 @@ class _RequestAccessScreenState extends State<RequestAccessScreen> {
             children: [
               Icon(Icons.timeline, size: 16, color: AppColors.primary),
               const SizedBox(width: 6),
-              Text(t('WHAT HAPPENS NEXT', 'ANG MGA SUSUNOD'),
+              Text(tr.raWhatHappensNext,
                   style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w800,
@@ -835,7 +776,7 @@ class _RequestAccessScreenState extends State<RequestAccessScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(steps[i][0],
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                                 color: AppColors.slate800)),
@@ -856,78 +797,65 @@ class _RequestAccessScreenState extends State<RequestAccessScreen> {
 
   // ── SUCCESS ───────────────────────────────────────────────────────────
   Widget _successView() {
-    final steps = _fil
-        ? const [
-            'Susuriin ng staff ang info at valid ID mo',
-            'May email ka: Approved o Disapproved',
-            'Kung aprubado, may password setup link',
-            'Itakda ang password at mag-login',
-          ]
-        : const [
-            'Staff reviews your information and valid ID',
-            'You receive an email: Approved or Disapproved',
-            'If approved, a password setup link will be sent',
-            'Set your password and log in to the Resident Portal',
-          ];
+    final steps = tr.raSuccessSteps;
     return GlassCard(
       padding: const EdgeInsets.all(28),
       child: Column(
         children: [
-          const BrandHeader(badgeText: 'Request Submitted', badgeIcon: Icons.task_alt),
+          BrandHeader(
+              badgeText: tr.raRequestSubmitted, badgeIcon: Icons.task_alt),
           const SizedBox(height: 20),
           Container(
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: const Color(0xFFECFDF5),
+              color: AppColors.successBg,
               shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFFA7F3D0), width: 2),
+              border: Border.all(color: AppColors.successBorder, width: 2),
             ),
             child: const Icon(Icons.how_to_reg,
                 size: 44, color: AppColors.success),
           ),
           const SizedBox(height: 16),
-          Text(t('Your request has been received!', 'Natanggap na ang request mo!'),
+          Text(tr.raYourRequestHasBeen,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                   color: AppColors.slate800)),
           const SizedBox(height: 8),
-          Text(
-              t('The Barangay Staff will review your application and valid ID. You will receive an email once processed.',
-                  'Susuriin ng Barangay Staff ang iyong application at valid ID. May email ka na matatanggap kapag naproseso na.'),
+          Text(tr.raTheBarangayStaffWill,
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 13, color: AppColors.slate500)),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFFEFF6FF),
-              border: Border.all(color: const Color(0xFFBFDBFE)),
+              color: AppColors.infoBg,
+              border: Border.all(color: AppColors.infoBorder),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(t('What happens next?', 'Ano ang susunod?'),
-                    style: const TextStyle(
+                Text(tr.raWhatHappensNext2,
+                    style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF1E40AF))),
+                        color: AppColors.infoText)),
                 const SizedBox(height: 8),
                 ...steps.map((s) => Padding(
                       padding: const EdgeInsets.only(bottom: 6),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(Icons.check,
+                          const Icon(Icons.check,
                               size: 14, color: AppColors.accent),
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(s,
-                                style: const TextStyle(
-                                    fontSize: 12, color: Color(0xFF2563EB))),
+                                style: TextStyle(
+                                    fontSize: 12, color: AppColors.infoText2)),
                           ),
                         ],
                       ),
@@ -939,7 +867,7 @@ class _RequestAccessScreenState extends State<RequestAccessScreen> {
           TextButton.icon(
             onPressed: () => Navigator.of(context).pop(),
             icon: const Icon(Icons.arrow_back, size: 16),
-            label: Text(t('Back to Login', 'Bumalik sa Login')),
+            label: Text(tr.backToLogin),
           ),
         ],
       ),
@@ -950,9 +878,10 @@ class _RequestAccessScreenState extends State<RequestAccessScreen> {
   Widget _sectionHead(IconData icon, String label, String step) {
     return Row(
       children: [
-        SectionBadge(icon: icon, label: label),
+        Flexible(child: SectionBadge(icon: icon, label: label)),
+        const SizedBox(width: 8),
         const Spacer(),
-        Text(t('Step $step of 3', 'Hakbang $step ng 3'),
+        Text(tr.stepOf(int.parse(step), 3),
             style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w600,
@@ -982,9 +911,7 @@ class _RequestAccessScreenState extends State<RequestAccessScreen> {
           decoration: AppTheme.field(hint ?? '', icon: icon),
           validator: validator ??
               (required
-                  ? (v) => (v == null || v.trim().isEmpty)
-                      ? t('Required.', 'Kailangan.')
-                      : null
+                  ? (v) => (v == null || v.trim().isEmpty) ? tr.required : null
                   : null),
         ),
       ],
@@ -1011,7 +938,7 @@ class _RequestAccessScreenState extends State<RequestAccessScreen> {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
             decoration: BoxDecoration(
-              color: hasFile ? const Color(0xFFF0FDF4) : const Color(0xFFF8FAFC),
+              color: hasFile ? AppColors.successBg : AppColors.surfaceAlt,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
                 color: hasFile ? AppColors.success : AppColors.slate200,
@@ -1033,17 +960,16 @@ class _RequestAccessScreenState extends State<RequestAccessScreen> {
                     size: 34,
                     color: hasFile ? AppColors.success : AppColors.primary),
                 const SizedBox(height: 6),
-                Text(
-                    hasFile ? (fileName ?? 'Selected') : title,
+                Text(hasFile ? (fileName ?? tr.raSelected) : title,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                         color: hasFile
-                            ? const Color(0xFF15803D)
+                            ? AppColors.successText
                             : AppColors.primary)),
                 const SizedBox(height: 2),
-                Text(hasFile ? t('Tap to change', 'I-tap para palitan') : sub,
+                Text(hasFile ? tr.raTapToChange : sub,
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 11, color: AppColors.slate400)),
               ],
@@ -1085,7 +1011,8 @@ class _TitleCaseFormatter extends TextInputFormatter {
         capNext = (ch == ' ' || ch == '-' || ch == "'");
       }
     }
-    return TextEditingValue(text: buf.toString(), selection: newValue.selection);
+    return TextEditingValue(
+        text: buf.toString(), selection: newValue.selection);
   }
 }
 

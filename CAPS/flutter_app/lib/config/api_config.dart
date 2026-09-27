@@ -19,4 +19,10 @@ class ApiConfig {
 
   /// How long to wait for the server before giving up.
   static const Duration timeout = Duration(seconds: 20);
+
+  /// App language ("en" / "fil"), kept in sync by AppSettings. Sent on every
+  /// request so the backend answers in the same language as the app.
+  static String lang = 'fil';
+
+  static Map<String, String> get headers => {'X-App-Lang': lang};
 }

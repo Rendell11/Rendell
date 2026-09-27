@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../l10n/app_text.dart';
 import '../models/resident.dart';
 import '../theme/app_theme.dart';
 import 'complaint_api.dart';
@@ -81,7 +82,7 @@ class _ComplaintFormScreenState extends State<ComplaintFormScreen> {
     final bytes = await x.readAsBytes();
     if (!mounted) return;
     if (bytes.length > _maxBytes) {
-      _snack('Masyadong malaki ang larawan. Hanggang 5 MB lang.', error: true);
+      _snack(tr.photoTooLarge, error: true);
       return;
     }
     setState(() {
@@ -100,7 +101,7 @@ class _ComplaintFormScreenState extends State<ComplaintFormScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.photo_camera_outlined),
-              title: const Text('Kumuha ng larawan'),
+              title: Text(tr.takePhoto),
               onTap: () {
                 Navigator.pop(ctx);
                 _pickPhoto(ImageSource.camera);
@@ -108,7 +109,7 @@ class _ComplaintFormScreenState extends State<ComplaintFormScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Pumili mula sa gallery'),
+              title: Text(tr.chooseFromGallery),
               onTap: () {
                 Navigator.pop(ctx);
                 _pickPhoto(ImageSource.gallery);
@@ -125,7 +126,7 @@ class _ComplaintFormScreenState extends State<ComplaintFormScreen> {
     if (_submitting) return;
     if (!_formKey.currentState!.validate()) return;
     if (!_agreed) {
-      _snack('Pakikumpirma na totoo ang iyong reklamo.', error: true);
+      _snack(tr.confirmTruthful, error: true);
       return;
     }
     setState(() => _submitting = true);
@@ -153,16 +154,15 @@ class _ComplaintFormScreenState extends State<ComplaintFormScreen> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        icon: Icon(Icons.check_circle, color: AppColors.success, size: 48),
-        title: const Text('Naisumite ang reklamo'),
+        icon: const Icon(Icons.check_circle, color: AppColors.success, size: 48),
+        title: Text(tr.complaintSubmittedTitle),
         content: Text(
-          'Reference No: ${res.data ?? '—'}\n\n'
-          'Susuriin ito ng barangay. Makikita mo rito ang status at sagot ng admin.',
+          tr.complaintSubmittedBody(res.data ?? '—'),
           textAlign: TextAlign.center,
         ),
         actions: [
           FilledButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
+              onPressed: () => Navigator.pop(ctx), child: Text(tr.ok)),
         ],
       ),
     );
@@ -181,9 +181,9 @@ class _ComplaintFormScreenState extends State<ComplaintFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFEEF2FB),
+      backgroundColor: AppColors.scaffold,
       appBar:
-          complaintAppBar('File a Complaint', 'Lahat ng may * ay kailangan'),
+          complaintAppBar(tr.fileComplaint, tr.requiredFieldsNote),
       body: SafeArea(
         top: false,
         child: Center(
@@ -198,13 +198,13 @@ class _ComplaintFormScreenState extends State<ComplaintFormScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const ComplaintSectionLabel('Detalye ng Reklamo'),
+                    ComplaintSectionLabel(tr.complaintDetails),
                     ComplaintCard(child: _detailsSection()),
                     const SizedBox(height: 16),
-                    const ComplaintSectionLabel('Lugar at Paglalarawan'),
+                    ComplaintSectionLabel(tr.placeAndDescription),
                     ComplaintCard(child: _descriptionSection()),
                     const SizedBox(height: 16),
-                    const ComplaintSectionLabel('Attachment (optional)'),
+                    ComplaintSectionLabel(tr.attachmentOptional),
                     ComplaintCard(child: _attachmentSection()),
                     const SizedBox(height: 16),
                     ComplaintCard(child: _privacySection()),
@@ -231,7 +231,7 @@ class _ComplaintFormScreenState extends State<ComplaintFormScreen> {
               color: AppColors.slate400),
           children: [
             if (required)
-              TextSpan(text: ' *', style: TextStyle(color: AppColors.danger)),
+              const TextSpan(text: ' *', style: TextStyle(color: AppColors.danger)),
           ],
         )),
       );
@@ -240,48 +240,48 @@ class _ComplaintFormScreenState extends State<ComplaintFormScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _label('Pamagat'),
+        _label(tr.complaintTitle),
         TextFormField(
           controller: _title,
           maxLength: 255,
           textCapitalization: TextCapitalization.sentences,
           decoration:
-              AppTheme.field('Maikling pamagat ng reklamo', icon: Icons.title)
+              AppTheme.field(tr.complaintTitleHint, icon: Icons.title)
                   .copyWith(counterText: ''),
-          validator: (v) => _required(v, 'Ilagay ang pamagat.'),
+          validator: (v) => _required(v, tr.enterTitle),
         ),
         const SizedBox(height: 14),
-        _label('Kategorya'),
+        _label(tr.category),
         DropdownButtonFormField<String>(
           value: _category,
           isExpanded: true,
           decoration:
-              AppTheme.field('Pumili ng kategorya', icon: Icons.label_outline),
+              AppTheme.field(tr.chooseCategoryHint, icon: Icons.label_outline),
           items: [
             for (final c in _categories)
               DropdownMenuItem(
                   value: c,
-                  child: Text(c == 'Other' ? 'Other (ilagay sa ibaba)' : c)),
+                  child: Text(tr.complaintCategoryLabel(c))),
           ],
           onChanged: (v) => setState(() => _category = v),
-          validator: (v) => v == null ? 'Pumili ng kategorya.' : null,
+          validator: (v) => v == null ? tr.chooseCategory : null,
         ),
         if (_category == 'Other') ...[
           const SizedBox(height: 14),
-          _label('Uri ng reklamo'),
+          _label(tr.complaintKind),
           TextFormField(
             controller: _other,
             maxLength: 255,
-            decoration: AppTheme.field('Hal. Illegal parking',
+            decoration: AppTheme.field(tr.complaintKindHint,
                     icon: Icons.edit_outlined)
                 .copyWith(counterText: ''),
             validator: (v) => _category == 'Other'
-                ? _required(v, 'Ilagay kung anong uri ng reklamo.')
+                ? _required(v, tr.enterComplaintKind)
                 : null,
           ),
         ],
         const SizedBox(height: 14),
-        _label('Priority'),
+        _label(tr.priority),
         Row(
           children: [
             for (final p in _priorities)
@@ -308,14 +308,14 @@ class _ComplaintFormScreenState extends State<ComplaintFormScreen> {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
         decoration: BoxDecoration(
-          color: selected ? color.withOpacity(.12) : Colors.white,
+          color: selected ? color.withValues(alpha: .12) : AppColors.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
               color: selected ? color : AppColors.slate200,
               width: selected ? 1.6 : 1.2),
         ),
         child: Text(
-          p == 'High (Urgent)' ? 'High\n(Urgent)' : p,
+          tr.priorityLabel(p).replaceFirst(' (', '\n('),
           textAlign: TextAlign.center,
           style: TextStyle(
               fontSize: 12,
@@ -331,17 +331,17 @@ class _ComplaintFormScreenState extends State<ComplaintFormScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _label('Lugar ng insidente'),
+        _label(tr.incidentPlace),
         TextFormField(
           controller: _location,
           maxLength: 255,
           decoration:
-              AppTheme.field('Saan nangyari?', icon: Icons.location_on_outlined)
+              AppTheme.field(tr.incidentPlaceHint, icon: Icons.location_on_outlined)
                   .copyWith(counterText: ''),
-          validator: (v) => _required(v, 'Ilagay ang lugar ng insidente.'),
+          validator: (v) => _required(v, tr.enterIncidentPlace),
         ),
         const SizedBox(height: 14),
-        _label('Paglalarawan'),
+        _label(tr.descriptionLabel),
         TextFormField(
           controller: _description,
           minLines: 5,
@@ -349,8 +349,8 @@ class _ComplaintFormScreenState extends State<ComplaintFormScreen> {
           maxLength: 2000,
           textCapitalization: TextCapitalization.sentences,
           decoration: AppTheme.field(
-              'Ilarawan nang detalyado ang nangyari (sino, ano, kailan)…'),
-          validator: (v) => _required(v, 'Ilarawan ang reklamo.'),
+              tr.descriptionHint),
+          validator: (v) => _required(v, tr.enterDescription),
         ),
       ],
     );
@@ -366,20 +366,20 @@ class _ComplaintFormScreenState extends State<ComplaintFormScreen> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: AppColors.slate200, width: 1.4),
-            color: AppColors.bgTop,
+            color: AppColors.surfaceAlt,
           ),
           child: Column(
             children: [
               Icon(Icons.add_a_photo_outlined,
                   size: 30, color: AppColors.primary),
               const SizedBox(height: 8),
-              Text('Magdagdag ng larawan bilang ebidensya',
+              Text(tr.addPhotoEvidence,
                   style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                       color: AppColors.slate800)),
               const SizedBox(height: 2),
-              Text('JPG / PNG · hanggang 5 MB',
+              Text(tr.photoLimits,
                   style: TextStyle(fontSize: 11, color: AppColors.slate400)),
             ],
           ),
@@ -405,7 +405,7 @@ class _ComplaintFormScreenState extends State<ComplaintFormScreen> {
             TextButton.icon(
               onPressed: _choosePhotoSource,
               icon: const Icon(Icons.swap_horiz, size: 16),
-              label: const Text('Palitan'),
+              label: Text(tr.replace),
             ),
             TextButton.icon(
               onPressed: () => setState(() {
@@ -414,7 +414,7 @@ class _ComplaintFormScreenState extends State<ComplaintFormScreen> {
               }),
               style: TextButton.styleFrom(foregroundColor: AppColors.danger),
               icon: const Icon(Icons.delete_outline, size: 16),
-              label: const Text('Alisin'),
+              label: Text(tr.remove),
             ),
           ],
         ),
@@ -433,11 +433,9 @@ class _ComplaintFormScreenState extends State<ComplaintFormScreen> {
             value: _anonymous,
             activeColor: AppColors.primary,
             onChanged: (v) => setState(() => _anonymous = v),
-            title: const Text('Isumite nang anonymous',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
-            subtitle: Text(
-                'Hindi ipapakita ang iyong pangalan sa admin. Ikaw pa rin ang '
-                'makakakita ng reklamo at ng sagot dito sa app.',
+            title: Text(tr.submitAnonymously,
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
+            subtitle: Text(tr.submitAnonymouslySub,
                 style: TextStyle(fontSize: 11.5, color: AppColors.slate500)),
           ),
           const Divider(height: 20),
@@ -447,9 +445,7 @@ class _ComplaintFormScreenState extends State<ComplaintFormScreen> {
             value: _agreed,
             activeColor: AppColors.primary,
             onChanged: (v) => setState(() => _agreed = v ?? false),
-            title: Text(
-                'Pinapatunayan ko na totoo ang impormasyong ito. Ipinagbabawal ng '
-                'batas ang pagsasampa ng maling reklamo.',
+            title: Text(tr.truthfulnessCheck,
                 style: TextStyle(fontSize: 12, color: AppColors.slate800)),
           ),
         ],
@@ -475,16 +471,16 @@ class _ComplaintFormScreenState extends State<ComplaintFormScreen> {
                   height: 22,
                   child: CircularProgressIndicator(
                       strokeWidth: 2.4, color: Colors.white))
-              : const Row(
+              : Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.send_rounded, size: 18),
-                    SizedBox(width: 8),
+                    const Icon(Icons.send_rounded, size: 18),
+                    const SizedBox(width: 8),
                     Flexible(
-                      child: Text('Isumite ang Reklamo',
+                      child: Text(tr.submitComplaint,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
+                          style: const TextStyle(
                               fontSize: 15, fontWeight: FontWeight.w800)),
                     ),
                   ],

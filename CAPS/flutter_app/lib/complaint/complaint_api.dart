@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 
 import '../config/api_config.dart';
+import '../l10n/app_text.dart';
 import '../services/api_service.dart' show ApiResult;
 import 'complaint_model.dart';
 
@@ -34,7 +35,7 @@ class ComplaintApi {
       fetchOptions() async {
     try {
       final res = await _client
-          .get(_uri({'action': 'categories'}))
+          .get(_uri({'action': 'categories'}), headers: ApiConfig.headers)
           .timeout(ApiConfig.timeout);
       final data = _decode(res)['data'];
       if (data is Map) {
@@ -59,7 +60,7 @@ class ComplaintApi {
   Future<ApiResult<ComplaintList>> list(int residentId) async {
     try {
       final res = await _client
-          .get(_uri({'action': 'list', 'resident_id': '$residentId'}))
+          .get(_uri({'action': 'list', 'resident_id': '$residentId'}), headers: ApiConfig.headers)
           .timeout(ApiConfig.timeout);
       final body = _decode(res);
       if (_ok(res, body) && body['data'] is Map) {
@@ -67,7 +68,7 @@ class ComplaintApi {
           ComplaintList.fromJson(Map<String, dynamic>.from(body['data'])),
         );
       }
-      return ApiResult.failure(_msg(body, 'Hindi ma-load ang mga reklamo.'));
+      return ApiResult.failure(_msg(body, tr.complaintsLoadFailed));
     } catch (e) {
       return ApiResult.failure(_friendly(e));
     }
@@ -81,7 +82,7 @@ class ComplaintApi {
             'action': 'detail',
             'resident_id': '$residentId',
             'id': '$id',
-          }))
+          }), headers: ApiConfig.headers)
           .timeout(ApiConfig.timeout);
       final body = _decode(res);
       if (_ok(res, body) && body['data'] is Map) {
@@ -89,7 +90,7 @@ class ComplaintApi {
           Complaint.fromJson(Map<String, dynamic>.from(body['data'])),
         );
       }
-      return ApiResult.failure(_msg(body, 'Hindi ma-load ang reklamo.'));
+      return ApiResult.failure(_msg(body, tr.complaintLoadFailed));
     } catch (e) {
       return ApiResult.failure(_friendly(e));
     }
@@ -105,6 +106,7 @@ class ComplaintApi {
   }) async {
     try {
       final req = http.MultipartRequest('POST', _uri())
+        ..headers.addAll(ApiConfig.headers)
         ..fields.addAll(draft.toFields(residentId));
       // fromBytes works on web AND mobile (see ApiService.submitAccessRequest).
       if (attachmentBytes != null) {
@@ -120,10 +122,10 @@ class ComplaintApi {
       if (_ok(res, body)) {
         return ApiResult.success(
           body['data']?['complaint_id']?.toString(),
-          message: _msg(body, 'Naisumite ang reklamo.'),
+          message: _msg(body, tr.complaintSubmittedTitle),
         );
       }
-      return ApiResult.failure(_msg(body, 'Hindi naisumite ang reklamo.'));
+      return ApiResult.failure(_msg(body, tr.complaintSubmitFailed));
     } catch (e) {
       return ApiResult.failure(_friendly(e));
     }
@@ -153,11 +155,11 @@ class ComplaintApi {
 
   String _friendly(Object e) {
     if (e is TimeoutException) {
-      return 'Nag-timeout ang server. Subukan muli.';
+      return tr.errTimeout;
     }
     if (e is http.ClientException) {
-      return 'Hindi makakonekta sa server. Tingnan ang koneksyon at API base URL.';
+      return tr.errNoConnection;
     }
-    return 'Nagkaproblema: $e';
+    return tr.errGeneric('$e');
   }
 }

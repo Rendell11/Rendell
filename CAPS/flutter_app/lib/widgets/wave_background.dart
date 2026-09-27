@@ -35,7 +35,7 @@ class _WaveBackgroundState extends State<WaveBackground>
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
@@ -68,9 +68,12 @@ class _WavePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     // Each blob: color, base bottom offset, amplitude, phase, opacity.
-    _blob(canvas, size, AppColors.primary, 60, 18, 0.0, 0.80, 220);
-    _blob(canvas, size, AppColors.primaryDark, 40, 22, 0.5, 0.90, 190);
-    _blob(canvas, size, AppColors.navy, 25, 14, 0.25, 1.0, 150);
+    _blob(canvas, size, AppColors.primary, 60, 18, 0.0,
+        AppColors.isDark ? 0.45 : 0.80, 220);
+    _blob(canvas, size, AppColors.primaryDark, 40, 22, 0.5,
+        AppColors.isDark ? 0.55 : 0.90, 190);
+    _blob(canvas, size, AppColors.navy, 25, 14, 0.25,
+        AppColors.isDark ? 0.70 : 1.0, 150);
   }
 
   void _blob(Canvas c, Size s, Color color, double bottom, double amp,
@@ -83,7 +86,7 @@ class _WavePainter extends CustomPainter {
       s.width * 1.20,
       h * 2,
     );
-    c.drawOval(rect, Paint()..color = color.withOpacity(opacity));
+    c.drawOval(rect, Paint()..color = color.withValues(alpha: opacity));
   }
 
   @override

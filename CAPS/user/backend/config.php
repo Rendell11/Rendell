@@ -74,7 +74,7 @@ function respond(bool $success, string $message, $data = null, int $code = 200):
     if (!headers_sent()) {
         header('Access-Control-Allow-Origin: *');
         header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type');
+        header('Access-Control-Allow-Headers: Content-Type, X-App-Lang');
         header('Content-Type: application/json; charset=utf-8');
         http_response_code($code);
     }
@@ -92,7 +92,7 @@ function handle_preflight(): void
     if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {
         header('Access-Control-Allow-Origin: *');
         header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type');
+        header('Access-Control-Allow-Headers: Content-Type, X-App-Lang');
         http_response_code(204);
         exit;
     }
@@ -103,4 +103,21 @@ function post(string $key, ?string $default = null): ?string
 {
     $v = $_POST[$key] ?? $default;
     return is_string($v) ? trim($v) : $default;
+}
+
+/**
+ * Language of the app that is calling ("en" or "fil"). The Flutter app sends
+ * it on every request as the X-App-Lang header (Settings → Language); browser
+ * pages may pass ?lang=. Defaults to Filipino.
+ */
+function app_lang(): string
+{
+    $v = strtolower(trim((string)($_SERVER['HTTP_X_APP_LANG'] ?? $_GET['lang'] ?? $_POST['lang'] ?? '')));
+    return $v === 'en' ? 'en' : 'fil';
+}
+
+/** Pick the message for the caller's language: L('Filipino text', 'English text'). */
+function L(string $fil, string $en): string
+{
+    return app_lang() === 'en' ? $en : $fil;
 }

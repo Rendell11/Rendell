@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_text.dart';
+import '../theme/app_theme.dart';
 import 'login_screen.dart';
 import 'request_access_screen.dart';
 import 'set_password_screen.dart';
@@ -21,22 +23,22 @@ class LandingScreen extends StatelessWidget {
               const SizedBox(height: 24),
               const Icon(Icons.location_city, size: 72),
               const SizedBox(height: 12),
-              const Text(
-                'Barangay Resident Portal',
+              Text(
+                tr.appName,
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),
-              const Text(
-                'Self-service access request',
+              Text(
+                tr.selfServiceAccess,
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.black54),
+                style: TextStyle(color: AppColors.slate500),
               ),
               const SizedBox(height: 40),
               _menuButton(
                 context,
                 icon: Icons.person_add_alt,
-                label: 'Mag-request ng Access',
+                label: tr.requestAccess,
                 screen: const RequestAccessScreen(),
                 filled: true,
               ),
@@ -44,21 +46,21 @@ class LandingScreen extends StatelessWidget {
               _menuButton(
                 context,
                 icon: Icons.search,
-                label: 'Tingnan ang Status ng Request',
+                label: tr.trackRequestStatus,
                 screen: const StatusScreen(),
               ),
               const SizedBox(height: 12),
               _menuButton(
                 context,
                 icon: Icons.lock_outline,
-                label: 'I-set ang Password (may token)',
+                label: tr.setPasswordWithToken,
                 screen: const SetPasswordScreen(),
               ),
               const SizedBox(height: 12),
               _menuButton(
                 context,
                 icon: Icons.login,
-                label: 'Mag-login',
+                label: tr.signIn,
                 screen: const LoginScreen(),
               ),
             ],
@@ -80,7 +82,7 @@ class LandingScreen extends StatelessWidget {
         );
     final child = Row(
       mainAxisAlignment: MainAxisAlignment.center,
-      children: [Icon(icon), const SizedBox(width: 8), Text(label)],
+      children: [Icon(icon), const SizedBox(width: 8), Flexible(child: Text(label))],
     );
     return filled
         ? FilledButton(

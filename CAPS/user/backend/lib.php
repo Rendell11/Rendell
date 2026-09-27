@@ -64,17 +64,17 @@ function create_access_request(array $fields): array
     // Same required set + formats as SOE request_access.php
     if ($firstName === '' || $lastName === '' || $email === '' || $contact === ''
         || $house === '' || $street === '' || $purok === '' || $birthdate === '') {
-        return ['ok' => false, 'message' => 'Punan ang lahat ng kailangang field.', 'data' => null];
+        return ['ok' => false, 'message' => L('Punan ang lahat ng kailangang field.', 'Please fill in all required fields.'), 'data' => null];
     }
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        return ['ok' => false, 'message' => 'Hindi wastong email.', 'data' => null];
+        return ['ok' => false, 'message' => L('Hindi wastong email.', 'Invalid email address.'), 'data' => null];
     }
     if (!preg_match('/^09\d{9}$/', $contact)) {
-        return ['ok' => false, 'message' => 'Contact number dapat 09XXXXXXXXX.', 'data' => null];
+        return ['ok' => false, 'message' => L('Contact number dapat 09XXXXXXXXX.', 'Contact number must be 09XXXXXXXXX.'), 'data' => null];
     }
     if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $birthdate)
         || $birthdate > date('Y-m-d') || substr($birthdate, 0, 4) < 1900) {
-        return ['ok' => false, 'message' => 'Hindi wastong petsa ng kapanganakan.', 'data' => null];
+        return ['ok' => false, 'message' => L('Hindi wastong petsa ng kapanganakan.', 'Invalid date of birth.'), 'data' => null];
     }
 
     $pdo = db();
@@ -84,7 +84,7 @@ function create_access_request(array $fields): array
     );
     $dup->execute([$email]);
     if ($dup->fetch()) {
-        return ['ok' => false, 'message' => 'May naka-request na para sa email na ito (pending o approved).', 'data' => null];
+        return ['ok' => false, 'message' => L('May naka-request na para sa email na ito (pending o approved).', 'There is already a request for this email (pending or approved).'), 'data' => null];
     }
     // Duplicate contact
     $dupC = $pdo->prepare(
@@ -92,7 +92,7 @@ function create_access_request(array $fields): array
     );
     $dupC->execute([$contact]);
     if ((int)$dupC->fetchColumn() > 0) {
-        return ['ok' => false, 'message' => 'Ginamit na ang contact number na ito sa ibang request.', 'data' => null];
+        return ['ok' => false, 'message' => L('Ginamit na ang contact number na ito sa ibang request.', 'This contact number is already used in another request.'), 'data' => null];
     }
     // Already a resident with this email?
     $dupR = $pdo->prepare(
@@ -100,16 +100,16 @@ function create_access_request(array $fields): array
     );
     $dupR->execute([$email]);
     if ((int)$dupR->fetchColumn() > 0) {
-        return ['ok' => false, 'message' => 'Nakarehistro na ang email na ito bilang resident.', 'data' => null];
+        return ['ok' => false, 'message' => L('Nakarehistro na ang email na ito bilang resident.', 'This email is already registered to a resident.'), 'data' => null];
     }
 
     $validId = save_upload('valid_id', 'id');
     $selfie  = save_upload('selfie', 'selfie');
     if ($validId === null) {
-        return ['ok' => false, 'message' => 'Mag-upload ng valid ID (JPG/PNG).', 'data' => null];
+        return ['ok' => false, 'message' => L('Mag-upload ng valid ID (JPG/PNG).', 'Please upload a valid ID (JPG/PNG).'), 'data' => null];
     }
     if ($selfie === null) {
-        return ['ok' => false, 'message' => 'Mag-upload ng selfie hawak ang ID (JPG/PNG).', 'data' => null];
+        return ['ok' => false, 'message' => L('Mag-upload ng selfie hawak ang ID (JPG/PNG).', 'Please upload a selfie holding your ID (JPG/PNG).'), 'data' => null];
     }
 
     $middle   = trim((string)($fields['middle_name'] ?? ''));
@@ -142,7 +142,7 @@ function create_access_request(array $fields): array
 
     return [
         'ok'      => true,
-        'message' => 'Naisumite ang request. Maghintay ng approval ng admin.',
+        'message' => L('Naisumite ang request. Maghintay ng approval ng admin.', 'Request submitted. Please wait for the admin to approve it.'),
         'data'    => ['request_id' => (int)$pdo->lastInsertId()],
     ];
 }
@@ -153,7 +153,7 @@ function find_request_status(?string $email, ?string $contact): array
     $email   = $email !== null ? trim($email) : '';
     $contact = $contact !== null ? trim($contact) : '';
     if ($email === '' && $contact === '') {
-        return ['ok' => false, 'message' => 'Ilagay ang email o contact number.', 'data' => null];
+        return ['ok' => false, 'message' => L('Ilagay ang email o contact number.', 'Enter your email or contact number.'), 'data' => null];
     }
 
     $pdo = db();
@@ -166,10 +166,10 @@ function find_request_status(?string $email, ?string $contact): array
     }
     $row = $stmt->fetch();
     if (!$row) {
-        return ['ok' => false, 'message' => 'Walang nahanap na request.', 'data' => null];
+        return ['ok' => false, 'message' => L('Walang nahanap na request.', 'No request found.'), 'data' => null];
     }
     unset($row['token'], $row['token_expiry']); // never leak the token
-    return ['ok' => true, 'message' => 'Nahanap ang request.', 'data' => $row];
+    return ['ok' => true, 'message' => L('Nahanap ang request.', 'Request found.'), 'data' => $row];
 }
 
 /** STEP 3 — set the resident's password using the admin-issued token. */
@@ -177,10 +177,10 @@ function set_resident_password(string $token, string $password): array
 {
     $token = trim($token);
     if ($token === '') {
-        return ['ok' => false, 'message' => 'Kailangan ang access token.', 'data' => null];
+        return ['ok' => false, 'message' => L('Kailangan ang access token.', 'The access token is required.'), 'data' => null];
     }
     if (strlen($password) < 8) {
-        return ['ok' => false, 'message' => 'Dapat 8 karakter pataas ang password.', 'data' => null];
+        return ['ok' => false, 'message' => L('Dapat 8 karakter pataas ang password.', 'The password must be at least 8 characters.'), 'data' => null];
     }
 
     $pdo  = db();
@@ -197,13 +197,13 @@ function set_resident_password(string $token, string $password): array
     $req = $stmt->fetch();
 
     if (!$req) {
-        return ['ok' => false, 'message' => 'Hindi wasto ang token.', 'data' => null];
+        return ['ok' => false, 'message' => L('Hindi wasto ang token.', 'Invalid token.'), 'data' => null];
     }
     if (!in_array($req['status'], ['Approved', 'Matched'], true)) {
-        return ['ok' => false, 'message' => 'Hindi pa aprubado ang request na ito.', 'data' => null];
+        return ['ok' => false, 'message' => L('Hindi pa aprubado ang request na ito.', 'This request is not approved yet.'), 'data' => null];
     }
     if (!empty($req['token_expiry']) && strtotime($req['token_expiry']) < time()) {
-        return ['ok' => false, 'message' => 'Nag-expire na ang token. Humiling ng bago sa admin.', 'data' => null];
+        return ['ok' => false, 'message' => L('Nag-expire na ang token. Humiling ng bago sa admin.', 'The token has expired. Ask the admin for a new one.'), 'data' => null];
     }
 
     $hash = password_hash($password, PASSWORD_BCRYPT);
@@ -280,9 +280,9 @@ function set_resident_password(string $token, string $password): array
     } catch (Throwable $e) {
         $pdo->rollBack();
         error_log('[set_resident_password] ' . $e->getMessage());
-        return ['ok' => false, 'message' => 'Hindi naitakda ang password.', 'data' => null];
+        return ['ok' => false, 'message' => L('Hindi naitakda ang password.', 'The password was not set.'), 'data' => null];
     }
-    return ['ok' => true, 'message' => 'Naitakda ang password. Maaari ka nang mag-login.', 'data' => null];
+    return ['ok' => true, 'message' => L('Naitakda ang password. Maaari ka nang mag-login.', 'Password set. You can now log in.'), 'data' => null];
 }
 
 /**
@@ -427,10 +427,10 @@ function request_password_reset(string $email): array
 {
     $email = strtolower(trim($email));
     $generic = ['ok' => true,
-        'message' => 'Kung nakarehistro ang email, may reset link na ipapadala. Tingnan ang inbox/spam.',
+        'message' => L('Kung nakarehistro ang email, may reset link na ipapadala. Tingnan ang inbox/spam.', 'If the email is registered, a reset link will be sent. Check your inbox/spam.'),
         'data' => null];
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        return ['ok' => false, 'message' => 'Hindi wastong email.', 'data' => null];
+        return ['ok' => false, 'message' => L('Hindi wastong email.', 'Invalid email address.'), 'data' => null];
     }
     $pdo  = db();
     $stmt = $pdo->prepare('SELECT ResidentID FROM residents WHERE Email = ? LIMIT 1');
@@ -452,7 +452,7 @@ function resident_login(string $identifier, string $password): array
 {
     $identifier = trim($identifier);
     if ($identifier === '' || $password === '') {
-        return ['ok' => false, 'message' => 'Kailangan ang email/contact at password.', 'data' => null];
+        return ['ok' => false, 'message' => L('Kailangan ang email/contact at password.', 'Email/contact and password are required.'), 'data' => null];
     }
     $column = filter_var($identifier, FILTER_VALIDATE_EMAIL) ? 'Email' : 'ContactNumber';
 
@@ -466,11 +466,38 @@ function resident_login(string $identifier, string $password): array
     $resident = $stmt->fetch();
 
     if (!$resident || !$resident['Password'] || !password_verify($password, $resident['Password'])) {
-        return ['ok' => false, 'message' => 'Maling email/contact o password.', 'data' => null];
+        return ['ok' => false, 'message' => L('Maling email/contact o password.', 'Wrong email/contact or password.'), 'data' => null];
     }
     if ($resident['access_status'] !== 'Active') {
-        return ['ok' => false, 'message' => 'Hindi pa aktibo ang account mo.', 'data' => null];
+        return ['ok' => false, 'message' => L('Hindi pa aktibo ang account mo.', 'Your account is not active yet.'), 'data' => null];
     }
     unset($resident['Password']);
-    return ['ok' => true, 'message' => 'Matagumpay ang pag-login.', 'data' => $resident];
+    return ['ok' => true, 'message' => L('Matagumpay ang pag-login.', 'Logged in successfully.'), 'data' => $resident];
+}
+
+/** Settings → change password: verify the current one, then save the new one. */
+function change_resident_password(int $residentId, string $current, string $new): array
+{
+    if ($residentId <= 0 || $current === '' || $new === '') {
+        return ['ok' => false, 'message' => L('Punan ang lahat ng kailangang field.', 'Please fill in all required fields.'), 'data' => null];
+    }
+    if (strlen($new) < 8) {
+        return ['ok' => false, 'message' => L('Dapat 8 karakter pataas ang password.', 'The password must be at least 8 characters.'), 'data' => null];
+    }
+    if ($new === $current) {
+        return ['ok' => false, 'message' => L('Dapat iba ang bagong password.', 'The new password must be different.'), 'data' => null];
+    }
+    $pdo  = db();
+    $stmt = $pdo->prepare('SELECT Password, access_status FROM residents WHERE ResidentID = ? LIMIT 1');
+    $stmt->execute([$residentId]);
+    $row = $stmt->fetch();
+    if (!$row || $row['access_status'] !== 'Active') {
+        return ['ok' => false, 'message' => L('Hindi aktibo ang account mo.', 'Your account is not active.'), 'data' => null];
+    }
+    if (!$row['Password'] || !password_verify($current, $row['Password'])) {
+        return ['ok' => false, 'message' => L('Mali ang kasalukuyang password.', 'The current password is wrong.'), 'data' => null];
+    }
+    $pdo->prepare('UPDATE residents SET Password = ?, ResetToken = NULL, TokenExpiry = NULL WHERE ResidentID = ?')
+        ->execute([password_hash($new, PASSWORD_BCRYPT), $residentId]);
+    return ['ok' => true, 'message' => L('Napalitan ang password.', 'Password changed.'), 'data' => null];
 }

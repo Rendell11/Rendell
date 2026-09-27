@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../models/access_request.dart';
+import '../l10n/app_text.dart';
 import '../services/api_service.dart';
+import '../theme/app_theme.dart';
 import '../widgets/app_scaffold.dart';
 import 'set_password_screen.dart';
 
@@ -42,7 +44,7 @@ class _StatusScreenState extends State<StatusScreen> {
   Future<void> _check() async {
     final id = _identifier.text.trim();
     if (id.isEmpty) {
-      setState(() => _error = 'Ilagay ang email o contact number.');
+      setState(() => _error = tr.enterEmailOrContact);
       return;
     }
     setState(() {
@@ -72,15 +74,15 @@ class _StatusScreenState extends State<StatusScreen> {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      title: 'Status ng Request',
+      title: tr.requestStatus,
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           TextField(
             controller: _identifier,
-            decoration: const InputDecoration(
-              labelText: 'Email o contact number',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: tr.emailOrContact,
+              border: const OutlineInputBorder(),
             ),
             onSubmitted: (_) => _check(),
           ),
@@ -93,7 +95,7 @@ class _StatusScreenState extends State<StatusScreen> {
                     width: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text('Tingnan ang Status'),
+                : Text(tr.checkStatus),
           ),
           const SizedBox(height: 20),
           if (_error != null)
@@ -116,13 +118,13 @@ class _StatusScreenState extends State<StatusScreen> {
                 style: const TextStyle(
                     fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 4),
-            Text(r.email, style: const TextStyle(color: Colors.black54)),
+            Text(r.email, style: TextStyle(color: AppColors.slate500)),
             const Divider(height: 24),
             Row(
               children: [
                 Icon(Icons.circle, size: 12, color: color),
                 const SizedBox(width: 8),
-                Text(r.status.db,
+                Text(tr.accessStatusLabel(r.status.db),
                     style: TextStyle(
                         color: color, fontWeight: FontWeight.bold)),
               ],
@@ -131,14 +133,14 @@ class _StatusScreenState extends State<StatusScreen> {
             Text(r.status.description),
             if ((r.adminReason ?? '').isNotEmpty) ...[
               const SizedBox(height: 8),
-              Text('Paalala ng admin: ${r.adminReason}',
+              Text('${tr.adminNote}: ${r.adminReason}',
                   style: const TextStyle(fontStyle: FontStyle.italic)),
             ],
             if (r.status.canSetPassword) ...[
               const SizedBox(height: 16),
               FilledButton.icon(
                 icon: const Icon(Icons.lock_outline),
-                label: const Text('I-set ang Password'),
+                label: Text(tr.setPassword),
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => const SetPasswordScreen(),

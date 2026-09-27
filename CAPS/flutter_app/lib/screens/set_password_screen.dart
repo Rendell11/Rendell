@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_text.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/brand_header.dart';
@@ -70,33 +71,33 @@ class _SetPasswordScreenState extends State<SetPasswordScreen> {
                       children: [
                         const BrandHeader(),
                         const SizedBox(height: 14),
-                        Text('SET PASSWORD',
+                        Text(tr.setPassword.toUpperCase(),
                             style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.w700,
                                 color: AppColors.heading2)),
                         const SizedBox(height: 4),
                         Text(
-                            'Enter the access token from the barangay, then choose a new password.',
+                            tr.setPasswordSub,
                             textAlign: TextAlign.center,
                             style: TextStyle(
                                 fontSize: 13, color: AppColors.slate400)),
                         const SizedBox(height: 20),
-                        _label('Access Token'),
+                        _label(tr.accessToken),
                         TextFormField(
                           controller: _token,
-                          decoration: AppTheme.field('Paste your token',
+                          decoration: AppTheme.field(tr.pasteToken,
                               icon: Icons.vpn_key_outlined),
                           validator: (v) => (v == null || v.trim().isEmpty)
-                              ? 'Required.'
+                              ? tr.required
                               : null,
                         ),
                         const SizedBox(height: 14),
-                        _label('New Password'),
+                        _label(tr.newPassword),
                         TextFormField(
                           controller: _password,
                           obscureText: _obscure,
-                          decoration: AppTheme.field('At least 8 characters',
+                          decoration: AppTheme.field(tr.atLeast8,
                               icon: Icons.lock_outline,
                               suffix: IconButton(
                                 icon: Icon(
@@ -109,22 +110,22 @@ class _SetPasswordScreenState extends State<SetPasswordScreen> {
                                     setState(() => _obscure = !_obscure),
                               )),
                           validator: (v) => (v == null || v.length < 8)
-                              ? 'At least 8 characters.'
+                              ? tr.atLeast8Error
                               : null,
                         ),
                         const SizedBox(height: 14),
-                        _label('Confirm Password'),
+                        _label(tr.confirmPassword),
                         TextFormField(
                           controller: _confirm,
                           obscureText: _obscure,
-                          decoration: AppTheme.field('Re-type password',
+                          decoration: AppTheme.field(tr.retypePassword,
                               icon: Icons.lock_outline),
                           validator: (v) =>
-                              v != _password.text ? 'Passwords do not match.' : null,
+                              v != _password.text ? tr.passwordsDontMatch : null,
                         ),
                         const SizedBox(height: 22),
                         PrimaryButton(
-                          label: 'Save Password',
+                          label: tr.savePassword,
                           icon: Icons.check,
                           loading: _saving,
                           onPressed: _submit,
@@ -133,7 +134,7 @@ class _SetPasswordScreenState extends State<SetPasswordScreen> {
                         TextButton.icon(
                           onPressed: () => Navigator.of(context).pop(),
                           icon: const Icon(Icons.arrow_back, size: 16),
-                          label: const Text('Back to Login'),
+                          label: Text(tr.backToLogin),
                         ),
                       ],
                     ),

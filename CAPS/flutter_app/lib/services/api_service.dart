@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 
 import '../config/api_config.dart';
+import '../l10n/app_text.dart';
 import '../models/access_request.dart';
 import '../models/barangay_profile.dart';
 import '../models/chat_message.dart';
@@ -39,6 +40,7 @@ class ApiService {
   }) async {
     try {
       final req = http.MultipartRequest('POST', _uri('request_access.php'))
+        ..headers.addAll(ApiConfig.headers)
         ..fields.addAll(request.toRequestFields());
 
       // fromBytes works on web AND mobile (fromPath fails on Flutter Web,
@@ -63,11 +65,10 @@ class ApiService {
         final id = int.tryParse(body['data']?['request_id']?.toString() ?? '');
         return ApiResult.success(
           id,
-          message: body['message']?.toString() ??
-              'Naisumite ang request. Maghintay ng approval.',
+          message: body['message']?.toString() ?? tr.requestSubmitted,
         );
       }
-      return ApiResult.failure(_msg(body, 'Hindi naisumite ang request.'));
+      return ApiResult.failure(_msg(body, tr.requestSubmitFailed));
     } catch (e) {
       return ApiResult.failure(_friendly(e));
     }
@@ -81,6 +82,7 @@ class ApiService {
     try {
       final res = await _client.post(
         _uri('check_status.php'),
+        headers: ApiConfig.headers,
         body: {
           if (email != null) 'email': email,
           if (contactNumber != null) 'contact_number': contactNumber,
@@ -92,7 +94,7 @@ class ApiService {
           AccessRequest.fromJson(Map<String, dynamic>.from(body['data'])),
         );
       }
-      return ApiResult.failure(_msg(body, 'Walang nahanap na request.'));
+      return ApiResult.failure(_msg(body, tr.requestNotFound));
     } catch (e) {
       return ApiResult.failure(_friendly(e));
     }
@@ -108,15 +110,15 @@ class ApiService {
     try {
       final res = await _client.post(
         _uri('set_password.php'),
+        headers: ApiConfig.headers,
         body: {'token': token, 'password': password},
       ).timeout(ApiConfig.timeout);
       final body = _decode(res);
       if (_ok(res, body)) {
         return ApiResult.success(null,
-            message: body['message']?.toString() ??
-                'Naitakda ang password. Maaari ka nang mag-login.');
+            message: body['message']?.toString() ?? tr.passwordSet);
       }
-      return ApiResult.failure(_msg(body, 'Hindi naitakda ang password.'));
+      return ApiResult.failure(_msg(body, tr.passwordSetFailed));
     } catch (e) {
       return ApiResult.failure(_friendly(e));
     }
@@ -130,6 +132,7 @@ class ApiService {
     try {
       final res = await _client.post(
         _uri('login.php'),
+        headers: ApiConfig.headers,
         body: {'identifier': identifier, 'password': password},
       ).timeout(ApiConfig.timeout);
       final body = _decode(res);
@@ -138,7 +141,7 @@ class ApiService {
           Resident.fromJson(Map<String, dynamic>.from(body['data'])),
         );
       }
-      return ApiResult.failure(_msg(body, 'Maling email/contact o password.'));
+      return ApiResult.failure(_msg(body, tr.loginFailed));
     } catch (e) {
       return ApiResult.failure(_friendly(e));
     }
@@ -150,6 +153,7 @@ class ApiService {
     try {
       final res = await _client.post(
         _uri('forgot_password.php'),
+        headers: ApiConfig.headers,
         body: {'email': email},
       ).timeout(ApiConfig.timeout);
       final body = _decode(res);
@@ -164,7 +168,7 @@ class ApiService {
   Future<({String accent, String mode})> fetchPublicTheme() async {
     try {
       final res = await _client
-          .get(_uri('theme.php'))
+          .get(_uri('theme.php'), headers: ApiConfig.headers)
           .timeout(const Duration(seconds: 5));
       final body = _decode(res);
       final data = body['data'];
@@ -183,7 +187,7 @@ class ApiService {
   Future<BarangayProfile?> fetchBarangayProfile() async {
     try {
       final res =
-          await _client.get(_uri('address.php?action=profile')).timeout(ApiConfig.timeout);
+          await _client.get(_uri('address.php?action=profile'), headers: ApiConfig.headers).timeout(ApiConfig.timeout);
       final body = _decode(res);
       final data = body['data'];
       if (_ok(res, body) && data is Map) {
@@ -199,7 +203,7 @@ class ApiService {
   Future<List<String>> fetchStreets(String barangayCode) async {
     try {
       final res = await _client
-          .get(_uri('address.php?action=streets&barangay=$barangayCode'))
+          .get(_uri('address.php?action=streets&barangay=$barangayCode'), headers: ApiConfig.headers)
           .timeout(ApiConfig.timeout);
       final body = _decode(res);
       final data = body['data'];
@@ -214,7 +218,7 @@ class ApiService {
   Future<List<AreaOption>> fetchAreas(String barangayCode) async {
     try {
       final res = await _client
-          .get(_uri('address.php?action=areas&barangay=$barangayCode'))
+          .get(_uri('address.php?action=areas&barangay=$barangayCode'), headers: ApiConfig.headers)
           .timeout(ApiConfig.timeout);
       final body = _decode(res);
       final data = body['data'];
@@ -231,7 +235,7 @@ class ApiService {
   Future<List<String>> fetchPuroks() async {
     try {
       final res = await _client
-          .get(_uri('puroks.php'))
+          .get(_uri('puroks.php'), headers: ApiConfig.headers)
           .timeout(ApiConfig.timeout);
       final body = _decode(res);
       final data = body['data'];
@@ -250,7 +254,7 @@ class ApiService {
   Future<ApiResult<ChatThread>> chatList(int residentId) async {
     try {
       final res = await _client
-          .get(_uri('chat.php?action=list&resident_id=$residentId'))
+          .get(_uri('chat.php?action=list&resident_id=$residentId'), headers: ApiConfig.headers)
           .timeout(ApiConfig.timeout);
       final body = _decode(res);
       if (_ok(res, body) && body['data'] is Map) {
@@ -258,7 +262,7 @@ class ApiService {
           ChatThread.fromJson(Map<String, dynamic>.from(body['data'])),
         );
       }
-      return ApiResult.failure(_msg(body, 'Hindi ma-load ang chat.'));
+      return ApiResult.failure(_msg(body, tr.chatLoadFailed));
     } catch (e) {
       return ApiResult.failure(_friendly(e));
     }
@@ -273,6 +277,7 @@ class ApiService {
     try {
       final res = await _client.post(
         _uri('chat.php'),
+        headers: ApiConfig.headers,
         body: {
           'action': 'send',
           'resident_id': '$residentId',
@@ -282,7 +287,7 @@ class ApiService {
       ).timeout(ApiConfig.timeout);
       final body = _decode(res);
       if (_ok(res, body)) return ApiResult.success(null, message: _msg(body, ''));
-      return ApiResult.failure(_msg(body, 'Hindi naipadala.'));
+      return ApiResult.failure(_msg(body, tr.chatSendFailed));
     } catch (e) {
       return ApiResult.failure(_friendly(e));
     }
@@ -293,11 +298,12 @@ class ApiService {
     try {
       final res = await _client.post(
         _uri('chat.php'),
+        headers: ApiConfig.headers,
         body: {'action': 'end', 'resident_id': '$residentId'},
       ).timeout(ApiConfig.timeout);
       final body = _decode(res);
       if (_ok(res, body)) return ApiResult.success(null, message: _msg(body, ''));
-      return ApiResult.failure(_msg(body, 'Hindi naisara.'));
+      return ApiResult.failure(_msg(body, tr.chatEndFailed));
     } catch (e) {
       return ApiResult.failure(_friendly(e));
     }
@@ -314,7 +320,7 @@ class ApiService {
       return decoded is Map<String, dynamic> ? decoded : {'data': decoded};
     } catch (_) {
       // Server returned HTML (a PHP error/warning) instead of JSON.
-      return {'success': false, 'message': 'Hindi wastong sagot ng server.'};
+      return {'success': false, 'message': tr.errBadResponse};
     }
   }
 
@@ -330,12 +336,12 @@ class ApiService {
 
   String _friendly(Object e) {
     if (e is TimeoutException) {
-      return 'Nag-timeout ang server. Subukan muli.';
+      return tr.errTimeout;
     }
     if (e is http.ClientException) {
-      return 'Hindi makakonekta sa server. Tingnan ang koneksyon at API base URL.';
+      return tr.errNoConnection;
     }
-    return 'Nagkaproblema: $e';
+    return tr.errGeneric('$e');
   }
 }
 

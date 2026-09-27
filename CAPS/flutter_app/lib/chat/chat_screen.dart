@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../l10n/app_text.dart';
 import '../models/chat_message.dart';
 import '../models/resident.dart';
 import '../services/api_service.dart';
@@ -105,16 +106,15 @@ class _ChatScreenState extends State<ChatScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Isara ang usapan?'),
-        content: const Text(
-            'Maaari kang magsimula ng bagong mensahe kahit kailan pagkatapos.'),
+        title: Text(tr.endChatTitle),
+        content: Text(tr.endChatBody),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Kanselahin')),
+              child: Text(tr.cancel)),
           FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Isara')),
+              child: Text(tr.close)),
         ],
       ),
     );
@@ -122,7 +122,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final res = await _api.chatEnd(_rid);
     if (!mounted) return;
     ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(res.message.isEmpty ? 'Naisara.' : res.message)));
+        .showSnackBar(SnackBar(content: Text(res.message.isEmpty ? tr.chatClosed : res.message)));
     _load();
   }
 
@@ -131,9 +131,9 @@ class _ChatScreenState extends State<ChatScreen> {
     final status = _thread.status;
     final active = status != 'None' && status != 'Resolved' && status != 'Closed';
     return Scaffold(
-      backgroundColor: const Color(0xFFEEF2FB),
+      backgroundColor: AppColors.scaffold,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F172A),
+        backgroundColor: AppColors.appBar,
         foregroundColor: Colors.white,
         elevation: 0,
         title: Row(
@@ -153,9 +153,9 @@ class _ChatScreenState extends State<ChatScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text('Barangay Chat',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
-                Text(active ? '$status conversation' : 'Barangay Staff',
+                Text(tr.barangayChat,
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+                Text(active ? tr.chatConversationStatus(status) : tr.barangayStaff,
                     style: const TextStyle(
                         fontSize: 11,
                         color: Colors.white70,
@@ -166,13 +166,13 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
         actions: [
           IconButton(
-            tooltip: 'Emergency hotlines',
+            tooltip: tr.emergencyHotlines,
             onPressed: _openHotlines,
             icon: const Icon(Icons.emergency_outlined),
           ),
           if (active)
             IconButton(
-              tooltip: 'Isara ang usapan',
+              tooltip: tr.endChatTitle,
               onPressed: _endConversation,
               icon: const Icon(Icons.check_circle_outline),
             ),
@@ -205,21 +205,21 @@ class _ChatScreenState extends State<ChatScreen> {
               width: 88,
               height: 88,
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(.08),
+                color: AppColors.primary.withValues(alpha: .08),
                 borderRadius: BorderRadius.circular(28),
               ),
               child: Icon(Icons.forum_outlined,
                   size: 40, color: AppColors.primary),
             ),
             const SizedBox(height: 18),
-            Text('Wala pang usapan',
+            Text(tr.noChatYet,
                 style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
                     color: AppColors.heading)),
             const SizedBox(height: 6),
             Text(
-                'Magpadala ng mensahe sa barangay staff. Sasagutin ka nila sa lalong madaling panahon.',
+                tr.noChatYetBody,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                     color: AppColors.slate500, fontSize: 13, height: 1.5)),
@@ -246,7 +246,7 @@ class _ChatScreenState extends State<ChatScreen> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             decoration: BoxDecoration(
-              color: AppColors.slate200.withOpacity(.4),
+              color: AppColors.slate200.withValues(alpha: .4),
               borderRadius: BorderRadius.circular(50),
             ),
             child: Text(m.message,
@@ -277,7 +277,7 @@ class _ChatScreenState extends State<ChatScreen> {
               crossAxisAlignment:
                   mine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
               children: [
-                Text(mine ? 'You' : 'Barangay Staff',
+                Text(mine ? tr.you : tr.barangayStaff,
                     style: TextStyle(
                         fontSize: 9,
                         fontWeight: FontWeight.w800,
@@ -288,7 +288,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
-                    color: mine ? AppColors.primary : Colors.white,
+                    color: mine ? AppColors.primary : AppColors.surface,
                     borderRadius: BorderRadius.only(
                       topLeft: const Radius.circular(16),
                       topRight: const Radius.circular(16),
@@ -297,10 +297,10 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                     border: mine
                         ? null
-                        : Border.all(color: AppColors.bgBottom),
+                        : Border.all(color: AppColors.border),
                     boxShadow: [
                       BoxShadow(
-                          color: Colors.black.withOpacity(.04),
+                          color: Colors.black.withValues(alpha: .04),
                           blurRadius: 6,
                           offset: const Offset(0, 2)),
                     ],
@@ -328,8 +328,8 @@ class _ChatScreenState extends State<ChatScreen> {
       padding: EdgeInsets.fromLTRB(
           12, 10, 12, 10 + MediaQuery.of(context).padding.bottom),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: AppColors.bgBottom)),
+        color: AppColors.surface,
+        border: Border(top: BorderSide(color: AppColors.border)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
@@ -341,9 +341,9 @@ class _ChatScreenState extends State<ChatScreen> {
               maxLines: 4,
               textInputAction: TextInputAction.newline,
               decoration: InputDecoration(
-                hintText: 'I-type ang iyong mensahe…',
+                hintText: tr.typeMessage,
                 filled: true,
-                fillColor: const Color(0xFFF1F5F9),
+                fillColor: AppColors.muted,
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 border: OutlineInputBorder(
@@ -390,19 +390,19 @@ class _ChatScreenState extends State<ChatScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(children: [
-              Icon(Icons.emergency, color: AppColors.danger, size: 20),
+              const Icon(Icons.emergency, color: AppColors.danger, size: 20),
               const SizedBox(width: 8),
-              const Text('Emergency Hotlines',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+              Text(tr.emergencyHotlines,
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
             ]),
             const SizedBox(height: 6),
-            Text('Pindutin para tumawag (sa totoong device).',
+            Text(tr.tapToCall,
                 style: TextStyle(fontSize: 12, color: AppColors.slate400)),
             const SizedBox(height: 16),
             if (_thread.hotlines.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 20),
-                child: Text('Wala pang naka-configure na hotline.',
+                child: Text(tr.noHotlines,
                     style: TextStyle(color: AppColors.slate400)),
               )
             else
@@ -412,7 +412,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                          color: _hotlineColor(h.color).withOpacity(.15),
+                          color: _hotlineColor(h.color).withValues(alpha: .15),
                           borderRadius: BorderRadius.circular(12)),
                       child: Icon(Icons.call,
                           color: _hotlineColor(h.color), size: 20),
