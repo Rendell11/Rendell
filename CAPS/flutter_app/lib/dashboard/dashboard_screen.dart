@@ -12,6 +12,7 @@ import '../announcements/announcement_detail_screen.dart';
 import '../announcements/announcement_widgets.dart';
 import '../announcements/announcements_screen.dart';
 import '../complaint/complaint_screen.dart';
+import '../household/household_screen.dart';
 import '../officials/officials_screen.dart';
 import '../settings/app_settings.dart';
 import '../settings/settings_screen.dart';
@@ -186,6 +187,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void _openModule(BuildContext context, ResidentModule m) {
     if (m.id == 'announcements') {
       _openAnnouncements(context);
+      return;
+    }
+    if (m.id == 'household') {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => HouseholdScreen(resident: resident)),
+      );
       return;
     }
     if (m.id == 'officials') {

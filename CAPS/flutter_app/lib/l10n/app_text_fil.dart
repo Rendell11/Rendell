@@ -31,20 +31,7 @@ class AppTextFil extends AppText {
   @override
   String comingSoon(String feature) => '$feature — malapit nang idagdag.';
   @override
-  List<String> get monthsShort => const [
-        'Ene',
-        'Peb',
-        'Mar',
-        'Abr',
-        'May',
-        'Hun',
-        'Hul',
-        'Ago',
-        'Set',
-        'Okt',
-        'Nob',
-        'Dis'
-      ];
+  List<String> get monthsShort => const ['Ene', 'Peb', 'Mar', 'Abr', 'May', 'Hun', 'Hul', 'Ago', 'Set', 'Okt', 'Nob', 'Dis'];
   @override
   String get refresh => 'I-refresh';
 
@@ -52,15 +39,13 @@ class AppTextFil extends AppText {
   @override
   String get errTimeout => 'Nag-timeout ang server. Subukan muli.';
   @override
-  String get errNoConnection =>
-      'Hindi makakonekta sa server. Tingnan ang koneksyon at API base URL.';
+  String get errNoConnection => 'Hindi makakonekta sa server. Tingnan ang koneksyon at API base URL.';
   @override
   String errGeneric(String error) => 'Nagkaproblema: $error';
   @override
   String get errBadResponse => 'Hindi wastong sagot ng server.';
   @override
-  String get requestSubmitted =>
-      'Naisumite ang request. Maghintay ng approval.';
+  String get requestSubmitted => 'Naisumite ang request. Maghintay ng approval.';
   @override
   String get requestSubmitFailed => 'Hindi naisumite ang request.';
   @override
@@ -96,8 +81,7 @@ class AppTextFil extends AppText {
   @override
   String get themeSystem => 'Auto';
   @override
-  String get themeFollowsBarangay =>
-      'Sinusunod ang default ng barangay. Ang "Auto" ay sumusunod sa phone mo.';
+  String get themeFollowsBarangay => 'Sinusunod ang default ng barangay. Ang "Auto" ay sumusunod sa phone mo.';
   @override
   String get accentColor => 'Kulay ng app';
   @override
@@ -129,11 +113,9 @@ class AppTextFil extends AppText {
   @override
   String get changePassword => 'Palitan ang password';
   @override
-  String get changePasswordSub =>
-      'Palitan ang password na ginagamit sa pag-login';
+  String get changePasswordSub => 'Palitan ang password na ginagamit sa pag-login';
   @override
-  String get changePasswordIntro =>
-      'Ilagay ang kasalukuyang password, tapos pumili ng bago (hindi bababa sa 8 karakter).';
+  String get changePasswordIntro => 'Ilagay ang kasalukuyang password, tapos pumili ng bago (hindi bababa sa 8 karakter).';
   @override
   String get currentPassword => 'Kasalukuyang password';
   @override
@@ -171,8 +153,7 @@ class AppTextFil extends AppText {
   @override
   String get createPin => 'Gumawa ng PIN';
   @override
-  String get createPinSub =>
-      'Pumili ng 6-digit PIN para sa mabilis na pag-login.';
+  String get createPinSub => 'Pumili ng 6-digit PIN para sa mabilis na pag-login.';
   @override
   String get confirmPin => 'Kumpirmahin ang PIN';
   @override
@@ -188,18 +169,15 @@ class AppTextFil extends AppText {
   @override
   String get biometricUnlock => 'Fingerprint / face unlock';
   @override
-  String get biometricUnlockSub =>
-      'Buksan ang app nang hindi tina-type ang PIN';
+  String get biometricUnlockSub => 'Buksan ang app nang hindi tina-type ang PIN';
   @override
-  String get biometricConfirmReason =>
-      'Kumpirmahin para buksan ang iyong account';
+  String get biometricConfirmReason => 'Kumpirmahin para buksan ang iyong account';
   @override
   String get stayedSignedIn => 'Manatiling naka-login';
   @override
   String sessionUntil(String date) => 'Hanggang $date';
   @override
-  String get sessionNotRemembered =>
-      'Hindi naka-save sa device na ito — mag-login ka tuwing bubuksan.';
+  String get sessionNotRemembered => 'Hindi naka-save sa device na ito — mag-login ka tuwing bubuksan.';
   @override
   String get about => 'Tungkol sa app';
   @override
@@ -207,16 +185,13 @@ class AppTextFil extends AppText {
   @override
   String get needHelp => 'Kailangan ng tulong?';
   @override
-  String get needHelpSub =>
-      'Pumunta sa Barangay Hall o tumawag sa (044) 123-4567, Lun–Biy 8 AM–5 PM.';
+  String get needHelpSub => 'Pumunta sa Barangay Hall o tumawag sa (044) 123-4567, Lun–Biy 8 AM–5 PM.';
   @override
   String get resetAppearanceTitle => 'I-reset ang itsura';
   @override
-  String get resetAppearanceSub =>
-      'Ibalik sa default na tema, kulay at laki ng text ng barangay';
+  String get resetAppearanceSub => 'Ibalik sa default na tema, kulay at laki ng text ng barangay';
   @override
-  String get resetAppearanceBody =>
-      'Babalik sa default ng barangay ang tema, kulay at laki ng text. Hindi magbabago ang wika.';
+  String get resetAppearanceBody => 'Babalik sa default ng barangay ang tema, kulay at laki ng text. Hindi magbabago ang wika.';
   @override
   String get resetAppearanceDone => 'Na-reset ang itsura.';
   @override
@@ -224,25 +199,19 @@ class AppTextFil extends AppText {
   @override
   String get logoutConfirmTitle => 'Mag-logout?';
   @override
-  String get logoutConfirmBody =>
-      'Kakailanganin mong mag-login ulit gamit ang email at password.';
+  String get logoutConfirmBody => 'Kakailanganin mong mag-login ulit gamit ang email at password.';
 
   // ── Access request status
   @override
-  String get statusPendingDesc =>
-      'Nasa admin pa ang request mo. Maghintay ng abiso.';
+  String get statusPendingDesc => 'Nasa admin pa ang request mo. Maghintay ng abiso.';
   @override
-  String get statusApprovedDesc =>
-      'Aprubado! Maaari mo nang i-set ang password mo.';
+  String get statusApprovedDesc => 'Aprubado! Maaari mo nang i-set ang password mo.';
   @override
-  String get statusProfilingDesc =>
-      'Kailangan mo munang kumpletuhin ang profile mo.';
+  String get statusProfilingDesc => 'Kailangan mo munang kumpletuhin ang profile mo.';
   @override
-  String get statusCorrectionDesc =>
-      'May kailangang itama sa request mo. Tingnan ang paalala ng admin.';
+  String get statusCorrectionDesc => 'May kailangang itama sa request mo. Tingnan ang paalala ng admin.';
   @override
-  String get statusRejectedDesc =>
-      'Hindi naaprubahan ang request. Tingnan ang dahilan ng admin.';
+  String get statusRejectedDesc => 'Hindi naaprubahan ang request. Tingnan ang dahilan ng admin.';
 
   // ── Lock / PIN
   @override
@@ -292,8 +261,7 @@ class AppTextFil extends AppText {
   @override
   String get trackRequestStatus => 'Tingnan ang Status ng Request';
   @override
-  String get trackRequestSub =>
-      'Ilagay ang email mo para makita ang status ng isinumite mong request.';
+  String get trackRequestSub => 'Ilagay ang email mo para makita ang status ng isinumite mong request.';
   @override
   String get check => 'Tingnan';
   @override
@@ -303,16 +271,7 @@ class AppTextFil extends AppText {
   @override
   String get adminLabel => 'Admin';
   @override
-  String accessStatusLabel(String status) => switch (status) {
-        'Pending' => 'Nakabinbin',
-        'Approved' => 'Aprubado',
-        'Disapproved' => 'Hindi aprubado',
-        'Matched' => 'Aprubado',
-        'For Profiling' => 'Para sa Profiling',
-        'For Correction' => 'Para Itama',
-        'Rejected' => 'Tinanggihan',
-        _ => status
-      };
+  String accessStatusLabel(String status) => switch (status) { 'Pending' => 'Nakabinbin', 'Approved' => 'Aprubado', 'Disapproved' => 'Hindi aprubado', 'Matched' => 'Aprubado', 'For Profiling' => 'Para sa Profiling', 'For Correction' => 'Para Itama', 'Rejected' => 'Tinanggihan', _ => status };
 
   // ── Forgot / set password / status
   @override
@@ -320,23 +279,19 @@ class AppTextFil extends AppText {
   @override
   String get forgotPassword => 'Nakalimutan ang Password';
   @override
-  String get forgotPasswordSub =>
-      'Ilagay ang nakarehistrong email mo at magpapadala kami ng reset link.';
+  String get forgotPasswordSub => 'Ilagay ang nakarehistrong email mo at magpapadala kami ng reset link.';
   @override
   String get enterRegisteredEmail => 'Ilagay ang nakarehistrong email address';
   @override
-  String get resetLinkExpiry =>
-      'Mag-e-expire ang reset link sa loob ng 1 oras. Tingnan ang spam folder kung wala sa inbox.';
+  String get resetLinkExpiry => 'Mag-e-expire ang reset link sa loob ng 1 oras. Tingnan ang spam folder kung wala sa inbox.';
   @override
   String get sendResetLink => 'Ipadala ang Reset Link';
   @override
   String get checkYourEmail => 'Tingnan ang Email Mo';
   @override
-  String get checkYourEmailSub =>
-      'Kung nakarehistro ang email, makakatanggap ka ng password reset link. Tingnan ang inbox (at spam folder).';
+  String get checkYourEmailSub => 'Kung nakarehistro ang email, makakatanggap ka ng password reset link. Tingnan ang inbox (at spam folder).';
   @override
-  String get setPasswordSub =>
-      'Ilagay ang access token mula sa barangay, tapos pumili ng bagong password.';
+  String get setPasswordSub => 'Ilagay ang access token mula sa barangay, tapos pumili ng bagong password.';
   @override
   String get accessToken => 'Access Token';
   @override
@@ -366,11 +321,9 @@ class AppTextFil extends AppText {
   @override
   String get raPleaseUploadASelfie => 'Mag-upload ng selfie hawak ang ID.';
   @override
-  String get raEnterAValidDate =>
-      'Maglagay ng wastong kapanganakan (mm/dd/yyyy).';
+  String get raEnterAValidDate => 'Maglagay ng wastong kapanganakan (mm/dd/yyyy).';
   @override
-  String get raBarangayAddressIsNot =>
-      'Hindi pa naka-set ang barangay address. Makipag-ugnayan sa barangay.';
+  String get raBarangayAddressIsNot => 'Hindi pa naka-set ang barangay address. Makipag-ugnayan sa barangay.';
   @override
   String get raPleaseSelectYourStreet => 'Pumili ng kalye at purok/area.';
   @override
@@ -378,11 +331,9 @@ class AppTextFil extends AppText {
   @override
   String get raRequestPortalAccess => 'Humiling ng Access';
   @override
-  String get raFillOutTheForm =>
-      'Punan ang form upang humiling ng access sa Resident Portal.';
+  String get raFillOutTheForm => 'Punan ang form upang humiling ng access sa Resident Portal.';
   @override
-  String get raUploadAValidId =>
-      'Mag-upload ng valid ID para patunayan na residente ka ng Barangay Biñang 2nd. May email ka na matatanggap pagkatapos ng review.';
+  String get raUploadAValidId => 'Mag-upload ng valid ID para patunayan na residente ka ng Barangay Biñang 2nd. May email ka na matatanggap pagkatapos ng review.';
   @override
   String get raPersonalInformation => 'Personal na Impormasyon';
   @override
@@ -422,8 +373,7 @@ class AppTextFil extends AppText {
   @override
   String get raSelectStreet => 'Pumili ng kalye';
   @override
-  String get raSubdivisionVillageSitioPurok =>
-      'Subdivision / Village / Sitio / Purok';
+  String get raSubdivisionVillageSitioPurok => 'Subdivision / Village / Sitio / Purok';
   @override
   String get raNoAreasConfigured => 'Walang area';
   @override
@@ -431,11 +381,9 @@ class AppTextFil extends AppText {
   @override
   String get raDefaultAddress => 'Default na address';
   @override
-  String get raYouOnlyNeedTo =>
-      'Ilagay na lang ang house number, building, kalye at subdivision/sitio/purok.';
+  String get raYouOnlyNeedTo => 'Ilagay na lang ang house number, building, kalye at subdivision/sitio/purok.';
   @override
-  String get raTheBarangayDefaultAddress =>
-      'Hindi pa naka-set ang default na address ng barangay. Makipag-ugnayan sa barangay.';
+  String get raTheBarangayDefaultAddress => 'Hindi pa naka-set ang default na address ng barangay. Makipag-ugnayan sa barangay.';
   @override
   String get raVerificationRequirement => 'Kinakailangan sa Beripikasyon';
   @override
@@ -455,8 +403,7 @@ class AppTextFil extends AppText {
   @override
   String get raYourRequestHasBeen => 'Natanggap na ang request mo!';
   @override
-  String get raTheBarangayStaffWill =>
-      'Susuriin ng Barangay Staff ang iyong application at valid ID. May email ka na matatanggap kapag naproseso na.';
+  String get raTheBarangayStaffWill => 'Susuriin ng Barangay Staff ang iyong application at valid ID. May email ka na matatanggap kapag naproseso na.';
   @override
   String get raWhatHappensNext2 => 'Ano ang susunod?';
   @override
@@ -470,30 +417,15 @@ class AppTextFil extends AppText {
   @override
   String get zipCode => 'ZIP Code';
   @override
-  String get raValidIdExamples =>
-      '(Driver\'s License, PhilSys ID, Voter\'s ID, Passport, atbp.)';
+  String get raValidIdExamples => '(Driver\'s License, PhilSys ID, Voter\'s ID, Passport, atbp.)';
   @override
   String get raSelected => 'Napili';
   @override
   String get raRequestSubmitted => 'Naisumite ang Request';
   @override
-  List<List<String>> get raNextSteps => const [
-        ['Isumite ang Form', 'Punan at isumite ang form kasama ang valid ID.'],
-        [
-          'Susuriin ng Staff',
-          'Beberipikahin ng barangay staff ang info at ID mo.'
-        ],
-        ['Approve o Reject', 'Aabisuhan ka sa email ng desisyon.'],
-        ['Password Setup Link', 'Kung aprubado, may link na ipapadala.'],
-        ['Gawin ang Password', 'Itakda ang password gamit ang link.']
-      ];
+  List<List<String>> get raNextSteps => const [['Isumite ang Form', 'Punan at isumite ang form kasama ang valid ID.'], ['Susuriin ng Staff', 'Beberipikahin ng barangay staff ang info at ID mo.'], ['Approve o Reject', 'Aabisuhan ka sa email ng desisyon.'], ['Password Setup Link', 'Kung aprubado, may link na ipapadala.'], ['Gawin ang Password', 'Itakda ang password gamit ang link.']];
   @override
-  List<String> get raSuccessSteps => const [
-        'Susuriin ng staff ang info at valid ID mo',
-        'May email ka: Approved o Disapproved',
-        'Kung aprubado, may password setup link',
-        'Itakda ang password at mag-login'
-      ];
+  List<String> get raSuccessSteps => const ['Susuriin ng staff ang info at valid ID mo', 'May email ka: Approved o Disapproved', 'Kung aprubado, may password setup link', 'Itakda ang password at mag-login'];
 
   // ── Request access (hint)
   @override
@@ -501,15 +433,7 @@ class AppTextFil extends AppText {
 
   // ── Dashboard
   @override
-  String moduleLabel(String id) => switch (id) {
-        'household' => 'Sambahayan',
-        'announcements' => 'Mga Anunsyo',
-        'documents' => 'Humiling ng Dokumento',
-        'complaints' => 'Mga Reklamo',
-        'officials' => 'Mga Opisyal',
-        'chat' => 'Chat',
-        _ => id
-      };
+  String moduleLabel(String id) => switch (id) { 'household' => 'Sambahayan', 'announcements' => 'Mga Anunsyo', 'documents' => 'Humiling ng Dokumento', 'complaints' => 'Mga Reklamo', 'officials' => 'Mga Opisyal', 'chat' => 'Chat', _ => id };
   @override
   String get modules => 'Mga Module';
   @override
@@ -563,8 +487,7 @@ class AppTextFil extends AppText {
   @override
   String get needAssistance => 'Kailangan ng Tulong?';
   @override
-  String get helpBody =>
-      'Bisitahin ang Barangay Hall o tumawag sa opisina para sa tulong sa iyong mga request at dokumento.';
+  String get helpBody => 'Bisitahin ang Barangay Hall o tumawag sa opisina para sa tulong sa iyong mga request at dokumento.';
   @override
   String get officeHours => 'Lun – Biy, 8:00 AM – 5:00 PM';
 
@@ -572,8 +495,7 @@ class AppTextFil extends AppText {
   @override
   String get endChatTitle => 'Isara ang usapan?';
   @override
-  String get endChatBody =>
-      'Maaari kang magsimula ng bagong mensahe kahit kailan pagkatapos.';
+  String get endChatBody => 'Maaari kang magsimula ng bagong mensahe kahit kailan pagkatapos.';
   @override
   String get chatClosed => 'Naisara.';
   @override
@@ -581,18 +503,13 @@ class AppTextFil extends AppText {
   @override
   String get barangayStaff => 'Barangay Staff';
   @override
-  String chatConversationStatus(String status) => switch (status) {
-        'Pending' => 'Hinihintay ang staff',
-        'Ongoing' => 'Kasalukuyang usapan',
-        _ => 'Usapan: $status'
-      };
+  String chatConversationStatus(String status) => switch (status) { 'Pending' => 'Hinihintay ang staff', 'Ongoing' => 'Kasalukuyang usapan', _ => 'Usapan: $status' };
   @override
   String get emergencyHotlines => 'Emergency Hotlines';
   @override
   String get noChatYet => 'Wala pang usapan';
   @override
-  String get noChatYetBody =>
-      'Magpadala ng mensahe sa barangay staff. Sasagutin ka nila sa lalong madaling panahon.';
+  String get noChatYetBody => 'Magpadala ng mensahe sa barangay staff. Sasagutin ka nila sa lalong madaling panahon.';
   @override
   String get you => 'Ikaw';
   @override
@@ -616,13 +533,11 @@ class AppTextFil extends AppText {
   @override
   String get noComplaintsYet => 'Wala ka pang reklamo';
   @override
-  String get noComplaintsYetBody =>
-      'Pindutin ang "Magsumite ng Reklamo" para magpadala ng reklamo sa barangay.';
+  String get noComplaintsYetBody => 'Pindutin ang "Magsumite ng Reklamo" para magpadala ng reklamo sa barangay.';
   @override
   String get noMatches => 'Walang tugma';
   @override
-  String get noMatchesBody =>
-      'Walang reklamong tugma sa iyong hinahanap o filter.';
+  String get noMatchesBody => 'Walang reklamong tugma sa iyong hinahanap o filter.';
   @override
   String get newReply => 'Bagong sagot';
   @override
@@ -630,36 +545,15 @@ class AppTextFil extends AppText {
   @override
   String get hasAttachment => 'May attachment';
   @override
-  String complaintStatusLabel(String status) => switch (status) {
-        'Pending' => 'Nakabinbin',
-        'Ongoing' => 'Inaaksyunan',
-        'Resolved' => 'Naresolba',
-        _ => status
-      };
+  String complaintStatusLabel(String status) => switch (status) { 'Pending' => 'Nakabinbin', 'Ongoing' => 'Inaaksyunan', 'Resolved' => 'Naresolba', _ => status };
   @override
-  String priorityLabel(String priority) => switch (priority) {
-        'Low' => 'Mababa',
-        'Medium' => 'Katamtaman',
-        'High (Urgent)' => 'Mataas (Urgent)',
-        _ => priority
-      };
+  String priorityLabel(String priority) => switch (priority) { 'Low' => 'Mababa', 'Medium' => 'Katamtaman', 'High (Urgent)' => 'Mataas (Urgent)', _ => priority };
   @override
-  String complaintCategoryLabel(String category) => switch (category) {
-        'Noise Complaint' => 'Ingay',
-        'Garbage/Sanitation' => 'Basura/Kalinisan',
-        'Property Dispute' => 'Alitan sa Ari-arian',
-        'Harassment' => 'Panliligalig',
-        'Domestic Issue' => 'Problema sa Tahanan',
-        'Road/Infrastructure' => 'Kalsada/Imprastraktura',
-        'Public Safety' => 'Kaligtasang Pampubliko',
-        'Other' => 'Iba pa (ilagay sa ibaba)',
-        _ => category
-      };
+  String complaintCategoryLabel(String category) => switch (category) { 'Noise Complaint' => 'Ingay', 'Garbage/Sanitation' => 'Basura/Kalinisan', 'Property Dispute' => 'Alitan sa Ari-arian', 'Harassment' => 'Panliligalig', 'Domestic Issue' => 'Problema sa Tahanan', 'Road/Infrastructure' => 'Kalsada/Imprastraktura', 'Public Safety' => 'Kaligtasang Pampubliko', 'Other' => 'Iba pa (ilagay sa ibaba)', _ => category };
 
   // ── Complaints (form)
   @override
-  String get photoTooLarge =>
-      'Masyadong malaki ang larawan. Hanggang 5 MB lang.';
+  String get photoTooLarge => 'Masyadong malaki ang larawan. Hanggang 5 MB lang.';
   @override
   String get takePhoto => 'Kumuha ng larawan';
   @override
@@ -669,8 +563,7 @@ class AppTextFil extends AppText {
   @override
   String get complaintSubmittedTitle => 'Naisumite ang reklamo';
   @override
-  String complaintSubmittedBody(String ref) =>
-      'Reference No: $ref\n\nSusuriin ito ng barangay. Makikita mo rito ang status at sagot ng admin.';
+  String complaintSubmittedBody(String ref) => 'Reference No: $ref\n\nSusuriin ito ng barangay. Makikita mo rito ang status at sagot ng admin.';
   @override
   String get requiredFieldsNote => 'Lahat ng may * ay kailangan';
   @override
@@ -708,8 +601,7 @@ class AppTextFil extends AppText {
   @override
   String get descriptionLabel => 'Paglalarawan';
   @override
-  String get descriptionHint =>
-      'Ilarawan nang detalyado ang nangyari (sino, ano, kailan)…';
+  String get descriptionHint => 'Ilarawan nang detalyado ang nangyari (sino, ano, kailan)…';
   @override
   String get enterDescription => 'Ilarawan ang reklamo.';
   @override
@@ -723,11 +615,9 @@ class AppTextFil extends AppText {
   @override
   String get submitAnonymously => 'Isumite nang anonymous';
   @override
-  String get submitAnonymouslySub =>
-      'Hindi ipapakita ang iyong pangalan sa admin. Ikaw pa rin ang makakakita ng reklamo at ng sagot dito sa app.';
+  String get submitAnonymouslySub => 'Hindi ipapakita ang iyong pangalan sa admin. Ikaw pa rin ang makakakita ng reklamo at ng sagot dito sa app.';
   @override
-  String get truthfulnessCheck =>
-      'Pinapatunayan ko na totoo ang impormasyong ito. Ipinagbabawal ng batas ang pagsasampa ng maling reklamo.';
+  String get truthfulnessCheck => 'Pinapatunayan ko na totoo ang impormasyong ito. Ipinagbabawal ng batas ang pagsasampa ng maling reklamo.';
   @override
   String get submitComplaint => 'Isumite ang Reklamo';
 
@@ -743,11 +633,9 @@ class AppTextFil extends AppText {
   @override
   String submittedOn(String date) => 'Isinumite $date';
   @override
-  List<String> get complaintSteps =>
-      const ['Naisumite', 'Inaaksyunan', 'Naresolba'];
+  List<String> get complaintSteps => const ['Naisumite', 'Inaaksyunan', 'Naresolba'];
   @override
-  String get noReplyYet =>
-      'Wala pang sagot ang barangay. Ia-update ito kapag nasuri na ang iyong reklamo.';
+  String get noReplyYet => 'Wala pang sagot ang barangay. Ia-update ito kapag nasuri na ang iyong reklamo.';
   @override
   String get barangayAdmin => 'Barangay Admin';
   @override
@@ -785,8 +673,7 @@ class AppTextFil extends AppText {
   @override
   String get removePhotoBody => 'Ang initials mo ang ipapakita.';
   @override
-  String get profileViewOnly =>
-      'Makikita lang dito ang iyong mga detalye. Para magpatama, pumunta sa Barangay Hall.';
+  String get profileViewOnly => 'Makikita lang dito ang iyong mga detalye. Para magpatama, pumunta sa Barangay Hall.';
   @override
   String get personalInformation => 'Personal na Impormasyon';
   @override
@@ -852,27 +739,7 @@ class AppTextFil extends AppText {
   @override
   String get viewProfile => 'Tingnan ang profile';
   @override
-  String valueLabel(String value) => switch (value) {
-        'Male' => 'Lalaki',
-        'Female' => 'Babae',
-        'Single' => 'Walang asawa',
-        'Married' => 'May asawa',
-        'Widowed' => 'Balo',
-        'Separated' => 'Hiwalay',
-        'Employed' => 'May trabaho',
-        'Unemployed' => 'Walang trabaho',
-        'Self-Employed' => 'Sariling negosyo',
-        'Retired' => 'Retirado',
-        'Student' => 'Estudyante',
-        'Head of Family' => 'Pinuno ng Pamilya',
-        'Father' => 'Ama',
-        'Mother' => 'Ina',
-        'Son' => 'Anak (lalaki)',
-        'Daughter' => 'Anak (babae)',
-        'Spouse' => 'Asawa',
-        'Filipino' => 'Pilipino',
-        _ => value
-      };
+  String valueLabel(String value) => switch (value) { 'Male' => 'Lalaki', 'Female' => 'Babae', 'Single' => 'Walang asawa', 'Married' => 'May asawa', 'Widowed' => 'Balo', 'Separated' => 'Hiwalay', 'Employed' => 'May trabaho', 'Unemployed' => 'Walang trabaho', 'Self-Employed' => 'Sariling negosyo', 'Retired' => 'Retirado', 'Student' => 'Estudyante', 'Head of Family' => 'Pinuno ng Pamilya', 'Father' => 'Ama', 'Mother' => 'Ina', 'Son' => 'Anak (lalaki)', 'Daughter' => 'Anak (babae)', 'Spouse' => 'Asawa', 'Filipino' => 'Pilipino', _ => value };
 
   // ── Officials
   @override
@@ -896,13 +763,7 @@ class AppTextFil extends AppText {
   @override
   String get termNotSet => 'Walang nakatakdang termino';
   @override
-  String officialPosition(String p) => switch (p) {
-        'Barangay Captain' => 'Punong Barangay',
-        'Barangay Secretary' => 'Kalihim ng Barangay',
-        'Barangay Treasurer' => 'Ingat-yaman ng Barangay',
-        'SK Chairperson' => 'SK Chairperson',
-        _ => p
-      };
+  String officialPosition(String p) => switch (p) { 'Barangay Captain' => 'Punong Barangay', 'Barangay Secretary' => 'Kalihim ng Barangay', 'Barangay Treasurer' => 'Ingat-yaman ng Barangay', 'SK Chairperson' => 'SK Chairperson', _ => p };
 
   // ── Announcements
   @override
@@ -922,18 +783,75 @@ class AppTextFil extends AppText {
   @override
   String attachmentsCount(int n) => '$n attachment';
   @override
-  String get attachmentAtBarangay =>
-      'Para sa kopya ng mga file na ito, pumunta sa Barangay Hall.';
+  String get attachmentAtBarangay => 'Para sa kopya ng mga file na ito, pumunta sa Barangay Hall.';
   @override
   String get viewAll => 'Tingnan lahat';
   @override
-  String announcementCategory(String c) => switch (c) {
-        'General' => 'Pangkalahatan',
-        'Health Advisory' => 'Abiso sa Kalusugan',
-        'Health' => 'Kalusugan',
-        'Community Event' => 'Kaganapan sa Komunidad',
-        'Emergency Notice' => 'Emergency',
-        'Others' => 'Iba pa',
-        _ => c
-      };
+  String announcementCategory(String c) => switch (c) { 'General' => 'Pangkalahatan', 'Health Advisory' => 'Abiso sa Kalusugan', 'Health' => 'Kalusugan', 'Community Event' => 'Kaganapan sa Komunidad', 'Emergency Notice' => 'Emergency', 'Others' => 'Iba pa', _ => c };
+
+  // ── Household
+  @override
+  String get myHousehold => 'Aking Sambahayan';
+  @override
+  String get householdLoadFailed => 'Hindi ma-load ang sambahayan.';
+  @override
+  String get youAreHead => 'Ikaw ang Pinuno ng Sambahayan ng pamilyang ito.';
+  @override
+  String youAreMemberOf(String head) => 'Kasapi ka ng sambahayan ni $head.';
+  @override
+  String get yourRole => 'Iyong tungkulin';
+  @override
+  String get householdHeadRole => 'Pinuno ng Sambahayan';
+  @override
+  String get noHouseholdTitle => 'Wala pang naka-link na sambahayan';
+  @override
+  String get noHouseholdBody => 'Hindi pa naka-link ang iyong account sa isang sambahayan. Pumunta sa barangay office para ma-link ka ng staff sa record ng sambahayan ng inyong pamilya.';
+  @override
+  String get householdInfo => 'Impormasyon ng Sambahayan';
+  @override
+  String get householdId => 'Household ID';
+  @override
+  String get notYetAssigned => 'Wala pang naka-assign';
+  @override
+  String get houseType => 'Uri ng bahay';
+  @override
+  String get tenureStatus => 'Katayuan ng tirahan';
+  @override
+  String get monthlyIncome => 'Buwanang kita';
+  @override
+  String incomeClass(String c) => switch (c) { 'Low Income' => 'Mababang kita', 'Lower Middle Income' => 'Mababang-gitnang kita', 'Middle Income' => 'Gitnang kita', 'Upper Middle Income' => 'Mataas-gitnang kita', 'High Income' => 'Mataas na kita', _ => c };
+  @override
+  String get registeredOn => 'Nairehistro';
+  @override
+  String get householdSurvey => 'Household survey';
+  @override
+  String get surveyOnFile => 'Nakatala na';
+  @override
+  String get surveyNotOnFile => 'Wala pang tala';
+  @override
+  String get householdSummary => 'Buod ng Sambahayan';
+  @override
+  String get statTotal => 'Kabuuan';
+  @override
+  String get statMale => 'Lalaki';
+  @override
+  String get statFemale => 'Babae';
+  @override
+  String get statSeniors => 'Senior';
+  @override
+  String get statMinors => 'Menor de edad';
+  @override
+  String get householdMembers => 'Mga Kasapi ng Sambahayan';
+  @override
+  String membersCount(int n) => '$n tao';
+  @override
+  String yearsOld(int n) => '$n taon';
+  @override
+  String get voter => 'Botante';
+  @override
+  String get senior => 'Senior';
+  @override
+  String get householdViewOnly => 'Ang barangay ang nag-aayos ng record ng sambahayan. Para magdagdag o mag-alis ng kasapi o magtama ng detalye, pumunta sa barangay office.';
+  @override
+  String relationLabel(String r) => switch (r) { 'Head of Family' => 'Pinuno ng Pamilya', 'Father' => 'Ama', 'Mother' => 'Ina', 'Son' => 'Anak (lalaki)', 'Daughter' => 'Anak (babae)', 'Child' => 'Anak', 'Spouse' => 'Asawa', 'Wife' => 'Asawa (babae)', 'Husband' => 'Asawa (lalaki)', 'Brother' => 'Kapatid (lalaki)', 'Sister' => 'Kapatid (babae)', 'Sibling' => 'Kapatid', 'Grandfather' => 'Lolo', 'Grandmother' => 'Lola', 'Grandson' => 'Apo (lalaki)', 'Granddaughter' => 'Apo (babae)', 'Grandchild' => 'Apo', 'Uncle' => 'Tito', 'Aunt' => 'Tita', 'Nephew' => 'Pamangkin (lalaki)', 'Niece' => 'Pamangkin (babae)', 'Cousin' => 'Pinsan', 'In-law' => 'Kamag-anak sa asawa', 'Relative' => 'Kamag-anak', 'Other Relative' => 'Ibang kamag-anak', 'Boarder' => 'Nangungupahan', 'Helper' => 'Kasambahay', 'Member' => 'Kasapi', _ => r };
 }

@@ -420,6 +420,40 @@ abstract class AppText {
   String get attachmentAtBarangay;
   String get viewAll;
   String announcementCategory(String c);
+
+  // ── Household ───────────────────────────────────────────────────
+  String get myHousehold;
+  String get householdLoadFailed;
+  String get youAreHead;
+  String youAreMemberOf(String head);
+  String get yourRole;
+  String get householdHeadRole;
+  String get noHouseholdTitle;
+  String get noHouseholdBody;
+  String get householdInfo;
+  String get householdId;
+  String get notYetAssigned;
+  String get houseType;
+  String get tenureStatus;
+  String get monthlyIncome;
+  String incomeClass(String c);
+  String get registeredOn;
+  String get householdSurvey;
+  String get surveyOnFile;
+  String get surveyNotOnFile;
+  String get householdSummary;
+  String get statTotal;
+  String get statMale;
+  String get statFemale;
+  String get statSeniors;
+  String get statMinors;
+  String get householdMembers;
+  String membersCount(int n);
+  String yearsOld(int n);
+  String get voter;
+  String get senior;
+  String get householdViewOnly;
+  String relationLabel(String r);
 }
 
 /// The strings for the current app language.
