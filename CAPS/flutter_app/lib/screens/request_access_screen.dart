@@ -1,0 +1,1110 @@
+import 'dart:typed_data';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
+
+import '../models/access_request.dart';
+import '../models/barangay_profile.dart';
+import '../services/api_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/brand_header.dart';
+import '../widgets/wave_background.dart';
+
+/// Resident portal access request — faithful rebuild of SOE
+/// `request_access.php`: hero card + EN/FIL toggle, 3 section cards
+/// (Personal Information, Address in Barangay, Verification Requirement),
+/// then a success state with the "What happens next" steps.
+class RequestAccessScreen extends StatefulWidget {
+  const RequestAccessScreen({super.key});
+
+  @override
+  State<RequestAccessScreen> createState() => _RequestAccessScreenState();
+}
+
+class _RequestAccessScreenState extends State<RequestAccessScreen> {
+  final _api = ApiService();
+  final _picker = ImagePicker();
+  final _formKey = GlobalKey<FormState>();
+
+  final _first = TextEditingController();
+  final _middle = TextEditingController();
+  final _last = TextEditingController();
+  final _email = TextEditingController();
+  final _contact = TextEditingController();
+
+  DateTime? _birthdate;
+  final _birthCtrl = TextEditingController(); // mm/dd/yyyy
+  final _house = TextEditingController();
+  final _building = TextEditingController();
+
+  // Address comes from the admin-managed barangay profile, not hard-coded.
+  BarangayProfile? _profile;
+  List<String> _streets = const [];
+  List<AreaOption> _areas = const [];
+  String? _street;
+  AreaOption? _area;
+  bool _loadingAddr = true;
+
+  // Store the picked image as bytes so preview + upload work on web AND mobile.
+  XFile? _validId;
+  XFile? _selfie;
+  Uint8List? _validIdBytes;
+  Uint8List? _selfieBytes;
+  String? _validIdError;
+  String? _selfieError;
+
+  bool _fil = false; // language toggle
+  bool _submitting = false;
+  bool _submitted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAddress();
+  }
+
+  /// Pull the admin-configured barangay address + its streets & areas.
+  Future<void> _loadAddress() async {
+    final profile = await _api.fetchBarangayProfile();
+    if (profile == null) {
+      if (mounted) setState(() => _loadingAddr = false);
+      return;
+    }
+    final streets = await _api.fetchStreets(profile.barangayCode);
+    final areas = await _api.fetchAreas(profile.barangayCode);
+    if (mounted) {
+      setState(() {
+        _profile = profile;
+        _streets = streets;
+        _areas = areas;
+        _loadingAddr = false;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    for (final c in [_first, _middle, _last, _email, _contact, _house, _building, _birthCtrl]) {
+      c.dispose();
+    }
+    _api.dispose();
+    super.dispose();
+  }
+
+  String t(String en, String fil) => _fil ? fil : en;
+
+  Future<void> _pick(bool selfie) async {
+    final x = await _picker.pickImage(
+      source: selfie ? ImageSource.camera : ImageSource.gallery,
+      imageQuality: 75,
+    );
+    if (x == null) return;
+    final bytes = await x.readAsBytes();
+    setState(() {
+      if (selfie) {
+        _selfie = x;
+        _selfieBytes = bytes;
+        _selfieError = null;
+      } else {
+        _validId = x;
+        _validIdBytes = bytes;
+        _validIdError = null;
+      }
+    });
+  }
+
+  Future<void> _pickBirthdate() async {
+    final now = DateTime.now();
+    final init = _parseMMDDYYYY(_birthCtrl.text) ?? DateTime(now.year - 18);
+    final d = await showDatePicker(
+      context: context,
+      initialDate: init,
+      firstDate: DateTime(1900),
+      lastDate: now,
+    );
+    if (d != null) {
+      setState(() {
+        _birthdate = d;
+        _birthCtrl.text = _fmtMMDDYYYY(d);
+      });
+    }
+  }
+
+  /// Parse "mm/dd/yyyy" → DateTime (null if invalid or in the future).
+  DateTime? _parseMMDDYYYY(String s) {
+    final m = RegExp(r'^(\d{2})/(\d{2})/(\d{4})$').firstMatch(s.trim());
+    if (m == null) return null;
+    final mm = int.parse(m.group(1)!);
+    final dd = int.parse(m.group(2)!);
+    final yy = int.parse(m.group(3)!);
+    if (mm < 1 || mm > 12 || dd < 1 || dd > 31 || yy < 1900) return null;
+    final d = DateTime(yy, mm, dd);
+    if (d.month != mm || d.day != dd) return null; // e.g. 02/30
+    if (d.isAfter(DateTime.now())) return null;
+    return d;
+  }
+
+  String _fmtMMDDYYYY(DateTime d) =>
+      '${d.month.toString().padLeft(2, '0')}/${d.day.toString().padLeft(2, '0')}/${d.year}';
+
+  Future<void> _submit() async {
+    setState(() {
+      _validIdError = _validId == null ? t('Please upload a valid ID.',
+          'Mag-upload ng valid ID.') : null;
+      _selfieError = _selfie == null
+          ? t('Please upload a selfie holding your ID.',
+              'Mag-upload ng selfie hawak ang ID.')
+          : null;
+    });
+    final formOk = _formKey.currentState!.validate();
+    _birthdate = _parseMMDDYYYY(_birthCtrl.text);
+    if (_birthdate == null) {
+      _snack(t('Enter a valid date of birth (mm/dd/yyyy).',
+          'Maglagay ng wastong kapanganakan (mm/dd/yyyy).'));
+      return;
+    }
+    if (_profile == null) {
+      _snack(t('Barangay address is not configured yet. Contact the barangay.',
+          'Hindi pa naka-set ang barangay address. Makipag-ugnayan sa barangay.'));
+      return;
+    }
+    if (_street == null || _area == null) {
+      _snack(t('Please select your street and purok/area.',
+          'Pumili ng kalye at purok/area.'));
+      return;
+    }
+    if (!formOk || _validId == null || _selfie == null) return;
+
+    setState(() => _submitting = true);
+    // access_requests has no building column, so fold it into house_no.
+    final building = _building.text.trim();
+    final houseNo = building.isEmpty
+        ? _house.text.trim()
+        : '${_house.text.trim()}, $building';
+    final request = AccessRequest(
+      firstName: _first.text.trim(),
+      middleName: _middle.text.trim(),
+      lastName: _last.text.trim(),
+      email: _email.text.trim(),
+      contactNumber: _contact.text.trim(),
+      birthdate: _birthdate,
+      houseNo: houseNo,
+      street: _street,
+      purok: _area?.name,
+    );
+    final res = await _api.submitAccessRequest(
+      request,
+      validIdBytes: _validIdBytes,
+      validIdName: _validId?.name,
+      selfieBytes: _selfieBytes,
+      selfieName: _selfie?.name,
+    );
+    if (!mounted) return;
+    setState(() => _submitting = false);
+    if (res.ok) {
+      setState(() => _submitted = true);
+    } else {
+      _snack(res.message);
+    }
+  }
+
+  void _snack(String m) =>
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: WaveBackground(
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 80),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 640),
+                child: _submitted ? _successView() : _formView(),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── FORM ──────────────────────────────────────────────────────────────
+  Widget _formView() {
+    return Form(
+      key: _formKey,
+      child: Column(
+        children: [
+          _heroCard(),
+          const SizedBox(height: 16),
+          _infoBanner(),
+          const SizedBox(height: 16),
+          _personalSection(),
+          const SizedBox(height: 16),
+          _addressSection(),
+          const SizedBox(height: 16),
+          _verificationSection(),
+          const SizedBox(height: 16),
+          PrimaryButton(
+            label: t('Submit Registration', 'Isumite ang Rehistrasyon'),
+            icon: Icons.send,
+            loading: _submitting,
+            onPressed: _submit,
+          ),
+          const SizedBox(height: 12),
+          TextButton.icon(
+            onPressed: () => Navigator.of(context).pop(),
+            icon: const Icon(Icons.arrow_back, size: 16),
+            label: Text(t('Back to Login', 'Bumalik sa Login')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _heroCard() {
+    return GlassCard(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          Align(
+            alignment: Alignment.centerRight,
+            child: _langToggle(),
+          ),
+          const BrandHeader(showBadge: false),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                  colors: [AppColors.primary, AppColors.primaryDark]),
+              borderRadius: BorderRadius.circular(50),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.how_to_reg, size: 16, color: Colors.white),
+                const SizedBox(width: 6),
+                Text(t('Request Portal Access', 'Humiling ng Access'),
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.5)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _langToggle() {
+    Widget seg(String label, bool active, VoidCallback onTap) => GestureDetector(
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            decoration: BoxDecoration(
+              gradient: active
+                  ? LinearGradient(
+                      colors: [AppColors.primary, AppColors.primaryDark])
+                  : null,
+            ),
+            child: Text(label,
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: active ? Colors.white : AppColors.slate500)),
+          ),
+        );
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F5F9),
+        border: Border.all(color: AppColors.slate200),
+        borderRadius: BorderRadius.circular(50),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          seg('EN', !_fil, () => setState(() => _fil = false)),
+          seg('FIL', _fil, () => setState(() => _fil = true)),
+        ],
+      ),
+    );
+  }
+
+  Widget _infoBanner() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF6FF),
+        border: Border.all(color: const Color(0xFFBFDBFE)),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, color: AppColors.accent, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                    t('Fill out the form to request access to the Resident Portal.',
+                        'Punan ang form upang humiling ng access sa Resident Portal.'),
+                    style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1E40AF))),
+                const SizedBox(height: 2),
+                Text(
+                    t('Upload a valid ID to verify that you are a resident of Barangay Biñang 2nd. You will receive an email notification after the review.',
+                        'Mag-upload ng valid ID para patunayan na residente ka ng Barangay Biñang 2nd. May email ka na matatanggap pagkatapos ng review.'),
+                    style: const TextStyle(
+                        fontSize: 12, color: Color(0xFF2563EB))),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _personalSection() {
+    return GlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionHead(Icons.person, t('Personal Information', 'Personal na Impormasyon'), '1'),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                  child: _input(t('First Name', 'Pangalan'), _first,
+                      hint: 'Juan',
+                      required: true,
+                      inputFormatters: [_TitleCaseFormatter()])),
+              const SizedBox(width: 12),
+              Expanded(
+                  child: _input(t('Middle Name', 'Gitnang Pangalan'), _middle,
+                      hint: 'Santos',
+                      inputFormatters: [_TitleCaseFormatter()])),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _input(t('Last Name', 'Apelyido'), _last,
+              hint: 'dela Cruz',
+              required: true,
+              inputFormatters: [_TitleCaseFormatter()]),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _input(t('Email Address', 'Email'), _email,
+                    hint: 'juan@email.com',
+                    icon: Icons.mail_outline,
+                    required: true,
+                    keyboardType: TextInputType.emailAddress, validator: (v) {
+                  if (v == null || v.trim().isEmpty) {
+                    return t('Required.', 'Kailangan.');
+                  }
+                  if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(v.trim())) {
+                    return t('Invalid email.', 'Maling email.');
+                  }
+                  return null;
+                }),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _input(t('Contact Number', 'Contact Number'), _contact,
+                    hint: '09XXXXXXXXX',
+                    icon: Icons.call,
+                    required: true,
+                    keyboardType: TextInputType.phone,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(11),
+                    ], validator: (v) {
+                  if (v == null || v.trim().isEmpty) {
+                    return t('Required.', 'Kailangan.');
+                  }
+                  if (!RegExp(r'^09\d{9}$').hasMatch(v.trim())) {
+                    return t('Format: 09XXXXXXXXX', 'Format: 09XXXXXXXXX');
+                  }
+                  return null;
+                }),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          FieldLabel(t('Date of Birth', 'Kapanganakan'), required: true),
+          TextFormField(
+            controller: _birthCtrl,
+            keyboardType: TextInputType.datetime,
+            inputFormatters: [_DateInputFormatter()],
+            decoration: AppTheme.field(
+              'mm/dd/yyyy',
+              icon: Icons.cake_outlined,
+              suffix: IconButton(
+                icon: const Icon(Icons.calendar_today,
+                    size: 20, color: AppColors.slate400),
+                tooltip: t('Pick a date', 'Pumili ng petsa'),
+                onPressed: _pickBirthdate,
+              ),
+            ),
+            validator: (v) => _parseMMDDYYYY(v ?? '') == null
+                ? t('Use mm/dd/yyyy', 'Gamitin ang mm/dd/yyyy')
+                : null,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _addressSection() {
+    final p = _profile;
+    return GlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header like admin residents.php: dark rounded icon + title.
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [AppColors.primary, AppColors.primaryDark],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withOpacity(0.25),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: const Icon(Icons.location_on,
+                    size: 20, color: Colors.white),
+              ),
+              const SizedBox(width: 12),
+              Text(t('ADDRESS INFORMATION', 'IMPORMASYON NG ADDRESS'),
+                  style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.slate800,
+                      letterSpacing: 0.5)),
+              const Spacer(),
+              Text(t('Step 2 of 3', 'Hakbang 2 ng 3'),
+                  style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.slate400)),
+            ],
+          ),
+          const SizedBox(height: 14),
+          if (_loadingAddr)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: LinearProgressIndicator(),
+            )
+          else if (p == null)
+            _addrWarning()
+          else ...[
+            _defaultAddressNote(p),
+            const SizedBox(height: 14),
+            // Grouped read-only panel (Region/Province/City/Barangay).
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(child: _addrReadonly('Region', p.regionName)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                          child: _addrReadonly(
+                              t('Province', 'Probinsya'), p.provinceName)),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                          child: _addrReadonly(
+                              t('City/Municipality', 'Lungsod/Munisipyo'),
+                              p.municipalityName)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                          child: _addrReadonly('Barangay', p.barangayName)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 16),
+          // Editable fields the resident fills in.
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                  child: _input(
+                      t('House / Lot / Unit Number', 'House / Lot / Unit'),
+                      _house,
+                      hint: 'e.g. 123, Block 5 Lot 2, Unit 4A',
+                      required: true,
+                      inputFormatters: [_TitleCaseFormatter()])),
+              const SizedBox(width: 12),
+              Expanded(
+                  child: _input(t('Building Name', 'Pangalan ng Building'),
+                      _building,
+                      hint: t('Optional', 'Opsyonal'),
+                      inputFormatters: [_TitleCaseFormatter()])),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _dropdownField<String>(
+                  label: t('Street', 'Kalye'),
+                  required: true,
+                  value: _street,
+                  hint: _streets.isEmpty
+                      ? t('No streets configured', 'Walang kalye')
+                      : t('Select street', 'Pumili ng kalye'),
+                  items: _streets
+                      .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                      .toList(),
+                  onChanged: _streets.isEmpty
+                      ? null
+                      : (v) => setState(() => _street = v),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _dropdownField<AreaOption>(
+                  label: t('Subdivision / Village / Sitio / Purok',
+                      'Subdivision / Village / Sitio / Purok'),
+                  required: true,
+                  value: _area,
+                  hint: _areas.isEmpty
+                      ? t('No areas configured', 'Walang area')
+                      : t('Select area', 'Pumili ng area'),
+                  items: _areas
+                      .map((a) =>
+                          DropdownMenuItem(value: a, child: Text(a.label)))
+                      .toList(),
+                  onChanged: _areas.isEmpty
+                      ? null
+                      : (v) => setState(() => _area = v),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: 200,
+            child: _addrReadonly('ZIP Code', p?.zipCode ?? '—', boxed: true),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Compact label + value used inside the grouped panel (white box).
+  Widget _addrReadonly(String label, String value, {bool boxed = true}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label.toUpperCase(),
+            style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                color: AppColors.slate400,
+                letterSpacing: 0.8)),
+        const SizedBox(height: 4),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: boxed ? Colors.white : Colors.transparent,
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text(value.isEmpty ? '—' : value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.slate800)),
+        ),
+      ],
+    );
+  }
+
+  Widget _dropdownField<T>({
+    required String label,
+    required T? value,
+    required String hint,
+    required List<DropdownMenuItem<T>> items,
+    required ValueChanged<T?>? onChanged,
+    bool required = false,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        FieldLabel(label, required: required),
+        DropdownButtonFormField<T>(
+          value: value,
+          isExpanded: true,
+          decoration: AppTheme.field(hint),
+          items: items,
+          onChanged: onChanged,
+        ),
+      ],
+    );
+  }
+
+  Widget _defaultAddressNote(BarangayProfile p) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFECFDF5),
+        border: Border.all(color: const Color(0xFFA7F3D0)),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+          '${t('Default address', 'Default na address')}: '
+          '${p.regionName} · ${p.provinceName} · ${p.municipalityName} · ${p.barangayName}. '
+          '${t('You only need to enter your house number, building, street and subdivision/sitio/purok.', 'Ilagay na lang ang house number, building, kalye at subdivision/sitio/purok.')}',
+          style: const TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF15803D))),
+    );
+  }
+
+  Widget _addrWarning() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFBEB),
+        border: Border.all(color: const Color(0xFFFDE68A)),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.warning_amber, size: 18, color: Color(0xFFB45309)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+                t('The barangay default address is not configured yet. Please contact the barangay office.',
+                    'Hindi pa naka-set ang default na address ng barangay. Makipag-ugnayan sa barangay.'),
+                style: const TextStyle(fontSize: 11.5, color: Color(0xFF92400E))),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _verificationSection() {
+    return GlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionHead(Icons.verified_user, t('Verification Requirement', 'Kinakailangan sa Beripikasyon'), '3'),
+          const SizedBox(height: 16),
+          FieldLabel(t('Valid ID Upload', 'Valid ID Upload'), required: true),
+          _uploadZone(
+            hasFile: _validId != null,
+            fileName: _validId?.name,
+            bytes: _validIdBytes,
+            onTap: () => _pick(false),
+            icon: Icons.upload_file,
+            title: t('Click to upload your Valid ID', 'I-click para mag-upload ng Valid ID'),
+            sub: t('Accepted: JPG, PNG — Max 5MB', 'Tinatanggap: JPG, PNG — Max 5MB'),
+            error: _validIdError,
+          ),
+          const SizedBox(height: 6),
+          Text(
+              "(Driver's License, PhilSys ID, Voter's ID, Passport, etc.)",
+              style: TextStyle(fontSize: 10, color: AppColors.slate400)),
+          const SizedBox(height: 16),
+          FieldLabel(t('Selfie Holding Your ID', 'Selfie Hawak ang ID'), required: true),
+          _uploadZone(
+            hasFile: _selfie != null,
+            fileName: _selfie?.name,
+            bytes: _selfieBytes,
+            onTap: () => _pick(true),
+            icon: Icons.add_a_photo,
+            title: t('Click to upload your selfie with ID', 'I-click para mag-selfie na hawak ang ID'),
+            sub: t('JPG or PNG · Face + ID both visible', 'JPG o PNG · Mukha + ID kitang-kita'),
+            error: _selfieError,
+            preview: true,
+          ),
+          const SizedBox(height: 20),
+          _whatNext(),
+        ],
+      ),
+    );
+  }
+
+  Widget _whatNext() {
+    final steps = _fil
+        ? const [
+            ['Isumite ang Form', 'Punan at isumite ang form kasama ang valid ID.'],
+            ['Susuriin ng Staff', 'Beberipikahin ng barangay staff ang info at ID mo.'],
+            ['Approve o Reject', 'Aabisuhan ka sa email ng desisyon.'],
+            ['Password Setup Link', 'Kung aprubado, may link na ipapadala.'],
+            ['Gawin ang Password', 'Itakda ang password gamit ang link.'],
+          ]
+        : const [
+            ['Submit Registration Form', 'Fill out and submit this form with your valid ID.'],
+            ['Staff Reviews Application', 'Barangay staff will verify your information and ID.'],
+            ['Approve or Reject Request', 'You will be notified of the decision via email.'],
+            ['Password Setup Link Sent', 'If approved, a password setup link will be sent.'],
+            ['Create Your Password', 'Set your secure password using the link provided.'],
+          ];
+    return Container(
+      padding: const EdgeInsets.only(top: 16),
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: Color(0xFFF1F5F9))),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.timeline, size: 16, color: AppColors.primary),
+              const SizedBox(width: 6),
+              Text(t('WHAT HAPPENS NEXT', 'ANG MGA SUSUNOD'),
+                  style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.primary,
+                      letterSpacing: 1.5)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...List.generate(steps.length, (i) {
+            final last = i == steps.length - 1;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 26,
+                    height: 26,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: last
+                            ? const [Color(0xFF16A34A), Color(0xFF15803D)]
+                            : [AppColors.primary, AppColors.primaryDark],
+                      ),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text('${i + 1}',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800)),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(steps[i][0],
+                            style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.slate800)),
+                        Text(steps[i][1],
+                            style: TextStyle(
+                                fontSize: 11, color: AppColors.slate400)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  // ── SUCCESS ───────────────────────────────────────────────────────────
+  Widget _successView() {
+    final steps = _fil
+        ? const [
+            'Susuriin ng staff ang info at valid ID mo',
+            'May email ka: Approved o Disapproved',
+            'Kung aprubado, may password setup link',
+            'Itakda ang password at mag-login',
+          ]
+        : const [
+            'Staff reviews your information and valid ID',
+            'You receive an email: Approved or Disapproved',
+            'If approved, a password setup link will be sent',
+            'Set your password and log in to the Resident Portal',
+          ];
+    return GlassCard(
+      padding: const EdgeInsets.all(28),
+      child: Column(
+        children: [
+          const BrandHeader(badgeText: 'Request Submitted', badgeIcon: Icons.task_alt),
+          const SizedBox(height: 20),
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: const Color(0xFFECFDF5),
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFFA7F3D0), width: 2),
+            ),
+            child: const Icon(Icons.how_to_reg,
+                size: 44, color: AppColors.success),
+          ),
+          const SizedBox(height: 16),
+          Text(t('Your request has been received!', 'Natanggap na ang request mo!'),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.slate800)),
+          const SizedBox(height: 8),
+          Text(
+              t('The Barangay Staff will review your application and valid ID. You will receive an email once processed.',
+                  'Susuriin ng Barangay Staff ang iyong application at valid ID. May email ka na matatanggap kapag naproseso na.'),
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: AppColors.slate500)),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEFF6FF),
+              border: Border.all(color: const Color(0xFFBFDBFE)),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(t('What happens next?', 'Ano ang susunod?'),
+                    style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1E40AF))),
+                const SizedBox(height: 8),
+                ...steps.map((s) => Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.check,
+                              size: 14, color: AppColors.accent),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(s,
+                                style: const TextStyle(
+                                    fontSize: 12, color: Color(0xFF2563EB))),
+                          ),
+                        ],
+                      ),
+                    )),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextButton.icon(
+            onPressed: () => Navigator.of(context).pop(),
+            icon: const Icon(Icons.arrow_back, size: 16),
+            label: Text(t('Back to Login', 'Bumalik sa Login')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── small builders ──────────────────────────────────────────────────
+  Widget _sectionHead(IconData icon, String label, String step) {
+    return Row(
+      children: [
+        SectionBadge(icon: icon, label: label),
+        const Spacer(),
+        Text(t('Step $step of 3', 'Hakbang $step ng 3'),
+            style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: AppColors.slate400)),
+      ],
+    );
+  }
+
+  Widget _input(
+    String label,
+    TextEditingController c, {
+    String? hint,
+    IconData? icon,
+    bool required = false,
+    TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
+    String? Function(String?)? validator,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        FieldLabel(label, required: required),
+        TextFormField(
+          controller: c,
+          keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
+          decoration: AppTheme.field(hint ?? '', icon: icon),
+          validator: validator ??
+              (required
+                  ? (v) => (v == null || v.trim().isEmpty)
+                      ? t('Required.', 'Kailangan.')
+                      : null
+                  : null),
+        ),
+      ],
+    );
+  }
+
+  Widget _uploadZone({
+    required bool hasFile,
+    String? fileName,
+    Uint8List? bytes,
+    required VoidCallback onTap,
+    required IconData icon,
+    required String title,
+    required String sub,
+    String? error,
+    bool preview = false,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+            decoration: BoxDecoration(
+              color: hasFile ? const Color(0xFFF0FDF4) : const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: hasFile ? AppColors.success : AppColors.slate200,
+                width: 2,
+                style: BorderStyle.solid,
+              ),
+            ),
+            child: Column(
+              children: [
+                if (hasFile && preview && bytes != null) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.memory(bytes,
+                        height: 150, fit: BoxFit.cover, width: double.infinity),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                Icon(hasFile ? Icons.task_alt : icon,
+                    size: 34,
+                    color: hasFile ? AppColors.success : AppColors.primary),
+                const SizedBox(height: 6),
+                Text(
+                    hasFile ? (fileName ?? 'Selected') : title,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: hasFile
+                            ? const Color(0xFF15803D)
+                            : AppColors.primary)),
+                const SizedBox(height: 2),
+                Text(hasFile ? t('Tap to change', 'I-tap para palitan') : sub,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 11, color: AppColors.slate400)),
+              ],
+            ),
+          ),
+        ),
+        if (error != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(error,
+                style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.danger,
+                    fontWeight: FontWeight.w600)),
+          ),
+      ],
+    );
+  }
+}
+
+/// Capitalises the first letter of every word as the user types
+/// ("rendell" → "Rendell", "dela cruz" → "Dela Cruz"). Length is unchanged,
+/// so the caret position is preserved.
+class _TitleCaseFormatter extends TextInputFormatter {
+  static final _letter = RegExp(r'[a-zA-ZñÑ]');
+
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    final text = newValue.text;
+    final buf = StringBuffer();
+    bool capNext = true;
+    for (final ch in text.split('')) {
+      if (capNext && _letter.hasMatch(ch)) {
+        buf.write(ch.toUpperCase());
+        capNext = false;
+      } else {
+        buf.write(ch);
+        capNext = (ch == ' ' || ch == '-' || ch == "'");
+      }
+    }
+    return TextEditingValue(text: buf.toString(), selection: newValue.selection);
+  }
+}
+
+/// Formats digits into a mm/dd/yyyy mask as the user types.
+class _DateInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    var digits = newValue.text.replaceAll(RegExp(r'\D'), '');
+    if (digits.length > 8) digits = digits.substring(0, 8);
+    final buf = StringBuffer();
+    for (int i = 0; i < digits.length; i++) {
+      if (i == 2 || i == 4) buf.write('/');
+      buf.write(digits[i]);
+    }
+    final text = buf.toString();
+    return TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+  }
+}

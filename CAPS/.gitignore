@@ -1,0 +1,4 @@
+# Runtime uploads (valid IDs, selfies, complaint attachments) — never commit
+user/backend/uploads/**
+!user/backend/uploads/.gitkeep
+.env
