@@ -5,8 +5,9 @@
  * Barangay announcements — JSON API for the Flutter app (lib/announcements/).
  * Ported from the SOE resident page user/announcements.php and aligned with
  * the admin module admin/announcement/ (same tables):
- *   • only Published, not-deleted announcements (Drafts / Scheduled are hidden
- *     until the admin or the scheduler publishes them)
+ *   • not-deleted announcements that are Published, or Scheduled with a start
+ *     date/time that has already passed (Drafts and future Scheduled posts
+ *     stay hidden)
  *   • Emergency Notices first, then newest date_posted
  *   • attachments from announcement_attachments (images + files)
  *   • "New" badge per resident, stored in announcement_reads
@@ -14,6 +15,8 @@
  * Actions (GET ?action= or POST action=):
  *   • list  (resident_id?)            → announcements + new_count
  *   • read  (resident_id, id)         → mark one as seen
+ *
+ * Add &debug=1 to see the exact database error when loading fails.
  *
  * Attachment URLs are relative to this backend folder (the admin stores files
  * in admin/announcement/backend/uploads/announcements/).
@@ -82,7 +85,13 @@ if ($action === 'list') {
                     a.date_posted, a.date_start, a.date_end, a.time_start, a.time_end,
                     a.created_at
              FROM announcements a
-             WHERE a.deleted_at IS NULL AND a.status = 'Published'
+             WHERE a.deleted_at IS NULL
+               AND (a.status = 'Published'
+                    -- Scheduled posts whose start time has passed are live even
+                    -- if the admin scheduler (run on admin page load) hasn't
+                    -- flipped them to Published yet — same rule as ann_scheduler.
+                    OR (a.status = 'Scheduled' AND a.date_start IS NOT NULL
+                        AND CONCAT(a.date_start, ' ', COALESCE(a.time_start, '00:00:00')) <= NOW()))
              ORDER BY CASE a.category WHEN 'Emergency Notice' THEN 0 ELSE 1 END,
                       a.date_posted DESC, a.created_at DESC, a.id DESC
              LIMIT 200"
@@ -147,7 +156,8 @@ if ($action === 'list') {
         respond(true, '', ['announcements' => $out, 'new_count' => $new]);
     } catch (Throwable $e) {
         error_log('[announcements.php list] ' . $e->getMessage());
-        respond(false, L('Hindi ma-load ang mga anunsyo.', 'Could not load the announcements.'), null, 500);
+        respond(false, L('Hindi ma-load ang mga anunsyo.', 'Could not load the announcements.'),
+            isset($_GET['debug']) ? ['error' => $e->getMessage()] : null, 500);
     }
 }
 

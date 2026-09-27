@@ -21,9 +21,11 @@ Two read-only modules. Each has its own folder, like `dashboard/`.
 
 Ported from the SOE resident page `user/announcements.php`.
 
-- Only **Published**, not-deleted announcements (Draft/Scheduled stay hidden
-  until the admin or the scheduler publishes them). **Emergency Notices on
-  top**, then newest.
+- Not-deleted announcements that are **Published**, or **Scheduled** with a
+  start date/time that has already passed. (The admin scheduler only flips
+  Scheduled → Published when the admin Announcements page is opened, so the
+  app doesn't wait for it.) Drafts and future Scheduled posts stay hidden.
+  **Emergency Notices on top**, then newest.
 - Search, category filter, **NEW** badge until the resident opens it, and an
   **Ended** tag when `date_end` has passed.
 - Card: cover photo, category, title, preview, posted date, schedule
@@ -50,6 +52,13 @@ session. The app stores them per resident in a new table
 `announcements.php` creates it automatically (**no manual SQL**).
 
 ## Notes
+
+- Officials use `SELECT o.*`, so they load whether or not your `officials`
+  table has the old `Name` column.
+- **Troubleshooting:** if a screen says it could not load, open the endpoint
+  with `debug=1` to see the exact database error:
+  - `http://localhost/CAPS/user/backend/officials.php?debug=1`
+  - `http://localhost/CAPS/user/backend/announcements.php?debug=1&resident_id=<id>`
 
 - Everything is in English/Filipino and follows dark mode, like the rest of the app.
 - Officials' photos and announcement images also show on Flutter web (same

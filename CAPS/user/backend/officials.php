@@ -42,8 +42,9 @@ function official_photo(?string $photo): ?string
 try {
     $pdo  = db();
     $rows = $pdo->query(
-        "SELECT o.OfficialID, o.Position, o.TermStart, o.TermEnd, o.Photo, o.Name,
-                r.FirstName, r.MiddleName, r.LastName, r.Suffix
+        // o.* (not a column list): some CAPS databases don't have every
+        // column, e.g. the old officials.Name.
+        "SELECT o.*, r.FirstName, r.MiddleName, r.LastName, r.Suffix
          FROM officials o
          LEFT JOIN residents r ON r.ResidentID = o.ResidentID
          WHERE o.TermEnd IS NULL OR o.TermEnd >= CURDATE()
@@ -74,5 +75,7 @@ try {
     respond(true, '', ['officials' => $out]);
 } catch (Throwable $e) {
     error_log('[officials.php] ' . $e->getMessage());
-    respond(false, L('Hindi ma-load ang mga opisyal.', 'Could not load the officials.'), null, 500);
+    // ?debug=1 shows the exact database error (for setup on XAMPP).
+    respond(false, L('Hindi ma-load ang mga opisyal.', 'Could not load the officials.'),
+        isset($_GET['debug']) ? ['error' => $e->getMessage()] : null, 500);
 }
