@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_text.dart';
 import '../models/resident.dart';
+import '../profile/profile_api.dart';
+import '../profile/profile_avatar.dart';
+import '../profile/profile_screen.dart';
 import '../screens/login_screen.dart';
 import '../services/biometric_service.dart';
 import '../services/session_service.dart';
@@ -47,6 +50,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.initState();
     _settings.addListener(_onSettings);
     _loadSecurity();
+    _loadPhoto();
+  }
+
+  String? _photoUrl;
+
+  Future<void> _loadPhoto() async {
+    final api = ProfileApi();
+    final res = await api.get(widget.resident.residentId);
+    api.dispose();
+    if (mounted && res.ok) setState(() => _photoUrl = res.data?.photoUrl);
+  }
+
+  Future<void> _openProfile() async {
+    final changed = await Navigator.of(context).push<bool>(MaterialPageRoute(
+        builder: (_) => ProfileScreen(resident: widget.resident)));
+    if (changed == true) _loadPhoto();
   }
 
   @override
@@ -219,65 +238,72 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (r.firstName.isNotEmpty) r.firstName[0],
       if (r.lastName.isNotEmpty) r.lastName[0],
     ].join().toUpperCase();
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.heading2, AppColors.primary, AppColors.navy],
+    return GestureDetector(
+      onTap: _openProfile,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [AppColors.heading2, AppColors.primary, AppColors.navy],
+          ),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+                color: AppColors.primary.withValues(alpha: .30),
+                blurRadius: 24,
+                offset: const Offset(0, 10)),
+          ],
         ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-              color: AppColors.primary.withValues(alpha: .30),
-              blurRadius: 24,
-              offset: const Offset(0, 10)),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: .20),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: Colors.white.withValues(alpha: .30)),
+        child: Row(
+          children: [
+            ProfileAvatar(
+                initials: initials.isEmpty ? '?' : initials,
+                photoUrl: _photoUrl,
+                size: 60,
+                onGradient: true),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(r.fullName,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          height: 1.15)),
+                  if ((r.residentCode ?? '').isNotEmpty)
+                    _profileLine(Icons.badge_outlined,
+                        '${tr.residentCode}: ${r.residentCode}'),
+                  if ((r.email ?? '').isNotEmpty)
+                    _profileLine(Icons.mail_outline, r.email!),
+                  if ((r.contactNumber ?? '').isNotEmpty)
+                    _profileLine(Icons.call_outlined, r.contactNumber!),
+                  if ((r.purok ?? '').isNotEmpty)
+                    _profileLine(Icons.location_on_outlined, r.purok!),
+                  const SizedBox(height: 8),
+                  Row(children: [
+                    Flexible(
+                      child: Text(tr.viewProfile,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800)),
+                    ),
+                    const Icon(Icons.chevron_right,
+                        size: 18, color: Colors.white),
+                  ]),
+                ],
+              ),
             ),
-            child: Text(initials.isEmpty ? '?' : initials,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900)),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(r.fullName,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                        height: 1.15)),
-                if ((r.residentCode ?? '').isNotEmpty)
-                  _profileLine(Icons.badge_outlined,
-                      '${tr.residentCode}: ${r.residentCode}'),
-                if ((r.email ?? '').isNotEmpty)
-                  _profileLine(Icons.mail_outline, r.email!),
-                if ((r.contactNumber ?? '').isNotEmpty)
-                  _profileLine(Icons.call_outlined, r.contactNumber!),
-                if ((r.purok ?? '').isNotEmpty)
-                  _profileLine(Icons.location_on_outlined, r.purok!),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

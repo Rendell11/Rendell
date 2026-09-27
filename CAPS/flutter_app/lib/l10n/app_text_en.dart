@@ -746,4 +746,91 @@ class AppTextEn extends AppText {
   String get complaintLoadFailed => 'Could not load the complaint.';
   @override
   String get complaintSubmitFailed => 'The complaint was not submitted.';
+
+  // ── Profile
+  @override
+  String get profileLoadFailed => 'Could not load your profile.';
+  @override
+  String get photoUpdated => 'Profile picture updated.';
+  @override
+  String get photoUploadFailed => 'The photo was not saved. Please try again.';
+  @override
+  String get photoRemoved => 'Profile picture removed.';
+  @override
+  String get changePhoto => 'Change photo';
+  @override
+  String get removePhoto => 'Remove photo';
+  @override
+  String get removePhotoTitle => 'Remove your profile picture?';
+  @override
+  String get removePhotoBody => 'Your initials will be shown instead.';
+  @override
+  String get profileViewOnly =>
+      'Your details can only be viewed here. To correct anything, please visit the Barangay Hall.';
+  @override
+  String get personalInformation => 'Personal Information';
+  @override
+  String get fullName => 'Full name';
+  @override
+  String get sex => 'Sex';
+  @override
+  String get birthDate => 'Date of birth';
+  @override
+  String get age => 'Age';
+  @override
+  String get birthPlace => 'Place of birth';
+  @override
+  String get civilStatus => 'Civil status';
+  @override
+  String get religion => 'Religion';
+  @override
+  String get nationality => 'Nationality';
+  @override
+  String get contactInformation => 'Contact Information';
+  @override
+  String get contactNumber => 'Contact number';
+  @override
+  String get addressLabel => 'Address';
+  @override
+  String get houseAndStreet => 'House no. / Street';
+  @override
+  String get purokArea => 'Purok / Area';
+  @override
+  String get household => 'Household';
+  @override
+  String get headOfFamily => 'Head of the family';
+  @override
+  String get relationshipToHead => 'Relationship to head';
+  @override
+  String get householdHead => 'Household head';
+  @override
+  String get workAndEducation => 'Work & Education';
+  @override
+  String get employment => 'Employment';
+  @override
+  String get education => 'Education';
+  @override
+  String get householdIncome => 'Household income';
+  @override
+  String get sectorsAndBenefits => 'Sectors & Benefits';
+  @override
+  String get registeredVoter => 'Registered voter';
+  @override
+  String get pwd => 'PWD';
+  @override
+  String get seniorCitizen => 'Senior citizen';
+  @override
+  String get soloParent => 'Solo parent';
+  @override
+  String get account => 'Account';
+  @override
+  String get memberSince => 'Registered since';
+  @override
+  String get yes => 'Yes';
+  @override
+  String get no => 'No';
+  @override
+  String get viewProfile => 'View profile';
+  @override
+  String valueLabel(String value) => value;
 }

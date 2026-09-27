@@ -10,6 +10,9 @@ import '../chat/chat_screen.dart';
 import '../complaint/complaint_screen.dart';
 import '../settings/app_settings.dart';
 import '../settings/settings_screen.dart';
+import '../profile/profile_api.dart';
+import '../profile/profile_avatar.dart';
+import '../profile/profile_screen.dart';
 
 /// ─────────────────────────────────────────────────────────────────────────
 /// RESIDENT DASHBOARD (landing page after login)
@@ -39,7 +42,8 @@ const List<ResidentModule> kModules = [
   ResidentModule('household', Icons.groups_outlined, Color(0xFF1D63DA)),
   ResidentModule('announcements', Icons.campaign_outlined, Color(0xFF0EA5E9)),
   ResidentModule('documents', Icons.description_outlined, Color(0xFF16A34A)),
-  ResidentModule('complaints', Icons.report_problem_outlined, Color(0xFFF59E0B)),
+  ResidentModule(
+      'complaints', Icons.report_problem_outlined, Color(0xFFF59E0B)),
   ResidentModule('officials', Icons.badge_outlined, Color(0xFF6366F1)),
   ResidentModule('chat', Icons.chat_bubble_outline, Color(0xFFDB2777)),
 ];
@@ -62,6 +66,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
     // Signed in: load this resident's saved preferences from the server and
     // keep future Settings changes in sync.
     AppSettings.instance.bindResident(resident.residentId);
+    _loadPhoto();
+  }
+
+  String? _photoUrl;
+
+  /// Profile picture for the avatars (initials until it loads / if none).
+  Future<void> _loadPhoto() async {
+    final api = ProfileApi();
+    final res = await api.get(resident.residentId);
+    api.dispose();
+    if (mounted && res.ok) setState(() => _photoUrl = res.data?.photoUrl);
+  }
+
+  Future<void> _openProfile(BuildContext context) async {
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => ProfileScreen(resident: resident)),
+    );
+    if (changed == true) _loadPhoto();
   }
 
   // Placeholder stats (wire to API later).
@@ -209,8 +231,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             padding: const EdgeInsets.all(2),
             child: ClipOval(
-              child: Image.asset('assets/barangaylogo.webp',
-                  fit: BoxFit.cover),
+              child: Image.asset('assets/barangaylogo.webp', fit: BoxFit.cover),
             ),
           ),
           const SizedBox(width: 10),
@@ -277,12 +298,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return PopupMenuButton<String>(
       tooltip: tr.profile,
       offset: const Offset(0, 48),
-      shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       onSelected: (v) {
         switch (v) {
           case 'profile':
-            _openSettings(context);
+            _openProfile(context);
             break;
           case 'settings':
             _openSettings(context);
@@ -300,12 +320,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               Text(resident.fullName,
                   style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.slate800)),
+                      fontWeight: FontWeight.w800, color: AppColors.slate800)),
               if ((resident.email ?? '').isNotEmpty)
                 Text(resident.email!,
-                    style: TextStyle(
-                        fontSize: 12, color: AppColors.slate500)),
+                    style: TextStyle(fontSize: 12, color: AppColors.slate500)),
             ],
           ),
         ),
@@ -326,15 +344,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ],
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: CircleAvatar(
-          radius: 16,
-          backgroundColor: AppColors.primary,
-          child: Text(_initials,
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800)),
-        ),
+        child:
+            ProfileAvatar(initials: _initials, photoUrl: _photoUrl, size: 32),
       ),
     );
   }
@@ -366,7 +377,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   color: AppColors.primary, size: 20),
               const SizedBox(width: 8),
               Text(tr.notifications,
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.w800)),
             ]),
             const SizedBox(height: 24),
             Center(
@@ -434,15 +446,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ]),
                 const SizedBox(height: 16),
                 Row(children: [
-                  CircleAvatar(
-                    radius: 18,
-                    backgroundColor: Colors.white.withValues(alpha: .25),
-                    child: Text(_initials,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 13)),
-                  ),
+                  ProfileAvatar(
+                      initials: _initials,
+                      photoUrl: _photoUrl,
+                      size: 36,
+                      onGradient: true),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
@@ -484,7 +492,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 _drawerItem(context, Icons.person_outline, tr.myProfile,
                     onTap: () {
                   Navigator.pop(context);
-                  _openSettings(context);
+                  _openProfile(context);
                 }),
                 _drawerItem(context, Icons.settings_outlined, tr.settings,
                     onTap: () {
@@ -509,7 +517,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return ListTile(
       dense: true,
       leading: Icon(icon,
-          size: 21, color: iconColor ?? (active ? AppColors.primary : AppColors.slate500)),
+          size: 21,
+          color:
+              iconColor ?? (active ? AppColors.primary : AppColors.slate500)),
       title: Text(label,
           style: TextStyle(
               fontSize: 14,
@@ -540,20 +550,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       child: Row(
         children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: .20),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: Colors.white.withValues(alpha: .30)),
-            ),
-            alignment: Alignment.center,
-            child: Text(_initials,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900)),
+          GestureDetector(
+            onTap: () => _openProfile(context),
+            child: ProfileAvatar(
+                initials: _initials,
+                photoUrl: _photoUrl,
+                size: 60,
+                onGradient: true),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -596,10 +599,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ── Stat cards ──────────────────────────────────────────────────────────
   Widget _statCards(BuildContext context) {
     final cards = <_Stat>[
-      _Stat(tr.totalRequests, _total, Icons.folder_open, const Color(0xFF6366F1)),
-      _Stat(tr.approved, _approved, Icons.check_circle, const Color(0xFF16A34A)),
+      _Stat(
+          tr.totalRequests, _total, Icons.folder_open, const Color(0xFF6366F1)),
+      _Stat(
+          tr.approved, _approved, Icons.check_circle, const Color(0xFF16A34A)),
       _Stat(tr.pending, _pending, Icons.hourglass_top, const Color(0xFFF59E0B)),
-      _Stat(tr.reservations, _reservations, Icons.build, const Color(0xFF8B5CF6)),
+      _Stat(
+          tr.reservations, _reservations, Icons.build, const Color(0xFF8B5CF6)),
     ];
     // Height grows with the text size (Settings → Text size) so the card
     // never overflows.
@@ -649,9 +655,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           Text('${s.value}',
               style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w900,
-                  color: s.color)),
+                  fontSize: 26, fontWeight: FontWeight.w900, color: s.color)),
         ],
       ),
     );
@@ -876,8 +880,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ]),
           const SizedBox(height: 14),
-          Text(
-              tr.helpBody,
+          Text(tr.helpBody,
               style: TextStyle(
                   color: Colors.white.withValues(alpha: .6),
                   fontSize: 12,

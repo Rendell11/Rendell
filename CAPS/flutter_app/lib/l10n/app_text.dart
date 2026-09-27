@@ -350,6 +350,50 @@ abstract class AppText {
   String get complaintsLoadFailed;
   String get complaintLoadFailed;
   String get complaintSubmitFailed;
+
+  // ── Profile ─────────────────────────────────────────────────────
+  String get profileLoadFailed;
+  String get photoUpdated;
+  String get photoUploadFailed;
+  String get photoRemoved;
+  String get changePhoto;
+  String get removePhoto;
+  String get removePhotoTitle;
+  String get removePhotoBody;
+  String get profileViewOnly;
+  String get personalInformation;
+  String get fullName;
+  String get sex;
+  String get birthDate;
+  String get age;
+  String get birthPlace;
+  String get civilStatus;
+  String get religion;
+  String get nationality;
+  String get contactInformation;
+  String get contactNumber;
+  String get addressLabel;
+  String get houseAndStreet;
+  String get purokArea;
+  String get household;
+  String get headOfFamily;
+  String get relationshipToHead;
+  String get householdHead;
+  String get workAndEducation;
+  String get employment;
+  String get education;
+  String get householdIncome;
+  String get sectorsAndBenefits;
+  String get registeredVoter;
+  String get pwd;
+  String get seniorCitizen;
+  String get soloParent;
+  String get account;
+  String get memberSince;
+  String get yes;
+  String get no;
+  String get viewProfile;
+  String valueLabel(String value);
 }
 
 /// The strings for the current app language.

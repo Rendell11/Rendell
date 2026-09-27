@@ -766,4 +766,111 @@ class AppTextFil extends AppText {
   String get complaintLoadFailed => 'Hindi ma-load ang reklamo.';
   @override
   String get complaintSubmitFailed => 'Hindi naisumite ang reklamo.';
+
+  // ── Profile
+  @override
+  String get profileLoadFailed => 'Hindi ma-load ang profile mo.';
+  @override
+  String get photoUpdated => 'Na-update ang profile picture.';
+  @override
+  String get photoUploadFailed => 'Hindi na-save ang larawan. Subukan muli.';
+  @override
+  String get photoRemoved => 'Tinanggal ang profile picture.';
+  @override
+  String get changePhoto => 'Palitan ang larawan';
+  @override
+  String get removePhoto => 'Alisin ang larawan';
+  @override
+  String get removePhotoTitle => 'Alisin ang profile picture?';
+  @override
+  String get removePhotoBody => 'Ang initials mo ang ipapakita.';
+  @override
+  String get profileViewOnly =>
+      'Makikita lang dito ang iyong mga detalye. Para magpatama, pumunta sa Barangay Hall.';
+  @override
+  String get personalInformation => 'Personal na Impormasyon';
+  @override
+  String get fullName => 'Buong pangalan';
+  @override
+  String get sex => 'Kasarian';
+  @override
+  String get birthDate => 'Petsa ng kapanganakan';
+  @override
+  String get age => 'Edad';
+  @override
+  String get birthPlace => 'Lugar ng kapanganakan';
+  @override
+  String get civilStatus => 'Katayuang sibil';
+  @override
+  String get religion => 'Relihiyon';
+  @override
+  String get nationality => 'Nasyonalidad';
+  @override
+  String get contactInformation => 'Impormasyon sa Pakikipag-ugnayan';
+  @override
+  String get contactNumber => 'Contact number';
+  @override
+  String get addressLabel => 'Address';
+  @override
+  String get houseAndStreet => 'Bahay / Kalye';
+  @override
+  String get purokArea => 'Purok / Area';
+  @override
+  String get household => 'Sambahayan';
+  @override
+  String get headOfFamily => 'Pinuno ng pamilya';
+  @override
+  String get relationshipToHead => 'Relasyon sa pinuno';
+  @override
+  String get householdHead => 'Pinuno ng sambahayan';
+  @override
+  String get workAndEducation => 'Trabaho at Edukasyon';
+  @override
+  String get employment => 'Trabaho';
+  @override
+  String get education => 'Edukasyon';
+  @override
+  String get householdIncome => 'Kita ng sambahayan';
+  @override
+  String get sectorsAndBenefits => 'Sektor at Benepisyo';
+  @override
+  String get registeredVoter => 'Rehistradong botante';
+  @override
+  String get pwd => 'PWD';
+  @override
+  String get seniorCitizen => 'Senior citizen';
+  @override
+  String get soloParent => 'Solo parent';
+  @override
+  String get account => 'Account';
+  @override
+  String get memberSince => 'Rehistrado mula';
+  @override
+  String get yes => 'Oo';
+  @override
+  String get no => 'Hindi';
+  @override
+  String get viewProfile => 'Tingnan ang profile';
+  @override
+  String valueLabel(String value) => switch (value) {
+        'Male' => 'Lalaki',
+        'Female' => 'Babae',
+        'Single' => 'Walang asawa',
+        'Married' => 'May asawa',
+        'Widowed' => 'Balo',
+        'Separated' => 'Hiwalay',
+        'Employed' => 'May trabaho',
+        'Unemployed' => 'Walang trabaho',
+        'Self-Employed' => 'Sariling negosyo',
+        'Retired' => 'Retirado',
+        'Student' => 'Estudyante',
+        'Head of Family' => 'Pinuno ng Pamilya',
+        'Father' => 'Ama',
+        'Mother' => 'Ina',
+        'Son' => 'Anak (lalaki)',
+        'Daughter' => 'Anak (babae)',
+        'Spouse' => 'Asawa',
+        'Filipino' => 'Pilipino',
+        _ => value
+      };
 }
