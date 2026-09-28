@@ -2280,6 +2280,7 @@ require_once __DIR__ . '/../../theme_loader.php';
         var hd_detectedHeadId = null;
         var hd_detectedHeadName = null;
         var hd_detectedHouseholdCode = '';
+        var hd_unassignedMembers = [];
         var hd_detectedLat = null;
         var hd_detectedLng = null;
         var hd_memberConfirmed = false;
@@ -2295,6 +2296,7 @@ require_once __DIR__ . '/../../theme_loader.php';
             hd_detectedHeadId = null;
             hd_detectedHeadName = null;
             hd_detectedHouseholdCode = '';
+            hd_unassignedMembers = [];
             hd_detectedLat = null;
             hd_detectedLng = null;
             hd_memberConfirmed = false;
@@ -2422,6 +2424,9 @@ require_once __DIR__ . '/../../theme_loader.php';
                     console.error('Household members lookup error:', err);
                 }
             }
+            // New Head: Members already profiled at this address without a Head
+            // are linked to this Head on save (late Household Head linking).
+            if (!isEdit) members = hd_unassignedMembers.slice();
             if (seq !== hm_requestSeq || sel.value !== '1') return;
 
             document.getElementById('hm_note').textContent =
@@ -2579,6 +2584,8 @@ require_once __DIR__ . '/../../theme_loader.php';
                         }
 
                     } else if (data.status === 'residents_no_head') {
+                        hd_unassignedMembers = (data.residents || []).filter(x => !x.is_head);
+                        updateHeadMembersPanel();
                         document.getElementById('hd_single_head_state')?.classList.add('hidden');
                         document.getElementById('hd_multiple_heads_state')?.classList.add('hidden');
                         document.getElementById('hd_no_head_state')?.classList.remove('hidden');
@@ -3347,12 +3354,17 @@ require_once __DIR__ . '/../../theme_loader.php';
                 return [];
             }
             async function loadLocal(action, param, sel, placeholder) {
+                // Keep the value already selected (or restored from an unsaved draft)
+                // when the list is reloaded while the form is open.
+                const prev = $(sel).value;
                 $(sel).disabled = true; $(sel).innerHTML = '<option value="">Loading...</option>';
                 try {
                     const d = await get('../backend/address_api.php?action=' + action + '&' + new URLSearchParams(param));
-                    const el = $(sel); el.innerHTML = '<option value="">' + placeholder + '</option>';
+                    const el = $(sel); const cur = el.value; el.innerHTML = '<option value="">' + placeholder + '</option>';
                     d.forEach(x => { const o = document.createElement('option'); o.value = action === 'areas' ? x.area_name : x.street_name; o.textContent = action === 'areas' ? x.area_name : x.street_name; o.dataset.type = x.area_type || ''; el.appendChild(o); });
                     el.disabled = d.length === 0;
+                    const keep = cur || prev;
+                    if (keep && Array.from(el.options).some(o => o.value === keep)) el.value = keep;
                 } catch (e) { $(sel).innerHTML = '<option value="">No records available</option>'; console.error(e); }
             }
             window.residentAddressIds = ids;
@@ -3468,6 +3480,8 @@ require_once __DIR__ . '/../../theme_loader.php';
             <div id="vr_body" class="overflow-y-auto p-6 md:p-8 space-y-8"></div>
             <div class="flex justify-end gap-3 border-t border-slate-100 p-5">
                 <button type="button" onclick="closeModal('viewResModal')" class="px-5 py-3 text-xs font-bold text-slate-500">Close</button>
+                <button type="button" id="vr_pdfBtn" onclick="printResidentRecord('pdf')" class="px-5 py-3 rounded-xl border border-slate-200 text-slate-600 hover:border-primary hover:text-primary text-[10px] font-bold uppercase tracking-wider flex items-center gap-2"><span class="material-symbols-outlined text-base">picture_as_pdf</span>Save PDF</button>
+                <button type="button" id="vr_printBtn" onclick="printResidentRecord('print')" class="px-5 py-3 rounded-xl border border-slate-200 text-slate-600 hover:border-primary hover:text-primary text-[10px] font-bold uppercase tracking-wider flex items-center gap-2"><span class="material-symbols-outlined text-base">print</span>Print</button>
                 <?php if (staff_can($pdo, 'residents', 'update')): ?>
                 <button type="button" id="vr_editBtn" onclick="editFromView()" class="px-5 py-3 rounded-xl bg-primary text-white text-[10px] font-bold uppercase tracking-wider flex items-center gap-2"><span class="material-symbols-outlined text-base">edit_square</span>Edit Personal Record</button>
                 <?php endif; ?>
@@ -3568,13 +3582,35 @@ require_once __DIR__ . '/../../theme_loader.php';
             const docRows = d.documents.map(x => ['<span class="font-mono font-bold">' + vrEsc(x.reference) + '</span>' + (x.doc_number ? '<div class="font-mono text-[10px] text-slate-400">' + vrEsc(x.doc_number) + '</div>' : ''), vrEsc(x.type), vrEsc(x.purpose || '—'), vrEsc(x.request_type || '—'), vrEsc(x.requested || '—'), vrEsc(x.released || '—'), vrStatus(x.status)]);
             const svcRows = d.service.map(x => [vrBadge(x.kind, x.kind === 'Official' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' : 'bg-teal-50 text-teal-600 border-teal-100'), vrEsc(x.position), vrEsc(x.start || '—'), vrEsc(x.end || (x.status === 'Current' ? 'Present' : '—')), vrStatus(x.status), vrEsc(x.reason || '')]);
 
+            // Household (below Personal Record) — View opens the existing Household View page.
+            const hh = d.household;
+            let household;
+            if (hh) {
+                const viewBtn = d.can_household
+                    ? '<a href="' + vrEsc(hh.view_url) + '" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-50 text-indigo-600 hover:bg-indigo-100 text-[10px] font-bold uppercase tracking-wider"><span class="material-symbols-outlined text-base">visibility</span>View</a>'
+                    : '';
+                household = '<div class="bg-slate-50/60 rounded-2xl p-5 flex flex-wrap items-center gap-x-8 gap-y-4">' +
+                    '<dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 flex-1 min-w-[240px]">' +
+                    vrField('Household ID', hh.household_id) +
+                    vrField('Household Head', hh.head_name + (hh.is_head ? ' (this resident)' : '')) +
+                    '</dl>' + viewBtn + '</div>';
+            } else {
+                household = '<p class="text-xs text-slate-400 italic bg-slate-50 rounded-2xl px-4 py-5 text-center">This resident is not linked to any household yet.</p>';
+            }
+
             document.getElementById('vr_body').innerHTML =
                 vrSection('person', 'Personal Record', null, personal) +
+                vrSection('home', 'Household', null, household) +
                 vrSection('gavel', 'Blotter Cases', d.blotter.length, vrTable(['Blotter ID', 'Role', 'Case Type', 'Other Party', 'Incident', 'Filed', 'Status'], blotRows, 'No blotter case on record.')) +
                 vrSection('report', 'Complaints', d.complaints.length, vrTable(['Complaint ID', 'Title', 'Category', 'Priority', 'Filed', 'Status'], compRows, 'No complaint on record.')) +
                 vrSection('description', 'Legal Document Requests', d.documents.length, vrTable(['Reference', 'Document', 'Purpose', 'Type', 'Requested', 'Released', 'Status'], docRows, 'No document request on record.')) +
                 vrSection('badge', 'Official / Staff History', d.service.length, vrTable(['Role', 'Position', 'Start', 'End', 'Status', 'Remarks'], svcRows, 'Never served as an official or staff.'));
             const eb = document.getElementById('vr_editBtn'); if (eb) eb.classList.toggle('hidden', !d.can_update);
+        }
+        // Save PDF / Print — same CAPS report layout as the Blotter module (resident_report.php).
+        function printResidentRecord(mode) {
+            if (!_viewResData) return;
+            window.open('../backend/resident_report.php?mode=' + encodeURIComponent(mode) + '&id=' + encodeURIComponent(_viewResData.ResidentID), '_blank');
         }
         function editFromView() {
             if (!_viewResData) return;

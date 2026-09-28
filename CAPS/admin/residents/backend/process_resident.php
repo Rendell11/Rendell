@@ -523,10 +523,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $death_cert_filename, $death_date_reported, $death_reported_by,
                 $latitude, $longitude, $resident_code
             ]);
+            $new_resident_id = (int)$pdo->lastInsertId();
 
             if (!empty($email)) {
                 sendInvitationEmail($email, $first_name, $temp_password, $pdo);
             }
+        }
+
+        // Late Household Head linking: Members profiled before their Head are
+        // linked to this Head now (same House/Lot/Unit Number + Street, no Head yet).
+        $linked_members = 0;
+        $head_resident_id = ($action === 'edit') ? (int)$resident_id : (int)($new_resident_id ?? 0);
+        if ($is_head === 1 && $is_deceased !== 1 && $head_resident_id > 0) {
+            $linked_members = linkUnassignedHouseholdMembers($pdo, $head_resident_id, (string)$house_no, (string)$street);
         }
 
         // Activity log
@@ -535,16 +544,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         if ($action === 'edit') {
             $action_desc = "Updated resident: $first_name $last_name (ResidentID: $resident_id)";
         } else {
-            $new_id = (int)$pdo->lastInsertId();
+            $new_id = (int)($new_resident_id ?? 0);
             $action_desc = "Created new resident: $first_name $last_name"
                 . ($resident_code ? " [Code: $resident_code]" : '')
                 . ($new_id ? " (ResidentID: $new_id)" : '');
         }
+        if ($linked_members > 0) {
+            $action_desc .= " — linked {$linked_members} existing household member(s) to this Head";
+        }
         log_activity('Residents', $action_type, $action_desc);
 
-        $success_msg = ($action === 'edit')
-            ? urlencode("Resident profile updated successfully.")
-            : urlencode("New resident registered successfully.");
+        $success_text = ($action === 'edit')
+            ? "Resident profile updated successfully."
+            : "New resident registered successfully.";
+        if ($linked_members > 0) {
+            $success_text .= " {$linked_members} existing household member(s) were linked to this Household Head.";
+        }
+        $success_msg = urlencode($success_text);
         header("Location: ../frontend/residents.php?status=success&message={$success_msg}");
         exit();
 
@@ -561,6 +577,97 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
         error_log("DB error in " . basename(__FILE__) . ": " . $e->getMessage());
         redirectError('A server error occurred. Please try again.', $action, $resident_id);
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Late Household Head linking.
+// Residents saved as Household Member without a Head (FamilyHeadID empty, or
+// pointing to a resident that is no longer an active Head) at the same
+// House/Lot/Unit Number + Street are linked to $headId. The household record
+// uses the Household module helpers, so the HH-YYYY-#### rules apply and an
+// existing household_survey row is reused (no duplicate household).
+// Returns the number of members linked. Never blocks the resident save.
+// ─────────────────────────────────────────────────────────────────────────────
+function linkUnassignedHouseholdMembers(PDO $pdo, int $headId, string $houseNo, string $street): int {
+    $norm = static function ($value): string {
+        $value = mb_strtolower(trim((string)$value), 'UTF-8');
+        $value = preg_replace('/[^\p{L}\p{N}]+/u', ' ', $value) ?? $value;
+        return trim(preg_replace('/\s+/u', ' ', $value) ?? $value);
+    };
+    $targetHouse  = $norm($houseNo);
+    $targetStreet = $norm($street);
+    if ($targetHouse === '' || $targetStreet === '') return 0;
+
+    try {
+        require_once __DIR__ . '/../../household/backend/household_common.php';
+        hh_ensure_schema($pdo);
+
+        $head = $pdo->prepare("SELECT Latitude, Longitude FROM residents WHERE ResidentID = ? AND IsHead = 1 LIMIT 1");
+        $head->execute([$headId]);
+        $headRow = $head->fetch(PDO::FETCH_ASSOC);
+        if (!$headRow) return 0;
+
+        $candidates = $pdo->prepare("
+            SELECT m.ResidentID, m.HouseNumber, m.StreetName
+            FROM residents m
+            LEFT JOIN residents h ON h.ResidentID = m.FamilyHeadID
+            WHERE m.ResidentID <> ?
+              AND m.IsHead = 0
+              AND (m.IsDeceased IS NULL OR m.IsDeceased = 0)
+              AND (
+                    m.FamilyHeadID IS NULL OR m.FamilyHeadID = 0
+                 OR h.ResidentID IS NULL
+                 OR h.IsHead <> 1
+                 OR h.IsDeceased = 1
+              )
+        ");
+        $candidates->execute([$headId]);
+
+        $memberIds = [];
+        foreach ($candidates->fetchAll(PDO::FETCH_ASSOC) as $m) {
+            if ($norm($m['HouseNumber'] ?? '') === $targetHouse && $norm($m['StreetName'] ?? '') === $targetStreet) {
+                $memberIds[] = (int)$m['ResidentID'];
+            }
+        }
+        if (!$memberIds) {
+            hh_ensure_household_record($pdo, $headId);
+            return 0;
+        }
+
+        $hasPin = $headRow['Latitude'] !== null && $headRow['Latitude'] !== ''
+            && $headRow['Longitude'] !== null && $headRow['Longitude'] !== '';
+
+        $pdo->beginTransaction();
+        $in = implode(',', array_fill(0, count($memberIds), '?'));
+        if ($hasPin) {
+            // Same rule as a confirmed member: the member uses the household's map pin.
+            $pdo->prepare("UPDATE residents SET FamilyHeadID = ?, Latitude = ?, Longitude = ? WHERE ResidentID IN ($in)")
+                ->execute(array_merge([$headId, $headRow['Latitude'], $headRow['Longitude']], $memberIds));
+        } else {
+            $pdo->prepare("UPDATE residents SET FamilyHeadID = ? WHERE ResidentID IN ($in)")
+                ->execute(array_merge([$headId], $memberIds));
+        }
+
+        $surveyId = hh_ensure_household_record($pdo, $headId);
+        if ($surveyId > 0) {
+            sync_hh_members($pdo, $surveyId, $headId);
+            log_hh_history(
+                $pdo,
+                $surveyId,
+                'MEMBER_LINKED',
+                count($memberIds) . ' previously profiled household member(s) linked to the new Household Head.',
+                null,
+                implode(',', $memberIds)
+            );
+        }
+        $pdo->commit();
+
+        return count($memberIds);
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        error_log('[CAPS] late household head linking: ' . $e->getMessage());
+        return 0;
     }
 }
 
