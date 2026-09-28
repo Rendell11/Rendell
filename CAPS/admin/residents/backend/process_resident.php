@@ -134,6 +134,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         if (empty($rel_to_head)) {
             redirectError('Relationship to Head is required for family members.', $action, $resident_id);
         }
+        // "Other" → the value typed in Specify Relationship is saved as the relationship.
+        if (strcasecmp($rel_to_head, 'Other') === 0) {
+            $rel_to_head = trim(preg_replace('/\s+/', ' ', (string)($_POST['RelationshipToHeadOther'] ?? '')));
+            if ($rel_to_head === '') {
+                redirectError('Please specify the relationship to the Head.', $action, $resident_id);
+            }
+            $rel_to_head = mb_substr(ucfirst($rel_to_head), 0, 100);
+        }
     }
 
     $family_head_id = ($is_head === 1 || empty($_POST['FamilyHeadID']))

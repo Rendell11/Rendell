@@ -1036,7 +1036,23 @@ require_once __DIR__ . '/../../theme_loader.php';
                         <div class="space-y-1.5" id="relationship_group">
                             <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Relationship to Head
                                 *</label>
-                            <input type="text" name="RelationshipToHead" id="f_rel" oninput="capitalizeFirst(this)"
+                            <select name="RelationshipToHead" id="f_rel" onchange="toggleRelationshipOther()"
+                                class="w-full bg-slate-100 border-none rounded-xl py-3 px-4 text-sm font-bold focus:ring-2 focus:ring-primary/20">
+                                <option value="">-- Select Relationship --</option>
+                                <?php foreach (['Spouse', 'Son', 'Daughter', 'Stepson', 'Stepdaughter', 'Son-in-law', 'Daughter-in-law',
+                                    'Grandson', 'Granddaughter', 'Father', 'Mother', 'Father-in-law', 'Mother-in-law',
+                                    'Brother', 'Sister', 'Brother-in-law', 'Sister-in-law', 'Grandfather', 'Grandmother',
+                                    'Uncle', 'Aunt', 'Nephew', 'Niece', 'Cousin', 'Other Relative', 'Boarder',
+                                    'Domestic Helper', 'Non-relative', 'Other'] as $relOpt): ?>
+                                    <option value="<?= htmlspecialchars($relOpt) ?>"><?= htmlspecialchars($relOpt) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="space-y-1.5 hidden col-start-2" id="relationship_other_group">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Specify Relationship
+                                *</label>
+                            <input type="text" name="RelationshipToHeadOther" id="f_rel_other" maxlength="100"
+                                oninput="capitalizeFirst(this)" placeholder="e.g. Godchild"
                                 class="w-full bg-slate-100 border-none rounded-xl py-3 px-4 text-sm font-bold focus:ring-2 focus:ring-primary/20">
                         </div>
                     </div>
@@ -2127,6 +2143,8 @@ require_once __DIR__ . '/../../theme_loader.php';
             if ('f_source_income_other' in values) document.getElementById('f_source_income_other').value = values.f_source_income_other;
             toggleRelationshipField();
             if ('f_rel' in values) document.getElementById('f_rel').value = values.f_rel;
+            toggleRelationshipOther();
+            if ('f_rel_other' in values) document.getElementById('f_rel_other').value = values.f_rel_other;
 
             // Re-check the household of the restored address, keeping the chosen Family Role.
             checkHeadAvailability({ keepRole: true, headId: values.f_family_head_id || '' });
@@ -2237,6 +2255,36 @@ require_once __DIR__ . '/../../theme_loader.php';
             } else {
                 relGroup.classList.remove('hidden');
                 relInput.required = true;
+            }
+            toggleRelationshipOther();
+        }
+
+        // "Other" relationship: the Specify Relationship field is shown and required only then.
+        function toggleRelationshipOther() {
+            const rel = document.getElementById('f_rel');
+            const group = document.getElementById('relationship_other_group');
+            const other = document.getElementById('f_rel_other');
+            if (!rel || !group || !other) return;
+            const show = !rel.closest('.hidden') && rel.value === 'Other';
+            group.classList.toggle('hidden', !show);
+            other.required = show;
+            if (!show) other.value = '';
+        }
+
+        // Saved relationship → dropdown value; a value outside the list becomes Other + Specify.
+        function setRelationshipValue(value) {
+            const rel = document.getElementById('f_rel');
+            const other = document.getElementById('f_rel_other');
+            const v = String(value || '').trim();
+            if (!v || v === 'Head of Family') { rel.value = ''; toggleRelationshipOther(); return; }
+            const match = Array.from(rel.options).find(o => o.value && o.value.toLowerCase() === v.toLowerCase());
+            if (match && match.value !== 'Other') {
+                rel.value = match.value;
+                toggleRelationshipOther();
+            } else {
+                rel.value = 'Other';
+                toggleRelationshipOther();
+                other.value = v;
             }
         }
 
@@ -2842,7 +2890,7 @@ require_once __DIR__ . '/../../theme_loader.php';
             toggleHeadSelector();
             toggleRelationshipField();
             // Restore rel value AFTER toggleRelationshipField (which would wipe it if IsHead='1')
-            document.getElementById('f_rel').value = data.RelationshipToHead || '';
+            if (String(data.IsHead) !== '1') setRelationshipValue(data.RelationshipToHead);
 
             document.getElementById('location_pin_section').style.display = '';
             const modal = document.getElementById('resModal');
