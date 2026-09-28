@@ -93,13 +93,37 @@ function push_access_token(array $cfg): ?string
 }
 
 /** Send one message. Returns 'ok', 'invalid' (token no longer valid) or 'error'. */
-function push_send(array $cfg, string $access, string $deviceToken, string $title, string $body, array $data = []): string
+/**
+ * Android channel (created by the app, lib/services/push_service.dart) — it
+ * decides the sound: disaster alerts get the siren / beeps of their severity,
+ * or no sound when the resident turned "Alert sound" off; everything else
+ * uses the phone's normal notification sound.
+ */
+function push_channel(array $data, bool $soundOff): string
 {
+    if (($data['source'] ?? '') !== 'alert') return 'barangay_updates';
+    if ($soundOff) return 'alert_silent';
+    return match ($data['severity'] ?? '') {
+        'Critical' => 'alert_critical',
+        'High'     => 'alert_high',
+        'Medium'   => 'alert_medium',
+        default    => 'alert_low',
+    };
+}
+
+function push_send(array $cfg, string $access, string $deviceToken, string $title, string $body, array $data = [], bool $soundOff = false): string
+{
+    $channel = push_channel($data, $soundOff);
+    $urgent = in_array($channel, ['alert_critical', 'alert_high'], true);
+    $android = ['channel_id' => $channel, 'visibility' => 'PUBLIC',
+                'notification_priority' => $urgent ? 'PRIORITY_MAX' : 'PRIORITY_HIGH'];
+    // Android 7 (no channels) reads the sound from the message itself.
+    if (str_starts_with($channel, 'alert_') && $channel !== 'alert_silent') $android['sound'] = $channel;
     $msg = ['message' => [
         'token'        => $deviceToken,
         'notification' => ['title' => mb_substr($title, 0, 120), 'body' => mb_substr($body, 0, 240)],
         'data'         => array_map('strval', $data),
-        'android'      => ['priority' => 'high', 'notification' => ['channel_id' => 'barangay_updates']],
+        'android'      => ['priority' => 'high', 'notification' => $android],
     ]];
     [$code, $out] = push_http('https://fcm.googleapis.com/v1/projects/' . rawurlencode($cfg['project_id']) . '/messages:send',
         ['Authorization: Bearer ' . $access, 'Content-Type: application/json; charset=utf-8'],
@@ -168,24 +192,32 @@ function push_pending(PDO $pdo, int $maxSeconds = 20): int
     }
     if (!$tokens) return 0;
 
+    // Residents who turned Settings → "Alert sound" off (preferences.php).
+    $quiet = [];
+    try {
+        foreach ($pdo->query("SELECT user_id FROM user_preferences
+                              WHERE preference_key = 'app_alert_sound' AND preference_value = 'off'")->fetchAll(PDO::FETCH_COLUMN) as $u) {
+            $quiet[(int) $u] = true;
+        }
+    } catch (Throwable $e) { /* no preferences table yet */ }
+
     $logged = $pdo->prepare("SELECT 1 FROM push_log WHERE source = ? AND source_id = ? AND resident_id = ?");
     $log = $pdo->prepare("INSERT IGNORE INTO push_log (source, source_id, resident_id, sent) VALUES (?, ?, ?, ?)");
     $sent = 0;
 
     // Send to one resident (or everyone when $rid = 0) once per item.
-    $deliver = function (string $source, int $id, int $rid, string $title, string $body, array $data) use ($pdo, $cfg, $access, &$tokens, $logged, $log, &$sent, $start, $maxSeconds): void {
+    $deliver = function (string $source, int $id, int $rid, string $title, string $body, array $data) use ($pdo, $cfg, $access, &$tokens, $quiet, $logged, $log, &$sent, $start, $maxSeconds): void {
         if (time() - $start > $maxSeconds) return;
         $logged->execute([$source, $id, $rid]);
         if ($logged->fetchColumn()) return;
-        if ($rid > 0) {
-            $targets = $tokens[$rid] ?? [];
-        } else {
-            $targets = [];
-            foreach ($tokens as $list) $targets += $list; // keyed by session id
+        $targets = []; // session id => [resident id, device token]
+        foreach ($rid > 0 ? [$rid => $tokens[$rid] ?? []] : $tokens as $owner => $list) {
+            foreach ($list as $sessionId => $deviceToken) $targets[$sessionId] = [$owner, $deviceToken];
         }
         $n = 0;
-        foreach ($targets as $sessionId => $deviceToken) {
-            $r = push_send($cfg, $access, $deviceToken, $title, $body, $data + ['source' => $source, 'id' => $id]);
+        foreach ($targets as $sessionId => [$owner, $deviceToken]) {
+            $r = push_send($cfg, $access, $deviceToken, $title, $body, $data + ['source' => $source, 'id' => $id],
+                isset($quiet[$owner]));
             if ($r === 'ok') $n++;
             if ($r === 'invalid') {
                 $pdo->prepare("UPDATE resident_sessions SET push_token = NULL WHERE id = ?")->execute([$sessionId]);
@@ -207,7 +239,7 @@ function push_pending(PDO $pdo, int $maxSeconds = 20): int
         foreach ($pdo->query("SELECT AlertID, Type, Severity, Title, Message FROM disaster_alerts
                               WHERE notify_app = 1 AND LOWER(Status) = 'active' AND CreatedAt >= NOW() - INTERVAL 1 DAY")->fetchAll(PDO::FETCH_ASSOC) as $a) {
             $deliver('alert', (int) $a['AlertID'], 0, '⚠ ' . trim(($a['Severity'] ? $a['Severity'] . ' · ' : '') . ($a['Title'] ?: $a['Type'])),
-                (string) $a['Message'], ['ref_table' => 'disaster_alerts', 'ref_id' => (string) $a['AlertID']]);
+                (string) $a['Message'], ['ref_table' => 'disaster_alerts', 'ref_id' => (string) $a['AlertID'], 'severity' => (string) $a['Severity']]);
         }
     }
     if (push_table($pdo, 'announcements')) {

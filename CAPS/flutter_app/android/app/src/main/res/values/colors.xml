@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Accent of notification icons (barangay blue). -->
+    <color name="notification_color">#1D63DA</color>
+</resources>

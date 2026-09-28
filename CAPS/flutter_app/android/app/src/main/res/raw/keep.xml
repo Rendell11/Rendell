@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Keep the alert sounds in release builds (they are only referenced by name
+     from the notification channels, so the shrinker would remove them). -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@raw/alert_low,@raw/alert_medium,@raw/alert_high,@raw/alert_critical,@drawable/ic_notification" />
