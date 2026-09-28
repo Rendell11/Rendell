@@ -141,7 +141,7 @@ class ComplaintSectionLabel extends StatelessWidget {
 
 /// Dark app bar used by the resident module screens (matches dashboard/chat).
 PreferredSizeWidget complaintAppBar(String title, String subtitle,
-    {List<Widget>? actions}) {
+    {List<Widget>? actions, IconData icon = Icons.report_problem_outlined}) {
   return AppBar(
     backgroundColor: AppColors.appBar,
     foregroundColor: Colors.white,
@@ -156,8 +156,7 @@ PreferredSizeWidget complaintAppBar(String title, String subtitle,
                 colors: [AppColors.primary, AppColors.primaryDark]),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: const Icon(Icons.report_problem_outlined,
-              color: Colors.white, size: 18),
+          child: Icon(icon, color: Colors.white, size: 18),
         ),
         const SizedBox(width: 10),
         Expanded(

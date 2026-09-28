@@ -154,15 +154,15 @@ class _ComplaintFormScreenState extends State<ComplaintFormScreen> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        icon: const Icon(Icons.check_circle, color: AppColors.success, size: 48),
+        icon:
+            const Icon(Icons.check_circle, color: AppColors.success, size: 48),
         title: Text(tr.complaintSubmittedTitle),
         content: Text(
           tr.complaintSubmittedBody(res.data ?? '—'),
           textAlign: TextAlign.center,
         ),
         actions: [
-          FilledButton(
-              onPressed: () => Navigator.pop(ctx), child: Text(tr.ok)),
+          FilledButton(onPressed: () => Navigator.pop(ctx), child: Text(tr.ok)),
         ],
       ),
     );
@@ -182,8 +182,7 @@ class _ComplaintFormScreenState extends State<ComplaintFormScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.scaffold,
-      appBar:
-          complaintAppBar(tr.fileComplaint, tr.requiredFieldsNote),
+      appBar: complaintAppBar(tr.fileComplaint, tr.requiredFieldsNote),
       body: SafeArea(
         top: false,
         child: Center(
@@ -231,7 +230,8 @@ class _ComplaintFormScreenState extends State<ComplaintFormScreen> {
               color: AppColors.slate400),
           children: [
             if (required)
-              const TextSpan(text: ' *', style: TextStyle(color: AppColors.danger)),
+              const TextSpan(
+                  text: ' *', style: TextStyle(color: AppColors.danger)),
           ],
         )),
       );
@@ -245,9 +245,8 @@ class _ComplaintFormScreenState extends State<ComplaintFormScreen> {
           controller: _title,
           maxLength: 255,
           textCapitalization: TextCapitalization.sentences,
-          decoration:
-              AppTheme.field(tr.complaintTitleHint, icon: Icons.title)
-                  .copyWith(counterText: ''),
+          decoration: AppTheme.field(tr.complaintTitleHint, icon: Icons.title)
+              .copyWith(counterText: ''),
           validator: (v) => _required(v, tr.enterTitle),
         ),
         const SizedBox(height: 14),
@@ -260,8 +259,7 @@ class _ComplaintFormScreenState extends State<ComplaintFormScreen> {
           items: [
             for (final c in _categories)
               DropdownMenuItem(
-                  value: c,
-                  child: Text(tr.complaintCategoryLabel(c))),
+                  value: c, child: Text(tr.complaintCategoryLabel(c))),
           ],
           onChanged: (v) => setState(() => _category = v),
           validator: (v) => v == null ? tr.chooseCategory : null,
@@ -272,9 +270,9 @@ class _ComplaintFormScreenState extends State<ComplaintFormScreen> {
           TextFormField(
             controller: _other,
             maxLength: 255,
-            decoration: AppTheme.field(tr.complaintKindHint,
-                    icon: Icons.edit_outlined)
-                .copyWith(counterText: ''),
+            decoration:
+                AppTheme.field(tr.complaintKindHint, icon: Icons.edit_outlined)
+                    .copyWith(counterText: ''),
             validator: (v) => _category == 'Other'
                 ? _required(v, tr.enterComplaintKind)
                 : null,
@@ -335,9 +333,9 @@ class _ComplaintFormScreenState extends State<ComplaintFormScreen> {
         TextFormField(
           controller: _location,
           maxLength: 255,
-          decoration:
-              AppTheme.field(tr.incidentPlaceHint, icon: Icons.location_on_outlined)
-                  .copyWith(counterText: ''),
+          decoration: AppTheme.field(tr.incidentPlaceHint,
+                  icon: Icons.location_on_outlined)
+              .copyWith(counterText: ''),
           validator: (v) => _required(v, tr.enterIncidentPlace),
         ),
         const SizedBox(height: 14),
@@ -348,8 +346,7 @@ class _ComplaintFormScreenState extends State<ComplaintFormScreen> {
           maxLines: 8,
           maxLength: 2000,
           textCapitalization: TextCapitalization.sentences,
-          decoration: AppTheme.field(
-              tr.descriptionHint),
+          decoration: AppTheme.field(tr.descriptionHint),
           validator: (v) => _required(v, tr.enterDescription),
         ),
       ],
@@ -434,7 +431,8 @@ class _ComplaintFormScreenState extends State<ComplaintFormScreen> {
             activeColor: AppColors.primary,
             onChanged: (v) => setState(() => _anonymous = v),
             title: Text(tr.submitAnonymously,
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
+                style:
+                    const TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
             subtitle: Text(tr.submitAnonymouslySub,
                 style: TextStyle(fontSize: 11.5, color: AppColors.slate500)),
           ),

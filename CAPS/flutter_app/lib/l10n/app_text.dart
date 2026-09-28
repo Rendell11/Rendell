@@ -454,6 +454,81 @@ abstract class AppText {
   String get senior;
   String get householdViewOnly;
   String relationLabel(String r);
+
+  // ── Blotter ─────────────────────────────────────────────────────
+  String get blotterTitle;
+  String get blotterSubtitle;
+  String get blotterLoadFailed;
+  String get blotterFilingTitle;
+  String get blotterFilingBody;
+  String get blotterNone;
+  String get blotterNoneBody;
+  String get blotterTotal;
+  String get blotterActive;
+  String blotterRole(String role);
+  String youAreRole(String role);
+  String get nextHearing;
+  String hearingNo(int n);
+  String get hearingReminder;
+  String get incidentDetails;
+  String get incidentDate;
+  String get incidentLocation;
+  String get narrativeLabel;
+  String get partiesLabel;
+  String get hearingsLabel;
+  String get noHearings;
+  String get noticesToYou;
+  String get resolutionLabel;
+  String get transferredTo;
+  String get caseHistory;
+  String filedOn(String date);
+  String blotterStatus(String s);
+  String hearingStatus(String s);
+  String partyName(String n);
+  String get youLabel;
+
+  // ── Certificates ────────────────────────────────────────────────
+  String get certTitle;
+  String get certSubtitle;
+  String get certLoadFailed;
+  String get requestDocument;
+  String get noCertRequests;
+  String get noCertRequestsBody;
+  String certStatus(String s);
+  String get certReady;
+  String get certReleased;
+  String get referenceNo;
+  String get documentNo;
+  String requestedOn(String date);
+  String pickUpUntil(String date);
+  String get chooseDocument;
+  String get noDocTypes;
+  String get requirementsLabel;
+  String get requirementsHint;
+  String get attachPhoto;
+  String get photoAttached;
+  String get additionalInfo;
+  String get purposeLabel;
+  String get purposeHint;
+  String get purposeRequired;
+  String fieldRequired(String label);
+  String get selectOption;
+  String get submitRequest;
+  String get requestSentTitle;
+  String requestSentBody(String ref);
+  String blotterWarning(int n);
+  String unclaimedWarning(int n);
+  String statusInfo(String s);
+  String readyInfo(String date);
+  String get reasonLabel;
+  String get cancelRequest;
+  String get cancelRequestTitle;
+  String get cancelRequestBody;
+  String get keepRequest;
+  String get statusHistory;
+  String get requestDetails;
+  String get attachedPhotos;
+  String get viewAllRequests;
 }
 
 /// The strings for the current app language.

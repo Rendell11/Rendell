@@ -361,7 +361,7 @@ class _RequestAccessScreenState extends State<RequestAccessScreen> {
           ),
           const SizedBox(height: 12),
           _input(tr.raLastName, _last,
-              hint: 'dela Cruz',
+              hint: 'Dela Cruz',
               required: true,
               inputFormatters: [_TitleCaseFormatter()]),
           const SizedBox(height: 12),

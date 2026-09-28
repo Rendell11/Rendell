@@ -12,6 +12,9 @@ import '../announcements/announcement_detail_screen.dart';
 import '../announcements/announcement_widgets.dart';
 import '../announcements/announcements_screen.dart';
 import '../complaint/complaint_screen.dart';
+import '../blotter/blotter_screen.dart';
+import '../certificate/certificate_api.dart';
+import '../certificate/certificate_screen.dart';
 import '../household/household_screen.dart';
 import '../officials/officials_screen.dart';
 import '../settings/app_settings.dart';
@@ -50,6 +53,7 @@ const List<ResidentModule> kModules = [
   ResidentModule('documents', Icons.description_outlined, Color(0xFF16A34A)),
   ResidentModule(
       'complaints', Icons.report_problem_outlined, Color(0xFFF59E0B)),
+  ResidentModule('blotter', Icons.gavel_outlined, Color(0xFFE11D48)),
   ResidentModule('officials', Icons.badge_outlined, Color(0xFF6366F1)),
   ResidentModule('chat', Icons.chat_bubble_outline, Color(0xFFDB2777)),
 ];
@@ -74,6 +78,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
     AppSettings.instance.bindResident(resident.residentId);
     _loadPhoto();
     _loadAnnouncements();
+    _loadRequests();
+  }
+
+  CertList? _requests;
+
+  /// Document requests for the stat cards and "Recent Requests".
+  Future<void> _loadRequests() async {
+    final api = CertificateApi();
+    final res = await api.list(resident.residentId);
+    api.dispose();
+    if (mounted && res.ok) setState(() => _requests = res.data);
+  }
+
+  Future<void> _openCertificates(BuildContext context,
+      {bool openForm = false}) async {
+    await Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) =>
+            CertificateScreen(resident: resident, openForm: openForm)));
+    _loadRequests();
   }
 
   String? _photoUrl;
@@ -125,10 +148,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (changed == true) _loadPhoto();
   }
 
-  // Placeholder stats (wire to API later).
-  int get _total => 0;
-  int get _approved => 0;
-  int get _pending => 0;
+  // Document requests (certificate.php); reservations are not built yet.
+  int get _total => _requests?.total ?? 0;
+  int get _approved => (_requests?.ready ?? 0) + (_requests?.released ?? 0);
+  int get _pending => _requests?.pending ?? 0;
+  int get _rejected => _requests?.rejected ?? 0;
   int get _reservations => 0;
 
   String get _initials {
@@ -187,6 +211,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void _openModule(BuildContext context, ResidentModule m) {
     if (m.id == 'announcements') {
       _openAnnouncements(context);
+      return;
+    }
+    if (m.id == 'documents') {
+      _openCertificates(context);
+      return;
+    }
+    if (m.id == 'blotter') {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => BlotterScreen(resident: resident)),
+      );
       return;
     }
     if (m.id == 'household') {
@@ -875,6 +909,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // ── Recent requests (empty state) ───────────────────────────────────────
   Widget _recentRequestsCard(BuildContext context) {
+    final recent = (_requests?.requests ?? const <CertRequest>[]).take(3);
+    if (recent.isNotEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final r in recent) ...[
+            CertRequestTile(
+                request: r, onTap: () => _openCertificates(context)),
+            const SizedBox(height: 10),
+          ],
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: () => _openCertificates(context),
+              icon: const Icon(Icons.arrow_forward, size: 16),
+              label: Text(tr.viewAllRequests),
+            ),
+          ),
+        ],
+      );
+    }
     return _white(
       padding: EdgeInsets.zero,
       child: Padding(
@@ -890,7 +945,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     fontSize: 13)),
             const SizedBox(height: 8),
             TextButton.icon(
-              onPressed: () => _soon(context, tr.moduleLabel('documents')),
+              onPressed: () => _openCertificates(context, openForm: true),
               icon: const Icon(Icons.add, size: 16),
               label: Text(tr.makeFirstRequest),
             ),
@@ -953,7 +1008,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           bar(tr.approved, _approved, const Color(0xFF16A34A)),
           bar(tr.pending, _pending, const Color(0xFFF59E0B)),
-          bar(tr.rejected, 0, const Color(0xFFEF4444)),
+          bar(tr.rejected, _rejected, const Color(0xFFEF4444)),
           Divider(color: AppColors.bgBottom, height: 8),
           const SizedBox(height: 8),
           Row(

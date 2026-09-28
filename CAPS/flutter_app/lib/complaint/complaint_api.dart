@@ -60,7 +60,8 @@ class ComplaintApi {
   Future<ApiResult<ComplaintList>> list(int residentId) async {
     try {
       final res = await _client
-          .get(_uri({'action': 'list', 'resident_id': '$residentId'}), headers: ApiConfig.headers)
+          .get(_uri({'action': 'list', 'resident_id': '$residentId'}),
+              headers: ApiConfig.headers)
           .timeout(ApiConfig.timeout);
       final body = _decode(res);
       if (_ok(res, body) && body['data'] is Map) {
@@ -78,11 +79,13 @@ class ComplaintApi {
   Future<ApiResult<Complaint>> detail(int residentId, int id) async {
     try {
       final res = await _client
-          .get(_uri({
-            'action': 'detail',
-            'resident_id': '$residentId',
-            'id': '$id',
-          }), headers: ApiConfig.headers)
+          .get(
+              _uri({
+                'action': 'detail',
+                'resident_id': '$residentId',
+                'id': '$id',
+              }),
+              headers: ApiConfig.headers)
           .timeout(ApiConfig.timeout);
       final body = _decode(res);
       if (_ok(res, body) && body['data'] is Map) {
