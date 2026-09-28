@@ -56,6 +56,22 @@ through `user/backend/disaster.php`:
   The current Issue Alert form does not ask for them (it saves the
   evacuation center as `'None'`, which the app hides).
 
+**Live, with sound.** While the app is open it checks for alerts every
+15 seconds (no refresh needed). A new alert (once per device):
+
+| Severity | Sound (`assets/sounds/`) | Shown as |
+|---|---|---|
+| Low | soft chime (0.5 s) | bar at the bottom |
+| Medium | two double beeps (1.5 s) | bar at the bottom |
+| High | urgent triple beeps (2 s) | pop-up |
+| Critical | siren (4 s) | pop-up |
+
+Settings → Notifications → **Alert sound** turns the sound on/off (saved
+to the resident's account as `app_alert_sound`), with buttons to test each
+sound. The alert still shows when the sound is off. On Chrome the browser
+only allows sound after the resident has tapped something on the page
+(e.g. logging in).
+
 No hazard map: the admin has no page to draw hazard zones or Safe Points
 (the old Risk Map of the SOE disaster module is gone and the Issue Alert
 form has no location picker), so a map would always be empty.

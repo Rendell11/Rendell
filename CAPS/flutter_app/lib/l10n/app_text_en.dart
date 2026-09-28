@@ -31,7 +31,20 @@ class AppTextEn extends AppText {
   @override
   String comingSoon(String feature) => '$feature — coming soon.';
   @override
-  List<String> get monthsShort => const ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  List<String> get monthsShort => const [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec'
+      ];
   @override
   String get refresh => 'Refresh';
 
@@ -39,7 +52,8 @@ class AppTextEn extends AppText {
   @override
   String get errTimeout => 'The server timed out. Please try again.';
   @override
-  String get errNoConnection => 'Cannot reach the server. Check your connection and the API base URL.';
+  String get errNoConnection =>
+      'Cannot reach the server. Check your connection and the API base URL.';
   @override
   String errGeneric(String error) => 'Something went wrong: $error';
   @override
@@ -81,7 +95,8 @@ class AppTextEn extends AppText {
   @override
   String get themeSystem => 'Auto';
   @override
-  String get themeFollowsBarangay => 'Following the barangay default. "Auto" follows your phone.';
+  String get themeFollowsBarangay =>
+      'Following the barangay default. "Auto" follows your phone.';
   @override
   String get accentColor => 'App color';
   @override
@@ -115,7 +130,8 @@ class AppTextEn extends AppText {
   @override
   String get changePasswordSub => 'Update the password you use to log in';
   @override
-  String get changePasswordIntro => 'Enter your current password, then choose a new one (at least 8 characters).';
+  String get changePasswordIntro =>
+      'Enter your current password, then choose a new one (at least 8 characters).';
   @override
   String get currentPassword => 'Current password';
   @override
@@ -177,7 +193,8 @@ class AppTextEn extends AppText {
   @override
   String sessionUntil(String date) => 'Until $date';
   @override
-  String get sessionNotRemembered => 'Not remembered on this device — you log in each time.';
+  String get sessionNotRemembered =>
+      'Not remembered on this device — you log in each time.';
   @override
   String get about => 'About';
   @override
@@ -185,13 +202,16 @@ class AppTextEn extends AppText {
   @override
   String get needHelp => 'Need help?';
   @override
-  String get needHelpSub => 'Visit the Barangay Hall or call (044) 123-4567, Mon–Fri 8 AM–5 PM.';
+  String get needHelpSub =>
+      'Visit the Barangay Hall or call (044) 123-4567, Mon–Fri 8 AM–5 PM.';
   @override
   String get resetAppearanceTitle => 'Reset appearance';
   @override
-  String get resetAppearanceSub => 'Back to the barangay default theme, color and text size';
+  String get resetAppearanceSub =>
+      'Back to the barangay default theme, color and text size';
   @override
-  String get resetAppearanceBody => 'Your theme, color and text size will go back to the barangay defaults. Your language stays the same.';
+  String get resetAppearanceBody =>
+      'Your theme, color and text size will go back to the barangay defaults. Your language stays the same.';
   @override
   String get resetAppearanceDone => 'Appearance reset.';
   @override
@@ -199,19 +219,23 @@ class AppTextEn extends AppText {
   @override
   String get logoutConfirmTitle => 'Log out?';
   @override
-  String get logoutConfirmBody => 'You will need to log in again with your email and password.';
+  String get logoutConfirmBody =>
+      'You will need to log in again with your email and password.';
 
   // ── Access request status
   @override
-  String get statusPendingDesc => 'Your request is still with the admin. Please wait for an update.';
+  String get statusPendingDesc =>
+      'Your request is still with the admin. Please wait for an update.';
   @override
   String get statusApprovedDesc => 'Approved! You can now set your password.';
   @override
   String get statusProfilingDesc => 'You need to complete your profile first.';
   @override
-  String get statusCorrectionDesc => 'Something in your request needs fixing. See the admin note.';
+  String get statusCorrectionDesc =>
+      'Something in your request needs fixing. See the admin note.';
   @override
-  String get statusRejectedDesc => 'Your request was not approved. See the admin reason.';
+  String get statusRejectedDesc =>
+      'Your request was not approved. See the admin reason.';
 
   // ── Lock / PIN
   @override
@@ -261,7 +285,8 @@ class AppTextEn extends AppText {
   @override
   String get trackRequestStatus => 'Track Request Status';
   @override
-  String get trackRequestSub => 'Enter your email to check the status of your submitted request.';
+  String get trackRequestSub =>
+      'Enter your email to check the status of your submitted request.';
   @override
   String get check => 'Check';
   @override
@@ -279,19 +304,23 @@ class AppTextEn extends AppText {
   @override
   String get forgotPassword => 'Forgot Password';
   @override
-  String get forgotPasswordSub => 'Enter your registered email address and we\'ll send you a reset link.';
+  String get forgotPasswordSub =>
+      'Enter your registered email address and we\'ll send you a reset link.';
   @override
   String get enterRegisteredEmail => 'Enter your registered email address';
   @override
-  String get resetLinkExpiry => 'The reset link will expire in 1 hour. Check your spam folder if you don\'t see the email.';
+  String get resetLinkExpiry =>
+      'The reset link will expire in 1 hour. Check your spam folder if you don\'t see the email.';
   @override
   String get sendResetLink => 'Send Reset Link';
   @override
   String get checkYourEmail => 'Check Your Email';
   @override
-  String get checkYourEmailSub => 'If that email is registered, you will receive a password reset link shortly. Please check your inbox (and spam folder).';
+  String get checkYourEmailSub =>
+      'If that email is registered, you will receive a password reset link shortly. Please check your inbox (and spam folder).';
   @override
-  String get setPasswordSub => 'Enter the access token from the barangay, then choose a new password.';
+  String get setPasswordSub =>
+      'Enter the access token from the barangay, then choose a new password.';
   @override
   String get accessToken => 'Access Token';
   @override
@@ -323,17 +352,21 @@ class AppTextEn extends AppText {
   @override
   String get raEnterAValidDate => 'Enter a valid date of birth (mm/dd/yyyy).';
   @override
-  String get raBarangayAddressIsNot => 'Barangay address is not configured yet. Contact the barangay.';
+  String get raBarangayAddressIsNot =>
+      'Barangay address is not configured yet. Contact the barangay.';
   @override
-  String get raPleaseSelectYourStreet => 'Please select your street and purok/area.';
+  String get raPleaseSelectYourStreet =>
+      'Please select your street and purok/area.';
   @override
   String get raSubmitRegistration => 'Submit Registration';
   @override
   String get raRequestPortalAccess => 'Request Portal Access';
   @override
-  String get raFillOutTheForm => 'Fill out the form to request access to the Resident Portal.';
+  String get raFillOutTheForm =>
+      'Fill out the form to request access to the Resident Portal.';
   @override
-  String get raUploadAValidId => 'Upload a valid ID to verify that you are a resident of Barangay Biñang 2nd. You will receive an email notification after the review.';
+  String get raUploadAValidId =>
+      'Upload a valid ID to verify that you are a resident of Barangay Biñang 2nd. You will receive an email notification after the review.';
   @override
   String get raPersonalInformation => 'Personal Information';
   @override
@@ -373,7 +406,8 @@ class AppTextEn extends AppText {
   @override
   String get raSelectStreet => 'Select street';
   @override
-  String get raSubdivisionVillageSitioPurok => 'Subdivision / Village / Sitio / Purok';
+  String get raSubdivisionVillageSitioPurok =>
+      'Subdivision / Village / Sitio / Purok';
   @override
   String get raNoAreasConfigured => 'No areas configured';
   @override
@@ -381,9 +415,11 @@ class AppTextEn extends AppText {
   @override
   String get raDefaultAddress => 'Default address';
   @override
-  String get raYouOnlyNeedTo => 'You only need to enter your house number, building, street and subdivision/sitio/purok.';
+  String get raYouOnlyNeedTo =>
+      'You only need to enter your house number, building, street and subdivision/sitio/purok.';
   @override
-  String get raTheBarangayDefaultAddress => 'The barangay default address is not configured yet. Please contact the barangay office.';
+  String get raTheBarangayDefaultAddress =>
+      'The barangay default address is not configured yet. Please contact the barangay office.';
   @override
   String get raVerificationRequirement => 'Verification Requirement';
   @override
@@ -403,7 +439,8 @@ class AppTextEn extends AppText {
   @override
   String get raYourRequestHasBeen => 'Your request has been received!';
   @override
-  String get raTheBarangayStaffWill => 'The Barangay Staff will review your application and valid ID. You will receive an email once processed.';
+  String get raTheBarangayStaffWill =>
+      'The Barangay Staff will review your application and valid ID. You will receive an email once processed.';
   @override
   String get raWhatHappensNext2 => 'What happens next?';
   @override
@@ -417,15 +454,42 @@ class AppTextEn extends AppText {
   @override
   String get zipCode => 'ZIP Code';
   @override
-  String get raValidIdExamples => '(Driver\'s License, PhilSys ID, Voter\'s ID, Passport, etc.)';
+  String get raValidIdExamples =>
+      '(Driver\'s License, PhilSys ID, Voter\'s ID, Passport, etc.)';
   @override
   String get raSelected => 'Selected';
   @override
   String get raRequestSubmitted => 'Request Submitted';
   @override
-  List<List<String>> get raNextSteps => const [['Submit Registration Form', 'Fill out and submit this form with your valid ID.'], ['Staff Reviews Application', 'Barangay staff will verify your information and ID.'], ['Approve or Reject Request', 'You will be notified of the decision via email.'], ['Password Setup Link Sent', 'If approved, a password setup link will be sent.'], ['Create Your Password', 'Set your secure password using the link provided.']];
+  List<List<String>> get raNextSteps => const [
+        [
+          'Submit Registration Form',
+          'Fill out and submit this form with your valid ID.'
+        ],
+        [
+          'Staff Reviews Application',
+          'Barangay staff will verify your information and ID.'
+        ],
+        [
+          'Approve or Reject Request',
+          'You will be notified of the decision via email.'
+        ],
+        [
+          'Password Setup Link Sent',
+          'If approved, a password setup link will be sent.'
+        ],
+        [
+          'Create Your Password',
+          'Set your secure password using the link provided.'
+        ]
+      ];
   @override
-  List<String> get raSuccessSteps => const ['Staff reviews your information and valid ID', 'You receive an email: Approved or Disapproved', 'If approved, a password setup link will be sent', 'Set your password and log in to the Resident Portal'];
+  List<String> get raSuccessSteps => const [
+        'Staff reviews your information and valid ID',
+        'You receive an email: Approved or Disapproved',
+        'If approved, a password setup link will be sent',
+        'Set your password and log in to the Resident Portal'
+      ];
 
   // ── Request access (hint)
   @override
@@ -433,7 +497,17 @@ class AppTextEn extends AppText {
 
   // ── Dashboard
   @override
-  String moduleLabel(String id) => switch (id) { 'household' => 'Household', 'announcements' => 'Announcements', 'documents' => 'Request Document', 'complaints' => 'Complaints', 'blotter' => 'Blotter', 'disaster' => 'Disaster Alerts', 'officials' => 'Officials', 'chat' => 'Chat', _ => id };
+  String moduleLabel(String id) => switch (id) {
+        'household' => 'Household',
+        'announcements' => 'Announcements',
+        'documents' => 'Request Document',
+        'complaints' => 'Complaints',
+        'blotter' => 'Blotter',
+        'disaster' => 'Disaster Alerts',
+        'officials' => 'Officials',
+        'chat' => 'Chat',
+        _ => id
+      };
   @override
   String get modules => 'Modules';
   @override
@@ -487,7 +561,8 @@ class AppTextEn extends AppText {
   @override
   String get needAssistance => 'Need Assistance?';
   @override
-  String get helpBody => 'Visit the Barangay Hall or call the office for help with your requests and documents.';
+  String get helpBody =>
+      'Visit the Barangay Hall or call the office for help with your requests and documents.';
   @override
   String get officeHours => 'Mon – Fri, 8:00 AM – 5:00 PM';
 
@@ -503,13 +578,18 @@ class AppTextEn extends AppText {
   @override
   String get barangayStaff => 'Barangay Staff';
   @override
-  String chatConversationStatus(String status) => switch (status) { 'Pending' => 'Waiting for staff', 'Ongoing' => 'Ongoing conversation', _ => '$status conversation' };
+  String chatConversationStatus(String status) => switch (status) {
+        'Pending' => 'Waiting for staff',
+        'Ongoing' => 'Ongoing conversation',
+        _ => '$status conversation'
+      };
   @override
   String get emergencyHotlines => 'Emergency Hotlines';
   @override
   String get noChatYet => 'No conversation yet';
   @override
-  String get noChatYetBody => 'Send a message to the barangay staff. They will reply as soon as they can.';
+  String get noChatYetBody =>
+      'Send a message to the barangay staff. They will reply as soon as they can.';
   @override
   String get you => 'You';
   @override
@@ -533,7 +613,8 @@ class AppTextEn extends AppText {
   @override
   String get noComplaintsYet => 'No complaints yet';
   @override
-  String get noComplaintsYetBody => 'Tap "File a Complaint" to send a complaint to the barangay.';
+  String get noComplaintsYetBody =>
+      'Tap "File a Complaint" to send a complaint to the barangay.';
   @override
   String get noMatches => 'No matches';
   @override
@@ -545,11 +626,18 @@ class AppTextEn extends AppText {
   @override
   String get hasAttachment => 'Has attachment';
   @override
-  String complaintStatusLabel(String status) => switch (status) { 'Pending' => 'Pending', 'Ongoing' => 'Ongoing', 'Resolved' => 'Resolved', _ => status };
+  String complaintStatusLabel(String status) => switch (status) {
+        'Pending' => 'Pending',
+        'Ongoing' => 'Ongoing',
+        'Resolved' => 'Resolved',
+        _ => status
+      };
   @override
-  String priorityLabel(String priority) => switch (priority) { 'High (Urgent)' => 'High (Urgent)', _ => priority };
+  String priorityLabel(String priority) =>
+      switch (priority) { 'High (Urgent)' => 'High (Urgent)', _ => priority };
   @override
-  String complaintCategoryLabel(String category) => category == 'Other' ? 'Other (specify below)' : category;
+  String complaintCategoryLabel(String category) =>
+      category == 'Other' ? 'Other (specify below)' : category;
 
   // ── Complaints (form)
   @override
@@ -563,7 +651,8 @@ class AppTextEn extends AppText {
   @override
   String get complaintSubmittedTitle => 'Complaint submitted';
   @override
-  String complaintSubmittedBody(String ref) => 'Reference No: $ref\n\nThe barangay will review it. You can see its status and the admin reply here.';
+  String complaintSubmittedBody(String ref) =>
+      'Reference No: $ref\n\nThe barangay will review it. You can see its status and the admin reply here.';
   @override
   String get requiredFieldsNote => 'Fields marked * are required';
   @override
@@ -601,7 +690,8 @@ class AppTextEn extends AppText {
   @override
   String get descriptionLabel => 'Description';
   @override
-  String get descriptionHint => 'Describe what happened in detail (who, what, when)…';
+  String get descriptionHint =>
+      'Describe what happened in detail (who, what, when)…';
   @override
   String get enterDescription => 'Describe the complaint.';
   @override
@@ -615,9 +705,11 @@ class AppTextEn extends AppText {
   @override
   String get submitAnonymously => 'Submit anonymously';
   @override
-  String get submitAnonymouslySub => 'Your name will not be shown to the admin. You can still see the complaint and the reply here in the app.';
+  String get submitAnonymouslySub =>
+      'Your name will not be shown to the admin. You can still see the complaint and the reply here in the app.';
   @override
-  String get truthfulnessCheck => 'I confirm this information is true. Filing a false complaint is against the law.';
+  String get truthfulnessCheck =>
+      'I confirm this information is true. Filing a false complaint is against the law.';
   @override
   String get submitComplaint => 'Submit Complaint';
 
@@ -633,9 +725,11 @@ class AppTextEn extends AppText {
   @override
   String submittedOn(String date) => 'Submitted $date';
   @override
-  List<String> get complaintSteps => const ['Submitted', 'In progress', 'Resolved'];
+  List<String> get complaintSteps =>
+      const ['Submitted', 'In progress', 'Resolved'];
   @override
-  String get noReplyYet => 'The barangay hasn\'t replied yet. This will update once your complaint is reviewed.';
+  String get noReplyYet =>
+      'The barangay hasn\'t replied yet. This will update once your complaint is reviewed.';
   @override
   String get barangayAdmin => 'Barangay Admin';
   @override
@@ -673,7 +767,8 @@ class AppTextEn extends AppText {
   @override
   String get removePhotoBody => 'Your initials will be shown instead.';
   @override
-  String get profileViewOnly => 'Your details can only be viewed here. To correct anything, please visit the Barangay Hall.';
+  String get profileViewOnly =>
+      'Your details can only be viewed here. To correct anything, please visit the Barangay Hall.';
   @override
   String get personalInformation => 'Personal Information';
   @override
@@ -771,7 +866,8 @@ class AppTextEn extends AppText {
   @override
   String get announcementsLoadFailed => 'Could not load the announcements.';
   @override
-  String newAnnouncementsCount(int n) => n == 1 ? '1 new announcement' : '$n new announcements';
+  String newAnnouncementsCount(int n) =>
+      n == 1 ? '1 new announcement' : '$n new announcements';
   @override
   String get searchAnnouncements => 'Search announcements…';
   @override
@@ -783,7 +879,8 @@ class AppTextEn extends AppText {
   @override
   String attachmentsCount(int n) => n == 1 ? '1 attachment' : '$n attachments';
   @override
-  String get attachmentAtBarangay => 'To get a copy of these files, visit the Barangay Hall.';
+  String get attachmentAtBarangay =>
+      'To get a copy of these files, visit the Barangay Hall.';
   @override
   String get viewAll => 'View all';
   @override
@@ -797,7 +894,8 @@ class AppTextEn extends AppText {
   @override
   String get youAreHead => 'You are the Household Head of this family.';
   @override
-  String youAreMemberOf(String head) => "You are a member of $head's household.";
+  String youAreMemberOf(String head) =>
+      "You are a member of $head's household.";
   @override
   String get yourRole => 'Your role';
   @override
@@ -805,7 +903,8 @@ class AppTextEn extends AppText {
   @override
   String get noHouseholdTitle => 'No household linked';
   @override
-  String get noHouseholdBody => 'Your account is not yet connected to a household. Please visit the barangay office so the staff can link you to your family\'s household record.';
+  String get noHouseholdBody =>
+      'Your account is not yet connected to a household. Please visit the barangay office so the staff can link you to your family\'s household record.';
   @override
   String get householdInfo => 'Household Info';
   @override
@@ -851,7 +950,8 @@ class AppTextEn extends AppText {
   @override
   String get senior => 'Senior';
   @override
-  String get householdViewOnly => 'Household records are managed by the barangay. To add or remove a member or correct details, please visit the barangay office.';
+  String get householdViewOnly =>
+      'Household records are managed by the barangay. To add or remove a member or correct details, please visit the barangay office.';
   @override
   String relationLabel(String r) => r;
 
@@ -865,11 +965,13 @@ class AppTextEn extends AppText {
   @override
   String get blotterFilingTitle => 'Filing a blotter report';
   @override
-  String get blotterFilingBody => 'Blotter reports cannot be filed online. Please go to the Barangay Hall. Here you can follow the cases where you are a complainant or respondent.';
+  String get blotterFilingBody =>
+      'Blotter reports cannot be filed online. Please go to the Barangay Hall. Here you can follow the cases where you are a complainant or respondent.';
   @override
   String get blotterNone => 'No blotter records';
   @override
-  String get blotterNoneBody => 'You are not listed as a complainant or respondent in any case.';
+  String get blotterNoneBody =>
+      'You are not listed as a complainant or respondent in any case.';
   @override
   String get blotterTotal => 'Total cases';
   @override
@@ -883,7 +985,8 @@ class AppTextEn extends AppText {
   @override
   String hearingNo(int n) => 'Hearing #$n';
   @override
-  String get hearingReminder => 'Please come on time and bring a valid ID. If you cannot attend, tell the barangay before the hearing.';
+  String get hearingReminder =>
+      'Please come on time and bring a valid ID. If you cannot attend, tell the barangay before the hearing.';
   @override
   String get incidentDetails => 'Incident details';
   @override
@@ -929,9 +1032,15 @@ class AppTextEn extends AppText {
   @override
   String get noCertRequests => 'No document requests yet';
   @override
-  String get noCertRequestsBody => 'Request a barangay clearance, certificate and more. You will be told when it is ready to pick up.';
+  String get noCertRequestsBody =>
+      'Request a barangay clearance, certificate and more. You will be told when it is ready to pick up.';
   @override
-  String certStatus(String s) => switch (s) { 'Review' => 'Under review', 'Ready to Pick Up' => 'Ready to pick up', 'Preview' => 'Processing', _ => s };
+  String certStatus(String s) => switch (s) {
+        'Review' => 'Under review',
+        'Ready to Pick Up' => 'Ready to pick up',
+        'Preview' => 'Processing',
+        _ => s
+      };
   @override
   String get certReady => 'Ready';
   @override
@@ -947,11 +1056,13 @@ class AppTextEn extends AppText {
   @override
   String get chooseDocument => 'Choose a document';
   @override
-  String get noDocTypes => 'No documents are available for online request yet. Please visit the Barangay Hall.';
+  String get noDocTypes =>
+      'No documents are available for online request yet. Please visit the Barangay Hall.';
   @override
   String get requirementsLabel => 'Requirements';
   @override
-  String get requirementsHint => 'Check what you already have and bring the originals when you pick up the document. You may attach a photo.';
+  String get requirementsHint =>
+      'Check what you already have and bring the originals when you pick up the document. You may attach a photo.';
   @override
   String get attachPhoto => 'Attach photo';
   @override
@@ -973,15 +1084,29 @@ class AppTextEn extends AppText {
   @override
   String get requestSentTitle => 'Request sent';
   @override
-  String requestSentBody(String ref) => 'Your reference number is $ref. You will see here when it is ready to pick up.';
+  String requestSentBody(String ref) =>
+      'Your reference number is $ref. You will see here when it is ready to pick up.';
   @override
-  String blotterWarning(int n) => n == 1 ? 'You have 1 active blotter case. The barangay may hold your request until it is settled.' : 'You have $n active blotter cases. The barangay may hold your request until they are settled.';
+  String blotterWarning(int n) => n == 1
+      ? 'You have 1 active blotter case. The barangay may hold your request until it is settled.'
+      : 'You have $n active blotter cases. The barangay may hold your request until they are settled.';
   @override
-  String unclaimedWarning(int n) => n == 1 ? 'You have 1 document that was not picked up.' : 'You have $n documents that were not picked up.';
+  String unclaimedWarning(int n) => n == 1
+      ? 'You have 1 document that was not picked up.'
+      : 'You have $n documents that were not picked up.';
   @override
-  String statusInfo(String s) => switch (s) { 'Pending' => 'Waiting for the barangay to review your request.', 'Review' => 'The barangay staff is reviewing your request.', 'Released' => 'You have received this document.', 'Rejected' => 'Your request was not approved.', 'Expired' => 'The document was not picked up within 15 days. Please request again.', _ => 'Your request is being processed.' };
+  String statusInfo(String s) => switch (s) {
+        'Pending' => 'Waiting for the barangay to review your request.',
+        'Review' => 'The barangay staff is reviewing your request.',
+        'Released' => 'You have received this document.',
+        'Rejected' => 'Your request was not approved.',
+        'Expired' =>
+          'The document was not picked up within 15 days. Please request again.',
+        _ => 'Your request is being processed.'
+      };
   @override
-  String readyInfo(String date) => 'Your document is ready. Pick it up at the Barangay Hall until $date. Bring a valid ID and your reference number.';
+  String readyInfo(String date) =>
+      'Your document is ready. Pick it up at the Barangay Hall until $date. Bring a valid ID and your reference number.';
   @override
   String get reasonLabel => 'Reason';
   @override
@@ -1007,9 +1132,11 @@ class AppTextEn extends AppText {
   @override
   String get logoutAllDevices => 'Log out on all devices';
   @override
-  String get logoutAllDevicesSub => 'Use this if you lost a phone or logged in on another device';
+  String get logoutAllDevicesSub =>
+      'Use this if you lost a phone or logged in on another device';
   @override
-  String get logoutAllDevicesBody => 'You will be logged out here and on every other phone or browser where you are signed in.';
+  String get logoutAllDevicesBody =>
+      'You will be logged out here and on every other phone or browser where you are signed in.';
 
   // ── Notifications
   @override
@@ -1017,9 +1144,16 @@ class AppTextEn extends AppText {
   @override
   String get notificationsLoadFailed => 'Could not load the notifications.';
   @override
-  String get noNotificationsBody => 'Updates on your requests, complaints, blotter cases, announcements and alerts will show here.';
+  String get noNotificationsBody =>
+      'Updates on your requests, complaints, blotter cases, announcements and alerts will show here.';
   @override
-  String notifSource(String s) => switch (s) { 'announcement' => 'Announcement', 'alert' => 'Disaster alert', 'blotter' => 'Blotter', 'hearing' => 'Hearing reminder', _ => 'Update' };
+  String notifSource(String s) => switch (s) {
+        'announcement' => 'Announcement',
+        'alert' => 'Disaster alert',
+        'blotter' => 'Blotter',
+        'hearing' => 'Hearing reminder',
+        _ => 'Update'
+      };
   @override
   String get justNow => 'Just now';
   @override
@@ -1051,9 +1185,22 @@ class AppTextEn extends AppText {
   @override
   String severityLabel(String s) => s;
   @override
-  String get emergencyHotlinesHint => 'In an emergency, call the barangay or 911.';
+  String get emergencyHotlinesHint =>
+      'In an emergency, call the barangay or 911.';
 
   // ── Dashboard2
   @override
   String get openComplaints => 'Complaints';
+
+  // ── AlertSound
+  @override
+  String get alertSound => 'Alert sound';
+  @override
+  String get alertSoundSub =>
+      'Play a sound when the barangay issues a disaster alert — louder and longer for higher severity.';
+  @override
+  String get testAlertSound => 'Test the sound';
+  @override
+  String moreAlerts(int n) =>
+      n == 1 ? '+1 more active alert' : '+$n more active alerts';
 }

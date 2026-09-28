@@ -9,6 +9,7 @@ import '../screens/login_screen.dart';
 import '../services/biometric_service.dart';
 import '../services/session_service.dart';
 import '../theme/app_theme.dart';
+import '../disaster/alert_sound.dart';
 import 'app_settings.dart';
 import 'change_password_screen.dart';
 import 'change_pin_screen.dart';
@@ -253,6 +254,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 20),
               _label(tr.language),
               _card(_languageSection(), padding: EdgeInsets.zero),
+              const SizedBox(height: 20),
+              _label(tr.notifications),
+              _card(_notificationSection(), padding: EdgeInsets.zero),
               const SizedBox(height: 20),
               _label(tr.security),
               _card(_securitySection(), padding: EdgeInsets.zero),
@@ -632,6 +636,66 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   // ── Security ──────────────────────────────────────────────────────────
+  // ── Notifications: disaster alert sound ──────────────────────────────
+  Widget _notificationSection() {
+    const levels = <(String, Color)>[
+      ('Low', Color(0xFF0EA5E9)),
+      ('Medium', Color(0xFFD97706)),
+      ('High', Color(0xFFE11D48)),
+      ('Critical', Color(0xFFB91C1C)),
+    ];
+    return Material(
+      type: MaterialType.transparency,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SwitchListTile(
+            value: _settings.alertSound,
+            onChanged: (v) async {
+              await _settings.setAlertSound(v);
+              if (!v) AlertSound.instance.stop();
+              if (mounted) setState(() {});
+            },
+            secondary: _tileIcon(_settings.alertSound
+                ? Icons.volume_up_outlined
+                : Icons.volume_off_outlined),
+            title: Text(tr.alertSound, style: _tileTitle),
+            subtitle: Text(tr.alertSoundSub, style: _tileSub),
+          ),
+          Divider(height: 1, color: AppColors.border),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(tr.testAlertSound, style: _tileTitle),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final l in levels)
+                      OutlinedButton.icon(
+                        onPressed: () =>
+                            AlertSound.instance.play(l.$1, force: true),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: l.$2,
+                          side: BorderSide(color: l.$2.withValues(alpha: .5)),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                        icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                        label: Text(tr.severityLabel(l.$1)),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _securitySection() {
     return Material(
       type: MaterialType.transparency,

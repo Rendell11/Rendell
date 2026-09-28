@@ -15,6 +15,7 @@
  *   app_theme_mode  default | light | dark | system
  *   app_accent      default | #RRGGBB
  *   app_text_size   small | normal | large
+ *   app_alert_sound on | off   (sound when the barangay issues a disaster alert)
  *
  * Same trust model as chat.php / complaint.php (resident_id from the app).
  * ─────────────────────────────────────────────────────────────────────────────
@@ -61,6 +62,8 @@ function pref_clean(string $key, string $value): ?string
             return in_array($value, ['default', 'light', 'dark', 'system'], true) ? $value : null;
         case 'app_text_size':
             return in_array($value, ['small', 'normal', 'large'], true) ? $value : null;
+        case 'app_alert_sound':
+            return in_array($value, ['on', 'off'], true) ? $value : null;
         case 'app_accent':
             if ($value === 'default') return $value;
             return preg_match('/^#[0-9A-Fa-f]{6}$/', $value) ? strtoupper($value) : null;
@@ -68,7 +71,7 @@ function pref_clean(string $key, string $value): ?string
     return null;
 }
 
-const PREF_KEYS = ['app_language', 'app_theme_mode', 'app_accent', 'app_text_size'];
+const PREF_KEYS = ['app_language', 'app_theme_mode', 'app_accent', 'app_text_size', 'app_alert_sound'];
 
 try {
     if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {

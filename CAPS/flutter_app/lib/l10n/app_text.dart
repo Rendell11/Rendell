@@ -561,6 +561,12 @@ abstract class AppText {
 
   // ── Dashboard2 ──────────────────────────────────────────────────
   String get openComplaints;
+
+  // ── AlertSound ──────────────────────────────────────────────────
+  String get alertSound;
+  String get alertSoundSub;
+  String get testAlertSound;
+  String moreAlerts(int n);
 }
 
 /// The strings for the current app language.

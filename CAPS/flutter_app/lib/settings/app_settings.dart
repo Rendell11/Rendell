@@ -56,11 +56,13 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
   static const _kThemeMode = 'pref_theme_mode';
   static const _kAccent = 'pref_accent';
   static const _kTextSize = 'pref_text_size';
+  static const _kAlertSound = 'pref_alert_sound';
 
   AppLanguage _language = AppLanguage.fil;
   ThemeMode? _themeMode; // null → follow the barangay portal setting
   String? _accentHex; // null → barangay default
   AppTextSize _textSize = AppTextSize.normal;
+  bool _alertSound = true;
 
   String _portalAccent = '#1D63DA';
   ThemeMode _portalMode = ThemeMode.light;
@@ -81,6 +83,9 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
   String get portalAccent => _portalAccent;
 
   AppTextSize get textSize => _textSize;
+
+  /// Play a sound when the barangay issues a disaster alert.
+  bool get alertSound => _alertSound;
   double get textScale => switch (_textSize) {
         AppTextSize.small => 0.9,
         AppTextSize.normal => 1.0,
@@ -112,6 +117,7 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
       _accentHex = _parseAccent(await _store.read(key: _kAccent));
       _textSize =
           _parseTextSize(await _store.read(key: _kTextSize)) ?? _textSize;
+      _alertSound = await _store.read(key: _kAlertSound) != 'off';
     } catch (_) {
       // secure storage unavailable (e.g. some web setups) — keep defaults
     }
@@ -159,6 +165,13 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
         changed = true;
       }
     }
+    if (remote.containsKey('app_alert_sound')) {
+      final on = remote['app_alert_sound'] != 'off';
+      if (on != _alertSound) {
+        _alertSound = on;
+        changed = true;
+      }
+    }
     final size = _parseTextSize(remote['app_text_size']);
     if (size != null && size != _textSize) {
       _textSize = size;
@@ -181,6 +194,7 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> setAccent(String? hex) =>
       _update(() => _accentHex = _parseAccent(hex));
   Future<void> setTextSize(AppTextSize v) => _update(() => _textSize = v);
+  Future<void> setAlertSound(bool on) => _update(() => _alertSound = on);
 
   /// Back to the barangay defaults (keeps the language).
   Future<void> resetAppearance() => _update(() {
@@ -210,6 +224,7 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
           key: _kThemeMode, value: _themeMode?.name ?? 'default');
       await _store.write(key: _kAccent, value: _accentHex ?? 'default');
       await _store.write(key: _kTextSize, value: _textSize.name);
+      await _store.write(key: _kAlertSound, value: _alertSound ? 'on' : 'off');
     } catch (_) {}
   }
 
@@ -221,6 +236,7 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
       'app_theme_mode': _themeMode?.name ?? 'default',
       'app_accent': _accentHex ?? 'default',
       'app_text_size': _textSize.name,
+      'app_alert_sound': _alertSound ? 'on' : 'off',
     });
   }
 

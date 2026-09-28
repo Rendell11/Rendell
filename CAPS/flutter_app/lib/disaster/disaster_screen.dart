@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../complaint/complaint_widgets.dart';
@@ -27,15 +29,19 @@ class _DisasterScreenState extends State<DisasterScreen> {
   DisasterData? _data;
   String? _error;
   bool _loading = true;
+  Timer? _poll;
 
   @override
   void initState() {
     super.initState();
     _load();
+    // Stay current while open (new / ended alerts appear by themselves).
+    _poll = Timer.periodic(const Duration(seconds: 15), (_) => _load());
   }
 
   @override
   void dispose() {
+    _poll?.cancel();
     _api.dispose();
     super.dispose();
   }

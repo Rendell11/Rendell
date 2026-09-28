@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../l10n/app_text.dart';
@@ -16,6 +18,7 @@ import '../blotter/blotter_screen.dart';
 import '../certificate/certificate_api.dart';
 import '../certificate/certificate_screen.dart';
 import '../complaint/complaint_api.dart';
+import '../disaster/alert_sound.dart';
 import '../disaster/disaster_api.dart';
 import '../disaster/disaster_screen.dart';
 import '../household/household_screen.dart';
@@ -89,6 +92,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _loadRequests();
     _loadCounts();
     _loadAlerts();
+    // New alerts / notifications show up without refreshing: check every
+    // 15 s for alerts, every 30 s for the bell count.
+    _poll = Timer.periodic(const Duration(seconds: 15), (t) {
+      _loadAlerts();
+      if (t.tick.isEven) _loadCounts();
+    });
     // Push notifications (only when Firebase is set up — see PushService).
     PushService.instance
       ..onForeground = (m) {
@@ -109,7 +118,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ..register();
   }
 
+  Timer? _poll;
   int _unread = 0;
+
+  @override
+  void dispose() {
+    _poll?.cancel();
+    AlertSound.instance.stop();
+    super.dispose();
+  }
+
   int _openComplaints = 0;
   List<DisasterAlert> _activeAlerts = const [];
 
@@ -130,12 +148,88 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
   }
 
-  /// Active disaster alerts for the banner at the top.
+  /// Active disaster alerts for the banner at the top. An alert this device
+  /// has not seen yet plays its severity sound and pops up once.
   Future<void> _loadAlerts() async {
     final api = DisasterApi();
     final res = await api.load();
     api.dispose();
-    if (mounted && res.ok) setState(() => _activeAlerts = res.data!.active);
+    if (!mounted || !res.ok) return;
+    final active = res.data!.active;
+    setState(() => _activeAlerts = active);
+    final fresh = await AlertSound.instance.takeNew(active.map((a) => a.id));
+    if (fresh.isEmpty || !mounted) return;
+    final news = active.where((a) => fresh.contains(a.id)).toList()
+      ..sort((a, b) => _rank(b.severity).compareTo(_rank(a.severity)));
+    _announce(news.first, more: news.length - 1);
+  }
+
+  static int _rank(String? s) =>
+      const {'Low': 1, 'Medium': 2, 'High': 3, 'Critical': 4}[s] ?? 0;
+
+  void _announce(DisasterAlert a, {int more = 0}) {
+    AlertSound.instance.play(a.severity);
+    _loadCounts();
+    final color = DisasterStyle.severity(a.severity);
+    void open() => Navigator.of(context)
+        .push(MaterialPageRoute(
+            builder: (_) => DisasterScreen(resident: resident)))
+        .then((_) => _loadAlerts());
+    if (_rank(a.severity) >= 3) {
+      // High / Critical: a pop-up the resident has to close.
+      showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          icon: Icon(DisasterStyle.icon(a.type), color: color, size: 44),
+          title: Text(a.title, textAlign: TextAlign.center),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                  '${tr.activeAlert.toUpperCase()}'
+                  '${a.severity == null ? '' : ' · ${tr.severityLabel(a.severity!).toUpperCase()}'}',
+                  style: TextStyle(
+                      color: color,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 12,
+                      letterSpacing: .8)),
+              if (a.message != null) ...[
+                const SizedBox(height: 10),
+                Text(a.message!, textAlign: TextAlign.center),
+              ],
+              if (more > 0) ...[
+                const SizedBox(height: 8),
+                Text(tr.moreAlerts(more),
+                    style: TextStyle(color: AppColors.slate500, fontSize: 12)),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+                onPressed: () {
+                  AlertSound.instance.stop();
+                  Navigator.pop(ctx);
+                },
+                child: Text(tr.close)),
+            FilledButton(
+                style: FilledButton.styleFrom(backgroundColor: color),
+                onPressed: () {
+                  AlertSound.instance.stop();
+                  Navigator.pop(ctx);
+                  open();
+                },
+                child: Text(tr.details)),
+          ],
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: color,
+        content: Text('${tr.activeAlert}: ${a.title}'),
+        action: SnackBarAction(
+            label: tr.details, textColor: Colors.white, onPressed: open),
+      ));
+    }
   }
 
   Future<void> _refreshAll() async {
