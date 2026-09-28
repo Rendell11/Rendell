@@ -550,22 +550,14 @@ abstract class AppText {
   String get disasterTitle;
   String get disasterSubtitle;
   String get disasterLoadFailed;
-  String get alertsTab;
-  String get mapTab;
   String get activeAlert;
   String get noActiveAlerts;
   String get pastAlerts;
   String get alertEnded;
   String get evacuationCenter;
   String get affectedArea;
-  String get viewOnMap;
-  String get yourHome;
-  String get noHomePin;
-  String hazardType(String t);
   String severityLabel(String s);
   String get emergencyHotlinesHint;
-  String get mapLegend;
-  String get tapForDetails;
 
   // ── Dashboard2 ──────────────────────────────────────────────────
   String get openComplaints;

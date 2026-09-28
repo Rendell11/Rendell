@@ -1,42 +1,32 @@
 import 'package:flutter/material.dart';
-import 'package:latlong2/latlong.dart';
 
 import '../complaint/complaint_widgets.dart';
 import '../l10n/app_text.dart';
 import '../models/resident.dart';
 import '../theme/app_theme.dart';
 import 'disaster_api.dart';
-import 'hazard_map.dart';
 
 /// ─────────────────────────────────────────────────────────────────────────
-/// ALERTS & HAZARD MAP — from the admin "Disaster and Risk Map".
-///   • Alerts: active alerts (message, affected area, evacuation center),
-///     then the last 30 days
-///   • Hazard Map: flood / fire / … zones, Safe Points, active alert areas
-///     and the resident's home pin
+/// DISASTER ALERTS — the alerts the admin issues from Announcements →
+/// "Issue Alert": active alerts first (type, severity, instructions), then
+/// the last 30 days. The dashboard also shows a banner while one is active.
 ///
 /// Talks to `user/backend/disaster.php`. Kept in its own `disaster/` folder.
 /// ─────────────────────────────────────────────────────────────────────────
 class DisasterScreen extends StatefulWidget {
-  const DisasterScreen(
-      {super.key, required this.resident, this.showMap = false});
+  const DisasterScreen({super.key, required this.resident});
 
   final Resident resident;
-  final bool showMap;
 
   @override
   State<DisasterScreen> createState() => _DisasterScreenState();
 }
 
-class _DisasterScreenState extends State<DisasterScreen>
-    with SingleTickerProviderStateMixin {
+class _DisasterScreenState extends State<DisasterScreen> {
   final _api = DisasterApi();
-  late final TabController _tabs = TabController(
-      length: 2, vsync: this, initialIndex: widget.showMap ? 1 : 0);
   DisasterData? _data;
   String? _error;
   bool _loading = true;
-  LatLng? _focus;
 
   @override
   void initState() {
@@ -47,7 +37,6 @@ class _DisasterScreenState extends State<DisasterScreen>
   @override
   void dispose() {
     _api.dispose();
-    _tabs.dispose();
     super.dispose();
   }
 
@@ -65,124 +54,72 @@ class _DisasterScreenState extends State<DisasterScreen>
     });
   }
 
-  void _showOnMap(DisasterAlert a) {
-    setState(() => _focus = a.point);
-    _tabs.animateTo(1);
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.scaffold,
-      appBar: AppBar(
-        backgroundColor: AppColors.appBar,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: Text(tr.disasterTitle,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-        actions: [
-          IconButton(
-            tooltip: tr.refresh,
-            onPressed: () {
-              setState(() => _loading = true);
-              _load();
-            },
-            icon: const Icon(Icons.refresh),
-          ),
-        ],
-        bottom: TabBar(
-          controller: _tabs,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white60,
-          indicatorColor: Colors.white,
-          tabs: [
-            Tab(
-                icon: const Icon(Icons.warning_amber_rounded),
-                text: tr.alertsTab),
-            Tab(icon: const Icon(Icons.map_outlined), text: tr.mapTab),
-          ],
-        ),
-      ),
+      appBar: complaintAppBar(tr.disasterTitle, tr.disasterSubtitle,
+          icon: Icons.warning_amber_rounded,
+          actions: [
+            IconButton(
+              tooltip: tr.refresh,
+              onPressed: () {
+                setState(() => _loading = true);
+                _load();
+              },
+              icon: const Icon(Icons.refresh),
+            ),
+          ]),
       body: _loading
           ? Center(child: CircularProgressIndicator(color: AppColors.primary))
-          : _data == null
-              ? Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: _box(
-                      _error ?? tr.disasterLoadFailed,
-                      AppColors.dangerBg,
-                      AppColors.dangerBorder,
-                      AppColors.dangerText,
-                      Icons.error_outline),
-                )
-              : TabBarView(
-                  controller: _tabs,
-                  physics: const NeverScrollableScrollPhysics(), // map pans
-                  children: [
-                    _alertsTab(_data!),
-                    Column(children: [
-                      if (_data!.home == null)
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
-                          child: _box(
-                              tr.noHomePin,
-                              AppColors.infoBg,
-                              AppColors.infoBorder,
-                              AppColors.infoText,
-                              Icons.info_outline),
-                        ),
-                      Expanded(child: HazardMap(data: _data!, focus: _focus)),
-                    ]),
-                  ],
+          : RefreshIndicator(
+              color: AppColors.primary,
+              onRefresh: _load,
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 620),
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+                    children: _content(),
+                  ),
                 ),
+              ),
+            ),
     );
   }
 
-  Widget _alertsTab(DisasterData d) {
+  List<Widget> _content() {
+    final d = _data;
+    if (d == null) {
+      return [
+        _box(_error ?? tr.disasterLoadFailed, AppColors.dangerBg,
+            AppColors.dangerBorder, AppColors.dangerText, Icons.error_outline),
+      ];
+    }
     final active = d.active;
     final past = d.alerts.where((a) => !a.isActive).toList();
-    return RefreshIndicator(
-      color: AppColors.primary,
-      onRefresh: _load,
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 620),
-          child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
-            children: [
-              if (active.isEmpty)
-                _box(
-                    tr.noActiveAlerts,
-                    AppColors.successBg,
-                    AppColors.successBorder,
-                    AppColors.successText,
-                    Icons.verified_user_outlined)
-              else
-                for (final a in active) ...[
-                  _alertCard(a),
-                  const SizedBox(height: 12),
-                ],
-              const SizedBox(height: 8),
-              _box(
-                  tr.emergencyHotlinesHint,
-                  AppColors.infoBg,
-                  AppColors.infoBorder,
-                  AppColors.infoText,
-                  Icons.call_outlined),
-              if (past.isNotEmpty) ...[
-                const SizedBox(height: 20),
-                ComplaintSectionLabel(tr.pastAlerts),
-                for (final a in past) ...[
-                  _alertCard(a),
-                  const SizedBox(height: 10),
-                ],
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
+    return [
+      if (active.isEmpty)
+        _box(tr.noActiveAlerts, AppColors.successBg, AppColors.successBorder,
+            AppColors.successText, Icons.verified_user_outlined)
+      else
+        for (final a in active) ...[
+          _alertCard(a),
+          const SizedBox(height: 12),
+        ],
+      const SizedBox(height: 8),
+      _box(tr.emergencyHotlinesHint, AppColors.infoBg, AppColors.infoBorder,
+          AppColors.infoText, Icons.call_outlined),
+      if (past.isNotEmpty) ...[
+        const SizedBox(height: 20),
+        ComplaintSectionLabel(tr.pastAlerts),
+        for (final a in past) ...[
+          _alertCard(a),
+          const SizedBox(height: 10),
+        ],
+      ],
+    ];
   }
 
   Widget _alertCard(DisasterAlert a) {
@@ -243,17 +180,6 @@ class _DisasterScreenState extends State<DisasterScreen>
             _info(Icons.health_and_safety_outlined,
                 '${tr.evacuationCenter}: ${a.evacuation}'),
           _info(Icons.schedule, ComplaintStyle.dateTime(a.createdAt)),
-          if (a.isActive && a.point != null) ...[
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: () => _showOnMap(a),
-                icon: const Icon(Icons.map_outlined, size: 18),
-                label: Text(tr.viewOnMap),
-              ),
-            ),
-          ],
         ],
       ),
     );

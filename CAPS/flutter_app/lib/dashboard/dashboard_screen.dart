@@ -546,7 +546,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _refreshAll();
   }
 
-  /// Red banner for an active disaster alert (tap → Alerts & Hazard Map).
+  /// Red banner for an active disaster alert (tap → Disaster Alerts).
   Widget _alertBanner(BuildContext context, DisasterAlert a) {
     final c = DisasterStyle.severity(a.severity);
     return Material(

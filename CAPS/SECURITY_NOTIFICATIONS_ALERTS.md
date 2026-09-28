@@ -43,24 +43,27 @@ The bell now shows the real unread count and opens a Notifications screen
 Tapping one marks it read and opens the related screen (request, complaint,
 announcement, blotter case, alerts). "Mark all as read" in the top bar.
 
-## 3. Alerts & Hazard Map — `flutter_app/lib/disaster/`
+## 3. Disaster Alerts — `flutter_app/lib/disaster/`
 
-From the admin "Disaster and Risk Map" (`disaster_alerts`, `hazards`),
+The alerts the admin issues from **Announcements → Issue Alert**
+(`disaster_alerts`, `admin/announcement/backend/process_disaster.php`),
 through `user/backend/disaster.php`:
 
-- **Dashboard banner** for every active alert (tap → Alerts).
-- **Alerts tab:** active alerts (message, affected area, evacuation center,
-  "View on map"), then the last 30 days.
-- **Hazard Map tab:** OpenStreetMap (no API key) with the flood / fire /
-  structural / earthquake zones, Safe Points, the active alert area and the
-  resident's **home pin** (from the household). Tap a marker for details.
+- **Dashboard banner** for every active alert (tap → Disaster Alerts).
+- **Disaster Alerts screen:** active alerts (type, severity, title,
+  instructions), then the last 30 days.
+- Affected area / evacuation center are shown only when an alert has them.
+  The current Issue Alert form does not ask for them (it saves the
+  evacuation center as `'None'`, which the app hides).
 
-New packages: `flutter_map`, `latlong2` → run `flutter pub get`.
+No hazard map: the admin has no page to draw hazard zones or Safe Points
+(the old Risk Map of the SOE disaster module is gone and the Issue Alert
+form has no location picker), so a map would always be empty.
 
 ## 4. Dashboard
 
 The dead "Reservations" card (no equipment module) now shows **open
-complaints** (Pending + Ongoing). New tile: **Alerts & Hazard Map**.
+complaints** (Pending + Ongoing). New tile: **Disaster Alerts**.
 Pull down to refresh the whole dashboard.
 
 ## 5. Push notifications (Firebase) — optional, off until set up
