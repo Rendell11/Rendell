@@ -80,10 +80,6 @@ try {
                                 and area statistics from the actual resident records.</p>
                         </div>
                         <div class="flex flex-wrap items-center gap-3">
-                            <label class="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-[11px] font-black uppercase tracking-wider cursor-pointer">
-                                <input type="checkbox" id="includeAi" class="rounded text-primary focus:ring-0">
-                                Include AI Findings
-                            </label>
                             <button type="button" onclick="openResidentReport('pdf')"
                                 class="inline-flex items-center gap-2 bg-white text-primary px-5 py-3 rounded-xl font-black text-xs uppercase tracking-wider"><span
                                     class="material-symbols-outlined text-lg">picture_as_pdf</span>Save PDF</button>
@@ -121,9 +117,7 @@ try {
                     </form>
                 </section>
 
-                <div id="raBody" class="space-y-7"></div>
-
-                <!-- AI Analytics -->
+                <!-- AI Analytics (above Resident Summary) -->
                 <section class="card p-6 md:p-8">
                     <div class="flex flex-wrap items-center justify-between gap-4">
                         <div class="flex items-center gap-3">
@@ -139,7 +133,42 @@ try {
                     </div>
                     <div id="aiBody" class="mt-6"></div>
                 </section>
+
+                <div id="raBody" class="space-y-7"></div>
             </main>
+        </div>
+    </div>
+
+    <!-- Save PDF / Print: include AI analytics? -->
+    <div id="reportModal" class="fixed inset-0 z-[999] hidden bg-slate-900/70 items-center justify-center p-4" onclick="if (event.target === this) closeReportModal()">
+        <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-8" role="dialog" aria-modal="true" aria-labelledby="rmTitle">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <h3 id="rmTitle" class="text-2xl font-black text-slate-900 tracking-tight">Save as PDF</h3>
+                    <p class="text-[11px] font-black text-indigo-600 uppercase tracking-widest mt-1">Resident Analytics Report</p>
+                    <p id="rmRange" class="text-xs font-bold text-slate-400 mt-1"></p>
+                </div>
+                <button type="button" onclick="closeReportModal()" class="p-1 text-slate-400 hover:text-slate-700" aria-label="Close">
+                    <span class="material-symbols-outlined">close</span></button>
+            </div>
+            <p class="text-sm font-bold text-slate-700 mt-6 mb-3">Include AI analytics in the report?</p>
+            <div class="space-y-3">
+                <label class="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 cursor-pointer hover:border-indigo-300">
+                    <input type="radio" name="rmAi" value="0" class="mt-1 text-indigo-600 focus:ring-indigo-500" checked>
+                    <span><span class="block text-sm font-black text-slate-800">No AI – Data and tables only</span>
+                        <span class="block text-[11px] font-semibold text-slate-400">Summary, statistics, tables and data interpretation.</span></span>
+                </label>
+                <label class="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 cursor-pointer hover:border-indigo-300">
+                    <input type="radio" name="rmAi" value="1" class="mt-1 text-indigo-600 focus:ring-indigo-500">
+                    <span><span class="block text-sm font-black text-slate-800">Include AI – Data, charts, and AI explanation</span>
+                        <span class="block text-[11px] font-semibold text-slate-400">Uses the AI Analytics already generated on this page.</span></span>
+                </label>
+            </div>
+            <p id="rmError" class="hidden mt-4 text-xs font-bold text-rose-600 bg-rose-50 border border-rose-100 rounded-xl px-3 py-2">Please generate AI Analytics first.</p>
+            <div class="flex justify-end gap-3 mt-8">
+                <button type="button" onclick="closeReportModal()" class="px-6 py-3 rounded-2xl border border-slate-200 text-xs font-black uppercase tracking-wider text-slate-500 hover:text-slate-700">Cancel</button>
+                <button type="button" onclick="continueReport()" class="px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black uppercase tracking-wider shadow-lg">Continue</button>
+            </div>
         </div>
     </div>
 
@@ -425,12 +454,30 @@ try {
         }
 
         /* ───────── Save PDF / Print ───────── */
+        let _reportMode = 'pdf';
         function openResidentReport(mode) {
-            const withAi = document.getElementById('includeAi').checked;
-            if (withAi && !RA_AI) { showMsg('Please generate AI Analytics first.'); return; }
-            const q = new URLSearchParams({ mode, start: RA?.period?.start || '', end: RA?.period?.end || '', ai: withAi ? '1' : '0' });
+            _reportMode = mode;
+            document.getElementById('rmTitle').textContent = mode === 'pdf' ? 'Save as PDF' : 'Print';
+            document.getElementById('rmRange').textContent = RA?.period?.label || '';
+            document.querySelector('input[name="rmAi"][value="0"]').checked = true;
+            document.getElementById('rmError').classList.add('hidden');
+            const m = document.getElementById('reportModal');
+            m.classList.remove('hidden'); m.classList.add('flex');
+        }
+        function closeReportModal() {
+            const m = document.getElementById('reportModal');
+            m.classList.add('hidden'); m.classList.remove('flex');
+        }
+        function continueReport() {
+            const withAi = document.querySelector('input[name="rmAi"]:checked')?.value === '1';
+            // Never generates AI here — only uses the analysis already generated on this page.
+            if (withAi && !RA_AI) { document.getElementById('rmError').classList.remove('hidden'); return; }
+            const q = new URLSearchParams({ mode: _reportMode, start: RA?.period?.start || '', end: RA?.period?.end || '', ai: withAi ? '1' : '0' });
+            closeReportModal();
             window.open('../backend/resident_analytics_report.php?' + q.toString(), '_blank');
         }
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeReportModal(); });
+        document.querySelectorAll('input[name="rmAi"]').forEach(r => r.addEventListener('change', () => document.getElementById('rmError').classList.add('hidden')));
 
         render();
         resetAi();

@@ -316,9 +316,10 @@ require_once __DIR__ . '/../../theme_loader.php';
                 <!-- ── Search & Filter Row — extended with res_search ─────── -->
                 <div class="grid grid-cols-12 gap-4 mb-8">
                     <!-- Search now submits as GET so pagination works with search -->
-                    <form method="GET" action="" class="col-span-8 relative" id="residentSearchForm">
+                    <form method="GET" action="" class="col-span-8 relative" id="residentSearchForm"
+                        onsubmit="event.preventDefault(); runResidentSearch();">
                         <?php foreach ($_GET as $k => $v):
-                            if ($k === 'res_search' || $k === 'res_page')
+                            if (in_array($k, ['res_search', 'res_page', 'res_sex', 'res_class', 'status', 'message', 'action', 'edit_id'], true) || is_array($v))
                                 continue; ?>
                             <input type="hidden" name="<?= htmlspecialchars($k) ?>"
                                 value="<?= htmlspecialchars((string) $v) ?>">
@@ -331,20 +332,20 @@ require_once __DIR__ . '/../../theme_loader.php';
                             class="w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 transition-all shadow-sm">
                     </form>
                     <div class="col-span-2">
-                        <select id="rep_sex" onchange="filterResidents()"
+                        <select id="rep_sex" onchange="runResidentSearch()"
                             class="w-full border-slate-200 rounded-2xl py-2.5 text-sm font-bold text-slate-600 focus:ring-indigo-500 transition-all shadow-sm">
                             <option value="">All Genders</option>
-                            <option value="MALE">Male</option>
-                            <option value="FEMALE">Female</option>
+                            <option value="MALE" <?= $resSex === 'MALE' ? 'selected' : '' ?>>Male</option>
+                            <option value="FEMALE" <?= $resSex === 'FEMALE' ? 'selected' : '' ?>>Female</option>
                         </select>
                     </div>
                     <div class="col-span-2">
-                        <select id="rep_class" onchange="filterResidents()"
+                        <select id="rep_class" onchange="runResidentSearch()"
                             class="w-full border-slate-200 rounded-2xl py-2.5 text-sm font-bold text-slate-600 focus:ring-indigo-500 transition-all shadow-sm">
                             <option value="">All Types</option>
-                            <option value="HEAD">Family Head</option>
-                            <option value="SENIOR">Senior</option>
-                            <option value="PWD">PWD</option>
+                            <option value="HEAD" <?= $resClass === 'HEAD' ? 'selected' : '' ?>>Family Head</option>
+                            <option value="SENIOR" <?= $resClass === 'SENIOR' ? 'selected' : '' ?>>Senior</option>
+                            <option value="PWD" <?= $resClass === 'PWD' ? 'selected' : '' ?>>PWD</option>
                         </select>
                     </div>
                 </div>
@@ -377,7 +378,7 @@ require_once __DIR__ . '/../../theme_loader.php';
                  Table structure / thead / styling: 100% original
                  tbody now renders $pagedResidents (5 per page)
             ═══════════════════════════════════════════════════════════ -->
-                <div class="bg-white rounded-[32px] shadow-sm border border-slate-100 overflow-hidden">
+                <div class="bg-white rounded-[32px] shadow-sm border border-slate-100 overflow-hidden transition-opacity" id="residentTableCard">
                     <table class="w-full text-left border-collapse" id="residentTable">
                         <thead>
                             <tr
@@ -394,7 +395,7 @@ require_once __DIR__ . '/../../theme_loader.php';
                                     <td colspan="4" class="text-center py-16 text-slate-400">
                                         <span
                                             class="material-symbols-outlined text-4xl block mb-2 text-slate-200">manage_search</span>
-                                        <?= $resSearch !== '' ? 'No residents match your search.' : 'No residents found.' ?>
+                                        <?= $resFiltered ? 'No residents match your search.' : 'No residents found.' ?>
                                     </td>
                                 </tr>
                             <?php else: ?>
@@ -523,6 +524,12 @@ require_once __DIR__ . '/../../theme_loader.php';
                                     Next <span class="material-symbols-outlined text-sm">chevron_right</span>
                                 </a>
                             </nav>
+                        </div>
+                    <?php elseif ($resFiltered && $totalResidents > 0): ?>
+                        <div class="px-8 py-4 border-t border-slate-50">
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                <strong class="text-slate-600"><?= $totalResidents ?></strong> matching resident<?= $totalResidents === 1 ? '' : 's' ?>
+                            </p>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -2929,19 +2936,58 @@ require_once __DIR__ . '/../../theme_loader.php';
             if (editDraft) applyResidentDraft(editDraft);
         }
 
+        // ── Resident search: runs on the server over ALL resident records ─────
+        // The table (5 per page) is reloaded with the matching results; pagination
+        // applies to the results. Clearing the search returns to normal pagination.
+        var _resSearchTimer = null;
+        var _resSearchSeq = 0;
         function filterResidents() {
-            const searchText = document.getElementById("residentSearch").value.toUpperCase();
-            const genderFilter = document.getElementById("rep_sex").value.toUpperCase();
-            const classFilter = document.getElementById("rep_class").value.toUpperCase();
-            document.querySelectorAll("#residentTableBody tr").forEach(row => {
-                const matchesSearch = row.textContent.toUpperCase().includes(searchText);
-                const genderEl = row.querySelector(".gender-val");
-                const classEl = row.querySelector(".classification-cell");
-                const matchesGender = !genderFilter || (genderEl && genderEl.textContent.trim().toUpperCase() === genderFilter);
-                const matchesClass = !classFilter || (classEl && classEl.textContent.toUpperCase().includes(classFilter));
-                row.style.display = (matchesSearch && matchesGender && matchesClass) ? "" : "none";
-            });
+            clearTimeout(_resSearchTimer);
+            _resSearchTimer = setTimeout(runResidentSearch, 350);
         }
+        function residentListUrl(page) {
+            const params = new URLSearchParams(window.location.search);
+            ['res_search', 'res_sex', 'res_class', 'res_page', 'status', 'message', 'action', 'edit_id'].forEach(k => params.delete(k));
+            const q = document.getElementById('residentSearch').value.trim();
+            const sex = document.getElementById('rep_sex').value;
+            const cls = document.getElementById('rep_class').value;
+            if (q) params.set('res_search', q);
+            if (sex) params.set('res_sex', sex);
+            if (cls) params.set('res_class', cls);
+            if (page && page > 1) params.set('res_page', page);
+            const qs = params.toString();
+            return window.location.pathname + (qs ? '?' + qs : '');
+        }
+        async function loadResidentTable(url) {
+            const seq = ++_resSearchSeq;
+            const card = document.getElementById('residentTableCard');
+            card.style.opacity = '.55';
+            try {
+                const res = await fetch(url, { credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' } });
+                const html = await res.text();
+                if (seq !== _resSearchSeq) return;
+                const fresh = new DOMParser().parseFromString(html, 'text/html').getElementById('residentTableCard');
+                if (!fresh) throw new Error('Resident table not found in response.');
+                card.innerHTML = fresh.innerHTML;
+                history.replaceState({}, '', url);
+            } catch (e) {
+                console.error('[Residents] search error:', e);
+                if (seq === _resSearchSeq) window.location.href = url;
+            } finally {
+                if (seq === _resSearchSeq) card.style.opacity = '';
+            }
+        }
+        function runResidentSearch() {
+            clearTimeout(_resSearchTimer);
+            loadResidentTable(residentListUrl(1));
+        }
+        // Pagination links inside the table reload only the table.
+        document.getElementById('residentTableCard').addEventListener('click', function (e) {
+            const a = e.target.closest('nav a[href]');
+            if (!a || e.ctrlKey || e.metaKey || e.shiftKey) return;
+            e.preventDefault();
+            loadResidentTable(a.getAttribute('href').startsWith('?') ? window.location.pathname + a.getAttribute('href') : a.href);
+        });
 
         function confirmDelete(id, name) {
             showConfirmDialog({

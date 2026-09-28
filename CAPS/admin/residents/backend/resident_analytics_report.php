@@ -25,6 +25,8 @@ $t = $a['totals'];
 $withAi = ($_GET['ai'] ?? '0') === '1';
 $ai = $withAi ? ai_cache_get('residents', ra_snapshot($a)) : null;
 $notes = ra_interpretation($a);
+// "No AI – Data and tables only" → no charts. "Include AI – Data, charts, and AI explanation" → charts + AI.
+$showCharts = $ai !== null;
 
 $brgy = report_barangay_profile($pdo);
 $bAddr = trim((string)($brgy['address'] ?? '')) ?: implode(', ', array_filter([
@@ -146,7 +148,7 @@ report_head($title, $mode);
     if ($ageKnown) $ageRows[] = ['Total', $n(array_sum(array_column($a['age'], 'male'))), $n(array_sum(array_column($a['age'], 'female'))),
         $n(array_sum(array_column($a['age'], 'other'))), $n($ageKnown), '100%'];
     rar_table(['Age group', 'Male', 'Female', 'Not specified', 'Total', 'Share'], $ageKnown ? $ageRows : [], 'No valid birth dates in this range.', [1, 2, 3, 4, 5]); ?>
-    <?php if ($ageKnown): ?>
+    <?php if ($ageKnown && $showCharts): ?>
     <p class="chart-cap">Figure 1. Living residents by age group and sex</p>
     <div class="chart-wrap"><canvas id="rc-age"></canvas></div>
     <?php endif; ?>
@@ -227,7 +229,7 @@ report_head($title, $mode);
     }
     if ($mRows) $mRows[] = ['Total', $n($t['total']), '100%', ''];
     rar_table(['Month', 'Registered', 'Share', 'Change vs previous month'], $mRows, 'No registrations in this range.', [1, 2, 3]); ?>
-    <?php if (count($a['monthly']) > 1): ?>
+    <?php if (count($a['monthly']) > 1 && $showCharts): ?>
     <p class="chart-cap">Figure 2. Residents registered per month</p>
     <div class="chart-wrap"><canvas id="rc-month"></canvas></div>
     <?php endif; ?>
