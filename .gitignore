@@ -3,3 +3,6 @@
 CAPS/user/backend/private/*.json
 CAPS/user/backend/private/push_last_run
 CAPS/flutter_app/android/app/google-services.json
+
+# Database backups made by setup_windows (resident data, never commit)
+CAPS/database/backup_*.sql
