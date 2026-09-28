@@ -316,10 +316,10 @@ require_once __DIR__ . '/../../theme_loader.php';
                 <!-- ── Search & Filter Row — extended with res_search ─────── -->
                 <div class="grid grid-cols-12 gap-4 mb-8">
                     <!-- Search now submits as GET so pagination works with search -->
-                    <form method="GET" action="" class="col-span-8 relative" id="residentSearchForm"
+                    <form method="GET" action="" class="col-span-12 md:col-span-6 relative" id="residentSearchForm"
                         onsubmit="event.preventDefault(); runResidentSearch();">
                         <?php foreach ($_GET as $k => $v):
-                            if (in_array($k, ['res_search', 'res_page', 'res_sex', 'res_class', 'status', 'message', 'action', 'edit_id'], true) || is_array($v))
+                            if (in_array($k, ['res_search', 'res_page', 'res_sex', 'res_class', 'res_sort', 'status', 'message', 'action', 'edit_id'], true) || is_array($v))
                                 continue; ?>
                             <input type="hidden" name="<?= htmlspecialchars($k) ?>"
                                 value="<?= htmlspecialchars((string) $v) ?>">
@@ -331,7 +331,16 @@ require_once __DIR__ . '/../../theme_loader.php';
                             placeholder="Search residents by name, email, contact…"
                             class="w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 transition-all shadow-sm">
                     </form>
-                    <div class="col-span-2">
+                    <div class="col-span-4 md:col-span-2">
+                        <label for="rep_sort" class="sr-only">Sort residents</label>
+                        <select id="rep_sort" onchange="runResidentSearch()" title="Sort residents"
+                            class="w-full border-slate-200 rounded-2xl py-2.5 text-sm font-bold text-slate-600 focus:ring-indigo-500 transition-all shadow-sm">
+                            <?php foreach ($resSortOptions as $sortKey => $sortOpt): ?>
+                                <option value="<?= htmlspecialchars($sortKey) ?>" <?= $resSort === $sortKey ? 'selected' : '' ?>>Sort: <?= htmlspecialchars($sortOpt[0]) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-span-4 md:col-span-2">
                         <select id="rep_sex" onchange="runResidentSearch()"
                             class="w-full border-slate-200 rounded-2xl py-2.5 text-sm font-bold text-slate-600 focus:ring-indigo-500 transition-all shadow-sm">
                             <option value="">All Genders</option>
@@ -339,7 +348,7 @@ require_once __DIR__ . '/../../theme_loader.php';
                             <option value="FEMALE" <?= $resSex === 'FEMALE' ? 'selected' : '' ?>>Female</option>
                         </select>
                     </div>
-                    <div class="col-span-2">
+                    <div class="col-span-4 md:col-span-2">
                         <select id="rep_class" onchange="runResidentSearch()"
                             class="w-full border-slate-200 rounded-2xl py-2.5 text-sm font-bold text-slate-600 focus:ring-indigo-500 transition-all shadow-sm">
                             <option value="">All Types</option>
@@ -2947,13 +2956,15 @@ require_once __DIR__ . '/../../theme_loader.php';
         }
         function residentListUrl(page) {
             const params = new URLSearchParams(window.location.search);
-            ['res_search', 'res_sex', 'res_class', 'res_page', 'status', 'message', 'action', 'edit_id'].forEach(k => params.delete(k));
+            ['res_search', 'res_sex', 'res_class', 'res_sort', 'res_page', 'status', 'message', 'action', 'edit_id'].forEach(k => params.delete(k));
             const q = document.getElementById('residentSearch').value.trim();
             const sex = document.getElementById('rep_sex').value;
             const cls = document.getElementById('rep_class').value;
+            const sort = document.getElementById('rep_sort').value;
             if (q) params.set('res_search', q);
             if (sex) params.set('res_sex', sex);
             if (cls) params.set('res_class', cls);
+            if (sort && sort !== 'name_asc') params.set('res_sort', sort);
             if (page && page > 1) params.set('res_page', page);
             const qs = params.toString();
             return window.location.pathname + (qs ? '?' + qs : '');

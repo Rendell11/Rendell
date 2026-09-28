@@ -134,6 +134,9 @@ try {
                     <div id="aiBody" class="mt-6"></div>
                 </section>
 
+                <!-- Data Interpretation (directly below AI Analytics) -->
+                <div id="raInterp"></div>
+
                 <div id="raBody" class="space-y-7"></div>
             </main>
         </div>
@@ -246,6 +249,7 @@ try {
             Object.values(charts).forEach(c => c.destroy());
             for (const k in charts) delete charts[k];
             const body = document.getElementById('raBody');
+            document.getElementById('raInterp').innerHTML = '';
             document.getElementById('rangeLabel').textContent = RA ? RA.period.label : '';
             document.getElementById('rangeBasis').textContent = RA && (RA.period.start || RA.period.end) ? 'Residents registered within the range' : 'All resident records';
             if (!RA) { body.innerHTML = '<section class="card p-8"><p class="empty">Unable to load resident analytics.</p></section>'; return; }
@@ -320,7 +324,7 @@ try {
                     ${trend}${comparison}
                 </div>`);
 
-            html += section('fact_check', 'Data Interpretation', 'Automatic summary of the figures above (no AI)',
+            document.getElementById('raInterp').innerHTML = section('fact_check', 'Data Interpretation', 'Automatic summary of the resident figures below (no AI) · ' + RA.period.label,
                 `<ol class="list-decimal pl-5 space-y-2 text-sm text-slate-600 font-medium">${(RA.interpretation || []).map(x => `<li>${esc(x)}</li>`).join('')}</ol>`);
             body.innerHTML = html;
 

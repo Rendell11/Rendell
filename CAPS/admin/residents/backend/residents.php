@@ -762,6 +762,22 @@ if ($resClass === 'HEAD')   $resWhere[] = "r.IsHead = 1";
 if ($resClass === 'SENIOR') $resWhere[] = "r.IsSenior = 1";
 if ($resClass === 'PWD')    $resWhere[] = "r.IsPWD = 1";
 $resWhereSql = $resWhere ? ' WHERE ' . implode(' AND ', $resWhere) : '';
+
+// Sort (applies to all results, before pagination). Whitelisted ORDER BY only.
+$resSortOptions = [
+    'name_asc'  => ['Name (A–Z)',             'r.LastName ASC, r.FirstName ASC, r.ResidentID ASC'],
+    'name_desc' => ['Name (Z–A)',             'r.LastName DESC, r.FirstName DESC, r.ResidentID DESC'],
+    'id_asc'    => ['Resident ID (ascending)', 'r.ResidentID ASC'],
+    'id_desc'   => ['Resident ID (descending)', 'r.ResidentID DESC'],
+    'newest'    => ['Newest registered',      'r.CreatedAt DESC, r.ResidentID DESC'],
+    'oldest'    => ['Oldest registered',      'r.CreatedAt ASC, r.ResidentID ASC'],
+    'age_young' => ['Age (youngest first)',   'r.BirthDate IS NULL, r.BirthDate DESC, r.LastName ASC'],
+    'age_old'   => ['Age (oldest first)',     'r.BirthDate IS NULL, r.BirthDate ASC, r.LastName ASC'],
+    'street'    => ['Street / Address',       'r.StreetName IS NULL, r.StreetName ASC, r.HouseNumber ASC, r.LastName ASC'],
+];
+$resSort = (string)($_GET['res_sort'] ?? 'name_asc');
+if (!isset($resSortOptions[$resSort])) $resSort = 'name_asc';
+$resOrderSql = $resSortOptions[$resSort][1];
 $resFiltered = (bool)$resWhere;
 
 // Total count for pagination
@@ -798,7 +814,7 @@ $stmtPage = $pdo->prepare("
            CONCAT(r.FirstName,' ',COALESCE(r.MiddleName,''),' ',r.LastName,' ',COALESCE(r.Suffix,'')) AS FullName,
            (SELECT COUNT(*) FROM residents m WHERE m.FamilyHeadID = r.ResidentID) AS MemberCount
     FROM residents r" . $resWhereSql . "
-    ORDER BY r.LastName ASC, r.FirstName ASC, r.ResidentID ASC
+    ORDER BY " . $resOrderSql . "
     LIMIT ? OFFSET ?
 ");
 $stmtPage->execute(array_merge($resArgs, [RESIDENTS_PER_PAGE, $resOffset]));
