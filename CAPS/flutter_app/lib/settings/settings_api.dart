@@ -6,13 +6,14 @@ import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import '../l10n/app_text.dart';
 import '../services/api_service.dart' show ApiResult;
+import '../services/auth_client.dart';
 
 /// HTTP client for the Settings module:
 ///   * `preferences.php`    — the resident's app preferences (user_preferences)
 ///   * `change_password.php` — change the portal password
 class SettingsApi {
   SettingsApi({http.Client? client, String? baseUrl})
-      : _client = client ?? http.Client(),
+      : _client = client ?? AuthClient(),
         _baseUrl = baseUrl ?? ApiConfig.baseUrl;
 
   final http.Client _client;
@@ -74,6 +75,27 @@ class SettingsApi {
             message: msg.isNotEmpty ? msg : tr.passwordChanged);
       }
       return ApiResult.failure(msg.isNotEmpty ? msg : tr.passwordChangeFailed);
+    } on TimeoutException {
+      return ApiResult.failure(tr.errTimeout);
+    } on http.ClientException {
+      return ApiResult.failure(tr.errNoConnection);
+    } catch (e) {
+      return ApiResult.failure(tr.errGeneric('$e'));
+    }
+  }
+
+  /// Log out on every device (revokes all of this resident's login tokens).
+  Future<ApiResult<void>> logoutAllDevices() async {
+    try {
+      final res = await _client.post(_uri('logout.php'),
+          headers: ApiConfig.headers,
+          body: {'all': '1'}).timeout(ApiConfig.timeout);
+      final body = _decode(res);
+      final msg = body['message']?.toString() ?? '';
+      if (res.statusCode == 200 && body['success'] == true) {
+        return ApiResult.success(null, message: msg);
+      }
+      return ApiResult.failure(msg.isNotEmpty ? msg : tr.errGeneric(''));
     } on TimeoutException {
       return ApiResult.failure(tr.errTimeout);
     } on http.ClientException {

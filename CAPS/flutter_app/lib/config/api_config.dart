@@ -24,5 +24,22 @@ class ApiConfig {
   /// request so the backend answers in the same language as the app.
   static String lang = 'fil';
 
-  static Map<String, String> get headers => {'X-App-Lang': lang};
+  /// Login token from login.php, sent on every request (SessionService keeps
+  /// it in the secure store). Null when signed out.
+  static String? authToken;
+
+  static Map<String, String> get headers => {
+        'X-App-Lang': lang,
+        if (authToken != null) 'X-Auth-Token': authToken!,
+      };
+
+  /// Called once when the server rejects the token (401) while signed in.
+  static void Function()? onUnauthorized;
+
+  static void checkStatus(int statusCode) {
+    if (statusCode == 401 && authToken != null) {
+      authToken = null; // stop the other calls; fire the handler once
+      onUnauthorized?.call();
+    }
+  }
 }

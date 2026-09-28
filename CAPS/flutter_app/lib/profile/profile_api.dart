@@ -8,11 +8,12 @@ import '../config/api_config.dart';
 import '../l10n/app_text.dart';
 import '../services/api_service.dart' show ApiResult;
 import 'profile_model.dart';
+import '../services/auth_client.dart';
 
 /// HTTP client for `user/backend/profile.php` (same envelope as ApiService).
 class ProfileApi {
   ProfileApi({http.Client? client, String? baseUrl})
-      : _client = client ?? http.Client(),
+      : _client = client ?? AuthClient(),
         _baseUrl = baseUrl ?? ApiConfig.baseUrl;
 
   final http.Client _client;
@@ -52,7 +53,7 @@ class ProfileApi {
         ..files.add(
             http.MultipartFile.fromBytes('photo', bytes, filename: filename));
       final res = await http.Response.fromStream(
-          await req.send().timeout(ApiConfig.timeout));
+          await AuthClient.sendOnce(req).timeout(ApiConfig.timeout));
       final body = _decode(res);
       if (_ok(res, body)) {
         return ApiResult.success(body['data']?['photo_url']?.toString(),

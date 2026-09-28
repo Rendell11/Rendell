@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import '../l10n/app_text.dart';
 import '../services/api_service.dart' show ApiResult;
+import '../services/auth_client.dart';
 
 /// One current barangay official (`user/backend/officials.php`).
 class Official {
@@ -58,7 +59,7 @@ class Official {
 /// HTTP client for `user/backend/officials.php`.
 class OfficialsApi {
   OfficialsApi({http.Client? client, String? baseUrl})
-      : _client = client ?? http.Client(),
+      : _client = client ?? AuthClient(),
         _baseUrl = baseUrl ?? ApiConfig.baseUrl;
 
   final http.Client _client;

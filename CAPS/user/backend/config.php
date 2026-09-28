@@ -74,7 +74,7 @@ function respond(bool $success, string $message, $data = null, int $code = 200):
     if (!headers_sent()) {
         header('Access-Control-Allow-Origin: *');
         header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type, X-App-Lang');
+        header('Access-Control-Allow-Headers: Content-Type, X-App-Lang, X-Auth-Token, Authorization');
         header('Content-Type: application/json; charset=utf-8');
         http_response_code($code);
     }
@@ -92,7 +92,7 @@ function handle_preflight(): void
     if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {
         header('Access-Control-Allow-Origin: *');
         header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type, X-App-Lang');
+        header('Access-Control-Allow-Headers: Content-Type, X-App-Lang, X-Auth-Token, Authorization');
         http_response_code(204);
         exit;
     }
@@ -121,3 +121,6 @@ function L(string $fil, string $en): string
 {
     return app_lang() === 'en' ? $en : $fil;
 }
+
+// Login tokens for the app (require_resident(), auth_issue_token()).
+require_once __DIR__ . '/auth.php';

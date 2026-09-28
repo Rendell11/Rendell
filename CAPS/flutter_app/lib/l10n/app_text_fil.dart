@@ -507,6 +507,7 @@ class AppTextFil extends AppText {
         'documents' => 'Humiling ng Dokumento',
         'complaints' => 'Mga Reklamo',
         'blotter' => 'Blotter',
+        'disaster' => 'Alerto at Hazard Map',
         'officials' => 'Mga Opisyal',
         'chat' => 'Chat',
         _ => id
@@ -1245,4 +1246,100 @@ class AppTextFil extends AppText {
   String get attachedPhotos => 'Mga nakalakip na file';
   @override
   String get viewAllRequests => 'Tingnan lahat ng request';
+
+  // ── Security
+  @override
+  String get sessionExpired => 'Nag-expire ang iyong session. Mag-login muli.';
+  @override
+  String get logoutAllDevices => 'Mag-log out sa lahat ng device';
+  @override
+  String get logoutAllDevicesSub =>
+      'Gamitin kung nawala ang phone o nag-login sa ibang device';
+  @override
+  String get logoutAllDevicesBody =>
+      'Mala-log out ka rito at sa lahat ng iba pang phone o browser kung saan ka naka-sign in.';
+
+  // ── Notifications
+  @override
+  String get markAllRead => 'Markahang nabasa lahat';
+  @override
+  String get notificationsLoadFailed => 'Hindi ma-load ang mga abiso.';
+  @override
+  String get noNotificationsBody =>
+      'Dito lalabas ang mga update sa iyong request, reklamo, blotter case, anunsyo at alerto.';
+  @override
+  String notifSource(String s) => switch (s) {
+        'announcement' => 'Anunsyo',
+        'alert' => 'Alerto sa sakuna',
+        'blotter' => 'Blotter',
+        'hearing' => 'Paalala sa pagdinig',
+        _ => 'Update'
+      };
+  @override
+  String get justNow => 'Ngayon lang';
+  @override
+  String minutesAgo(int n) => '${n}m ang nakalipas';
+  @override
+  String hoursAgo(int n) => '${n}h ang nakalipas';
+  @override
+  String daysAgo(int n) => n == 1 ? 'Kahapon' : '${n}d ang nakalipas';
+
+  // ── Disaster
+  @override
+  String get disasterTitle => 'Alerto at Hazard Map';
+  @override
+  String get disasterSubtitle => 'Mga alerto sa sakuna at mapanganib na lugar';
+  @override
+  String get disasterLoadFailed => 'Hindi ma-load ang mga alerto.';
+  @override
+  String get alertsTab => 'Mga Alerto';
+  @override
+  String get mapTab => 'Hazard Map';
+  @override
+  String get activeAlert => 'Aktibong alerto';
+  @override
+  String get noActiveAlerts => 'Walang aktibong alerto. Mag-ingat palagi!';
+  @override
+  String get pastAlerts => 'Nakaraang 30 araw';
+  @override
+  String get alertEnded => 'Tapos na';
+  @override
+  String get evacuationCenter => 'Evacuation center';
+  @override
+  String get affectedArea => 'Apektadong lugar';
+  @override
+  String get viewOnMap => 'Tingnan sa mapa';
+  @override
+  String get yourHome => 'Iyong tahanan';
+  @override
+  String get noHomePin =>
+      'Hindi pa naka-pin sa mapa ang inyong tahanan. Hilingin sa barangay na i-pin ito.';
+  @override
+  String hazardType(String t) => switch (t) {
+        'Flood' => 'Baha',
+        'Fire' => 'Sunog',
+        'Structural' => 'Istruktura',
+        'Earthquake' => 'Lindol',
+        'Safe Point' => 'Ligtas na lugar / evacuation',
+        _ => t
+      };
+  @override
+  String severityLabel(String s) => switch (s) {
+        'Low' => 'Mababa',
+        'Medium' => 'Katamtaman',
+        'High' => 'Mataas',
+        'Critical' => 'Kritikal',
+        _ => s
+      };
+  @override
+  String get emergencyHotlinesHint =>
+      'Kung may emergency, tumawag sa barangay o sa 911.';
+  @override
+  String get mapLegend => 'Legend';
+  @override
+  String get tapForDetails => 'I-tap ang marker para sa detalye';
+
+  // ── Dashboard2
+  @override
+  String get openComplaints => 'Reklamo';
 }

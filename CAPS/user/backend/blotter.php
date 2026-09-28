@@ -25,7 +25,7 @@ require_once __DIR__ . '/config.php'; // respond(), handle_preflight(), db(), L(
 handle_preflight();
 
 $action = $_GET['action'] ?? 'list';
-$rid    = (int) ($_GET['resident_id'] ?? 0);
+$rid    = require_resident(); // verified login token (auth.php)
 if ($rid <= 0) {
     respond(false, L('Kailangan ang resident_id.', 'resident_id is required.'), null, 400);
 }

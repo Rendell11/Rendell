@@ -32,7 +32,7 @@ const ANN_FILES_BASE_URL = '../../admin/announcement/backend/';
 
 $pdo    = db();
 $action = $_GET['action'] ?? $_POST['action'] ?? 'list';
-$rid    = (int) ($_GET['resident_id'] ?? $_POST['resident_id'] ?? 0);
+$rid    = require_resident(); // verified login token (auth.php), not the resident_id sent by the app
 
 // Per-resident "seen" list (the SOE portal kept this only in the session).
 try {

@@ -29,7 +29,7 @@ const PROFILE_PHOTO_MAX = 5 * 1024 * 1024; // 5 MB
 
 $pdo    = db();
 $action = $_GET['action'] ?? $_POST['action'] ?? 'get';
-$rid    = (int) ($_GET['resident_id'] ?? $_POST['resident_id'] ?? 0);
+$rid    = require_resident(); // verified login token (auth.php), not the resident_id sent by the app
 
 if ($rid <= 0) {
     respond(false, L('Kailangan ang resident_id.', 'resident_id is required.'), null, 400);
@@ -142,7 +142,7 @@ if ($action === 'get') {
         'has_philhealth'   => yn($r['HasPhilhealth'] ?? null),
         'has_sss_gsis'     => yn($r['HasSSSGSIS'] ?? null),
         'has_4ps'          => yn($r['Has4Ps'] ?? null),
-        'member_since'     => $r['DateCreated'],
+        'member_since'     => $r['DateCreated'] ?? $r['CreatedAt'] ?? null,
     ]);
 }
 

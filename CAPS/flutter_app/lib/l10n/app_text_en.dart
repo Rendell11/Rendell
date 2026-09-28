@@ -503,6 +503,7 @@ class AppTextEn extends AppText {
         'documents' => 'Request Document',
         'complaints' => 'Complaints',
         'blotter' => 'Blotter',
+        'disaster' => 'Alerts & Hazard Map',
         'officials' => 'Officials',
         'chat' => 'Chat',
         _ => id
@@ -1124,4 +1125,88 @@ class AppTextEn extends AppText {
   String get attachedPhotos => 'Attached files';
   @override
   String get viewAllRequests => 'View all requests';
+
+  // ── Security
+  @override
+  String get sessionExpired => 'Your session has expired. Please log in again.';
+  @override
+  String get logoutAllDevices => 'Log out on all devices';
+  @override
+  String get logoutAllDevicesSub =>
+      'Use this if you lost a phone or logged in on another device';
+  @override
+  String get logoutAllDevicesBody =>
+      'You will be logged out here and on every other phone or browser where you are signed in.';
+
+  // ── Notifications
+  @override
+  String get markAllRead => 'Mark all as read';
+  @override
+  String get notificationsLoadFailed => 'Could not load the notifications.';
+  @override
+  String get noNotificationsBody =>
+      'Updates on your requests, complaints, blotter cases, announcements and alerts will show here.';
+  @override
+  String notifSource(String s) => switch (s) {
+        'announcement' => 'Announcement',
+        'alert' => 'Disaster alert',
+        'blotter' => 'Blotter',
+        'hearing' => 'Hearing reminder',
+        _ => 'Update'
+      };
+  @override
+  String get justNow => 'Just now';
+  @override
+  String minutesAgo(int n) => '${n}m ago';
+  @override
+  String hoursAgo(int n) => '${n}h ago';
+  @override
+  String daysAgo(int n) => n == 1 ? 'Yesterday' : '${n}d ago';
+
+  // ── Disaster
+  @override
+  String get disasterTitle => 'Alerts & Hazard Map';
+  @override
+  String get disasterSubtitle => 'Disaster alerts and risk areas';
+  @override
+  String get disasterLoadFailed => 'Could not load the alerts.';
+  @override
+  String get alertsTab => 'Alerts';
+  @override
+  String get mapTab => 'Hazard Map';
+  @override
+  String get activeAlert => 'Active alert';
+  @override
+  String get noActiveAlerts => 'No active alerts. Stay safe!';
+  @override
+  String get pastAlerts => 'Past 30 days';
+  @override
+  String get alertEnded => 'Ended';
+  @override
+  String get evacuationCenter => 'Evacuation center';
+  @override
+  String get affectedArea => 'Affected area';
+  @override
+  String get viewOnMap => 'View on map';
+  @override
+  String get yourHome => 'Your home';
+  @override
+  String get noHomePin =>
+      'Your household is not pinned on the map yet. Ask the barangay to pin it.';
+  @override
+  String hazardType(String t) =>
+      t == 'Safe Point' ? 'Safe point / evacuation' : t;
+  @override
+  String severityLabel(String s) => s;
+  @override
+  String get emergencyHotlinesHint =>
+      'In an emergency, call the barangay or 911.';
+  @override
+  String get mapLegend => 'Legend';
+  @override
+  String get tapForDetails => 'Tap a marker for details';
+
+  // ── Dashboard2
+  @override
+  String get openComplaints => 'Complaints';
 }

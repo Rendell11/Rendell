@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import '../l10n/app_text.dart';
 import '../services/api_service.dart' show ApiResult;
+import '../services/auth_client.dart';
 
 bool _b(dynamic v) => v == true || v == 1 || v == '1';
 int? _i(dynamic v) => v == null ? null : int.tryParse(v.toString());
@@ -187,7 +188,7 @@ class Household {
 /// HTTP client for `user/backend/household.php`.
 class HouseholdApi {
   HouseholdApi({http.Client? client, String? baseUrl})
-      : _client = client ?? http.Client(),
+      : _client = client ?? AuthClient(),
         _baseUrl = baseUrl ?? ApiConfig.baseUrl;
 
   final http.Client _client;

@@ -8,6 +8,7 @@ import '../config/api_config.dart';
 import '../l10n/app_text.dart';
 import '../services/api_service.dart' show ApiResult;
 import 'complaint_model.dart';
+import '../services/auth_client.dart';
 
 /// HTTP client for `user/backend/complaint.php`.
 ///
@@ -16,7 +17,7 @@ import 'complaint_model.dart';
 /// and the same `{ success, message, data }` envelope as [ApiService].
 class ComplaintApi {
   ComplaintApi({http.Client? client, String? baseUrl})
-      : _client = client ?? http.Client(),
+      : _client = client ?? AuthClient(),
         _baseUrl = baseUrl ?? ApiConfig.baseUrl;
 
   final http.Client _client;
@@ -119,7 +120,8 @@ class ComplaintApi {
           filename: attachmentName ?? 'attachment.jpg',
         ));
       }
-      final streamed = await req.send().timeout(ApiConfig.timeout);
+      final streamed =
+          await AuthClient.sendOnce(req).timeout(ApiConfig.timeout);
       final res = await http.Response.fromStream(streamed);
       final body = _decode(res);
       if (_ok(res, body)) {

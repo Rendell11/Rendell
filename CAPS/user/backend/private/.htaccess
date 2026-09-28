@@ -1,0 +1,6 @@
+# Firebase key and push cache — never served to browsers.
+Require all denied
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>

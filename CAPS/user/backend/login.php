@@ -9,4 +9,13 @@ try {
 } catch (Throwable $e) {
     respond(false, 'Server error.', null, 500);
 }
+if ($r['ok']) {
+    try {
+        // Login token for every later request (auth.php, sent as X-Auth-Token).
+        $r['data']['token'] = auth_issue_token((int) $r['data']['ResidentID'], post('device'), post('platform'));
+    } catch (Throwable $e) {
+        error_log('[login] token: ' . $e->getMessage());
+        respond(false, 'Server error.', null, 500);
+    }
+}
 respond($r['ok'], $r['message'], $r['data'], $r['ok'] ? 200 : 401);

@@ -15,7 +15,14 @@ import '../complaint/complaint_screen.dart';
 import '../blotter/blotter_screen.dart';
 import '../certificate/certificate_api.dart';
 import '../certificate/certificate_screen.dart';
+import '../complaint/complaint_api.dart';
+import '../disaster/disaster_api.dart';
+import '../disaster/disaster_screen.dart';
 import '../household/household_screen.dart';
+import '../main.dart' show appMessengerKey;
+import '../notifications/notifications_api.dart';
+import '../notifications/notifications_screen.dart';
+import '../services/push_service.dart';
 import '../officials/officials_screen.dart';
 import '../settings/app_settings.dart';
 import '../settings/settings_screen.dart';
@@ -54,6 +61,7 @@ const List<ResidentModule> kModules = [
   ResidentModule(
       'complaints', Icons.report_problem_outlined, Color(0xFFF59E0B)),
   ResidentModule('blotter', Icons.gavel_outlined, Color(0xFFE11D48)),
+  ResidentModule('disaster', Icons.warning_amber_rounded, Color(0xFFEA580C)),
   ResidentModule('officials', Icons.badge_outlined, Color(0xFF6366F1)),
   ResidentModule('chat', Icons.chat_bubble_outline, Color(0xFFDB2777)),
 ];
@@ -79,6 +87,64 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _loadPhoto();
     _loadAnnouncements();
     _loadRequests();
+    _loadCounts();
+    _loadAlerts();
+    // Push notifications (only when Firebase is set up — see PushService).
+    PushService.instance
+      ..onForeground = (m) {
+        _loadCounts();
+        final n = m.notification;
+        if (n != null) {
+          appMessengerKey.currentState?.showSnackBar(SnackBar(
+            content: Text('${n.title ?? ''}\n${n.body ?? ''}'.trim()),
+            action: SnackBarAction(
+                label: tr.notifications,
+                onPressed: () => _openNotifications(context)),
+          ));
+        }
+      }
+      ..onOpened = (_) {
+        if (mounted) _openNotifications(context);
+      }
+      ..register();
+  }
+
+  int _unread = 0;
+  int _openComplaints = 0;
+  List<DisasterAlert> _activeAlerts = const [];
+
+  /// Bell badge + "Open complaints" card.
+  Future<void> _loadCounts() async {
+    final api = NotificationsApi();
+    final c = await api.count();
+    api.dispose();
+    final capi = ComplaintApi();
+    final cl = await capi.list(resident.residentId);
+    capi.dispose();
+    if (!mounted) return;
+    setState(() {
+      if (c != null) _unread = c.unread;
+      if (cl.ok && cl.data != null) {
+        _openComplaints = cl.data!.stats.pending + cl.data!.stats.ongoing;
+      }
+    });
+  }
+
+  /// Active disaster alerts for the banner at the top.
+  Future<void> _loadAlerts() async {
+    final api = DisasterApi();
+    final res = await api.load();
+    api.dispose();
+    if (mounted && res.ok) setState(() => _activeAlerts = res.data!.active);
+  }
+
+  Future<void> _refreshAll() async {
+    await Future.wait([
+      _loadRequests(),
+      _loadCounts(),
+      _loadAlerts(),
+      _loadAnnouncements(),
+    ]);
   }
 
   CertList? _requests;
@@ -153,7 +219,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int get _approved => (_requests?.ready ?? 0) + (_requests?.released ?? 0);
   int get _pending => _requests?.pending ?? 0;
   int get _rejected => _requests?.rejected ?? 0;
-  int get _reservations => 0;
+  // Reservations card replaced by open complaints (Pending + Ongoing); there
+  // is no equipment/facility module yet.
 
   String get _initials {
     final f = resident.firstName.isNotEmpty ? resident.firstName[0] : '';
@@ -217,6 +284,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _openCertificates(context);
       return;
     }
+    if (m.id == 'disaster') {
+      Navigator.of(context)
+          .push(MaterialPageRoute(
+              builder: (_) => DisasterScreen(resident: resident)))
+          .then((_) => _loadAlerts());
+      return;
+    }
     if (m.id == 'blotter') {
       Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => BlotterScreen(resident: resident)),
@@ -261,39 +335,48 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 560),
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-                children: [
-                  _hero(context),
-                  const SizedBox(height: 16),
-                  _statCards(context),
-                  const SizedBox(height: 20),
-                  _sectionLabel(tr.quickAccess),
-                  const SizedBox(height: 10),
-                  _servicesGrid(context),
-                  const SizedBox(height: 20),
-                  Row(children: [
-                    Expanded(child: _sectionLabel(tr.latestAnnouncements)),
-                    if (_latest.isNotEmpty)
-                      TextButton(
-                        onPressed: () => _openAnnouncements(context),
-                        child: Text(tr.viewAll),
-                      ),
-                  ]),
-                  const SizedBox(height: 10),
-                  _announcementsCard(context),
-                  const SizedBox(height: 16),
-                  _sectionLabel(tr.recentRequests),
-                  const SizedBox(height: 10),
-                  _recentRequestsCard(context),
-                  const SizedBox(height: 16),
-                  _sectionLabel(tr.requestSummary),
-                  const SizedBox(height: 10),
-                  _summaryCard(),
-                  const SizedBox(height: 16),
-                  _helpCard(),
-                  const SizedBox(height: 24),
-                ],
+              child: RefreshIndicator(
+                color: AppColors.primary,
+                onRefresh: _refreshAll,
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                  children: [
+                    for (final a in _activeAlerts) ...[
+                      _alertBanner(context, a),
+                      const SizedBox(height: 12),
+                    ],
+                    _hero(context),
+                    const SizedBox(height: 16),
+                    _statCards(context),
+                    const SizedBox(height: 20),
+                    _sectionLabel(tr.quickAccess),
+                    const SizedBox(height: 10),
+                    _servicesGrid(context),
+                    const SizedBox(height: 20),
+                    Row(children: [
+                      Expanded(child: _sectionLabel(tr.latestAnnouncements)),
+                      if (_latest.isNotEmpty)
+                        TextButton(
+                          onPressed: () => _openAnnouncements(context),
+                          child: Text(tr.viewAll),
+                        ),
+                    ]),
+                    const SizedBox(height: 10),
+                    _announcementsCard(context),
+                    const SizedBox(height: 16),
+                    _sectionLabel(tr.recentRequests),
+                    const SizedBox(height: 10),
+                    _recentRequestsCard(context),
+                    const SizedBox(height: 16),
+                    _sectionLabel(tr.requestSummary),
+                    const SizedBox(height: 10),
+                    _summaryCard(),
+                    const SizedBox(height: 16),
+                    _helpCard(),
+                    const SizedBox(height: 24),
+                  ],
+                ),
               ),
             ),
           ),
@@ -362,24 +445,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
             clipBehavior: Clip.none,
             children: [
               const Icon(Icons.notifications_outlined, color: Colors.white),
-              Positioned(
-                right: -4,
-                top: -4,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                  decoration: BoxDecoration(
-                      color: const Color(0xFFEF4444),
-                      borderRadius: BorderRadius.circular(50)),
-                  constraints: const BoxConstraints(minWidth: 16),
-                  child: const Text('99+',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 8,
-                          fontWeight: FontWeight.w800)),
+              if (_unread > 0)
+                Positioned(
+                  right: -4,
+                  top: -4,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                    decoration: BoxDecoration(
+                        color: const Color(0xFFEF4444),
+                        borderRadius: BorderRadius.circular(50)),
+                    constraints: const BoxConstraints(minWidth: 16),
+                    child: Text(_unread > 99 ? '99+' : '$_unread',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 8,
+                            fontWeight: FontWeight.w800)),
+                  ),
                 ),
-              ),
             ],
           ),
         ),
@@ -456,42 +540,63 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ]),
       );
 
-  void _openNotifications(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      showDragHandle: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (_) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(children: [
-              Icon(Icons.notifications_outlined,
-                  color: AppColors.primary, size: 20),
-              const SizedBox(width: 8),
-              Text(tr.notifications,
-                  style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w800)),
-            ]),
-            const SizedBox(height: 24),
-            Center(
+  Future<void> _openNotifications(BuildContext context) async {
+    await Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => NotificationsScreen(resident: resident)));
+    _refreshAll();
+  }
+
+  /// Red banner for an active disaster alert (tap → Alerts & Hazard Map).
+  Widget _alertBanner(BuildContext context, DisasterAlert a) {
+    final c = DisasterStyle.severity(a.severity);
+    return Material(
+      color: c,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: () => Navigator.of(context)
+            .push(MaterialPageRoute(
+                builder: (_) => DisasterScreen(resident: resident)))
+            .then((_) => _loadAlerts()),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: .2),
+                  borderRadius: BorderRadius.circular(12)),
+              child: Icon(DisasterStyle.icon(a.type), color: Colors.white),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.notifications_off_outlined,
-                      size: 44, color: AppColors.slate200),
-                  const SizedBox(height: 10),
-                  Text(tr.noNotifications,
+                  Text(
+                      '${tr.activeAlert.toUpperCase()}'
+                      '${a.severity == null ? '' : ' · ${tr.severityLabel(a.severity!).toUpperCase()}'}',
                       style: TextStyle(
-                          color: AppColors.slate400,
-                          fontWeight: FontWeight.w700)),
+                          color: Colors.white.withValues(alpha: .85),
+                          fontSize: 10.5,
+                          letterSpacing: .8,
+                          fontWeight: FontWeight.w900)),
+                  Text(a.title,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w900)),
+                  if (a.evacuation != null)
+                    Text('${tr.evacuationCenter}: ${a.evacuation}',
+                        style: TextStyle(
+                            color: Colors.white.withValues(alpha: .9),
+                            fontSize: 12)),
                 ],
               ),
             ),
-            const SizedBox(height: 12),
-          ],
+            const Icon(Icons.chevron_right, color: Colors.white),
+          ]),
         ),
       ),
     );
@@ -700,8 +805,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _Stat(
           tr.approved, _approved, Icons.check_circle, const Color(0xFF16A34A)),
       _Stat(tr.pending, _pending, Icons.hourglass_top, const Color(0xFFF59E0B)),
-      _Stat(
-          tr.reservations, _reservations, Icons.build, const Color(0xFF8B5CF6)),
+      _Stat(tr.openComplaints, _openComplaints, Icons.report_problem_outlined,
+          const Color(0xFF8B5CF6)),
     ];
     // Height grows with the text size (Settings → Text size) so the card
     // never overflows.

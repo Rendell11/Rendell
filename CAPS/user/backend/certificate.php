@@ -35,7 +35,7 @@ const CERT_FILE_REL = 'user/backend/uploads/document_requests'; // relative to C
 const CERT_FILE_MAX = 8 * 1024 * 1024;
 
 $action = $_GET['action'] ?? $_POST['action'] ?? 'list';
-$rid    = (int) ($_GET['resident_id'] ?? $_POST['resident_id'] ?? 0);
+$rid    = require_resident(); // verified login token (auth.php), not the resident_id sent by the app
 
 function cert_fail(string $fil, string $en, ?Throwable $e = null, int $code = 500): void
 {

@@ -25,7 +25,7 @@ require_once __DIR__ . '/config.php'; // respond(), handle_preflight(), db(), L(
 handle_preflight();
 
 $pdo = db();
-$rid = (int) ($_GET['resident_id'] ?? $_POST['resident_id'] ?? 0);
+$rid = require_resident(); // verified login token (auth.php), not the resident_id sent by the app
 if ($rid <= 0) {
     respond(false, L('Kailangan ang resident_id.', 'resident_id is required.'), null, 400);
 }

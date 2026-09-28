@@ -22,7 +22,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/config.php'; // respond(), handle_preflight(), db(), L()
 handle_preflight();
 
-$rid = (int) ($_GET['resident_id'] ?? $_POST['resident_id'] ?? 0);
+$rid = require_resident(); // verified login token (auth.php), not the resident_id sent by the app
 if ($rid <= 0) {
     respond(false, L('Kailangan ang resident_id.', 'resident_id is required.'), null, 400);
 }
@@ -199,7 +199,7 @@ try {
                             : (trim((string) ($me['RelationshipToHead'] ?? '')) ?: 'Member'),
         'household'    => [
             'household_id'   => hh_display_id($survey['HouseholdID'] ?? ($head['HouseholdID'] ?? null),
-                                    $survey['DateCreated'] ?? ($head['DateCreated'] ?? null)),
+                                    $survey['DateCreated'] ?? ($head['DateCreated'] ?? $head['CreatedAt'] ?? null)),
             'head_name'      => hh_name($head),
             'address'        => $address,
             'purok'          => $purok !== '' ? $purok : null,
@@ -207,7 +207,7 @@ try {
             'tenure'         => ($survey['tenure_status'] ?? null) ?: ($survey['housing_tenure'] ?? null),
             'monthly_income' => $income,
             'income_class'   => $income !== null ? hh_income_class($income) : null,
-            'registered'     => $survey['DateCreated'] ?? ($head['DateCreated'] ?? null),
+            'registered'     => $survey['DateCreated'] ?? ($head['DateCreated'] ?? $head['CreatedAt'] ?? null),
             'survey_on_file' => $survey !== null,
         ],
         'head_id'      => $headId,

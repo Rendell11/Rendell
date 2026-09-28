@@ -529,6 +529,46 @@ abstract class AppText {
   String get requestDetails;
   String get attachedPhotos;
   String get viewAllRequests;
+
+  // ── Security ────────────────────────────────────────────────────
+  String get sessionExpired;
+  String get logoutAllDevices;
+  String get logoutAllDevicesSub;
+  String get logoutAllDevicesBody;
+
+  // ── Notifications ───────────────────────────────────────────────
+  String get markAllRead;
+  String get notificationsLoadFailed;
+  String get noNotificationsBody;
+  String notifSource(String s);
+  String get justNow;
+  String minutesAgo(int n);
+  String hoursAgo(int n);
+  String daysAgo(int n);
+
+  // ── Disaster ────────────────────────────────────────────────────
+  String get disasterTitle;
+  String get disasterSubtitle;
+  String get disasterLoadFailed;
+  String get alertsTab;
+  String get mapTab;
+  String get activeAlert;
+  String get noActiveAlerts;
+  String get pastAlerts;
+  String get alertEnded;
+  String get evacuationCenter;
+  String get affectedArea;
+  String get viewOnMap;
+  String get yourHome;
+  String get noHomePin;
+  String hazardType(String t);
+  String severityLabel(String s);
+  String get emergencyHotlinesHint;
+  String get mapLegend;
+  String get tapForDetails;
+
+  // ── Dashboard2 ──────────────────────────────────────────────────
+  String get openComplaints;
 }
 
 /// The strings for the current app language.

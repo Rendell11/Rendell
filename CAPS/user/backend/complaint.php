@@ -72,7 +72,7 @@ try {
 
 // ── Read action + resident ───────────────────────────────────────────────────
 $action = $_GET['action'] ?? $_POST['action'] ?? 'list';
-$rid    = (int) ($_GET['resident_id'] ?? $_POST['resident_id'] ?? 0);
+$rid    = require_resident(); // verified login token (auth.php), not the resident_id sent by the app
 
 if ($action === 'categories') {
     respond(true, '', [

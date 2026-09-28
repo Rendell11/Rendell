@@ -12,6 +12,7 @@ import '../theme/app_theme.dart';
 import 'app_settings.dart';
 import 'change_password_screen.dart';
 import 'change_pin_screen.dart';
+import 'settings_api.dart';
 
 /// ─────────────────────────────────────────────────────────────────────────
 /// SETTINGS — the resident's own app settings.
@@ -131,6 +132,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await _session.clear();
     _settings.unbindResident();
     if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (_) => false,
+    );
+  }
+
+  Future<void> _logoutAll() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(tr.logoutAllDevices),
+        content: Text(tr.logoutAllDevicesBody),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(tr.cancel)),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(tr.logout)),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    final api = SettingsApi();
+    final res = await api.logoutAllDevices();
+    api.dispose();
+    if (!mounted) return;
+    if (!res.ok) {
+      _snack(res.message);
+      return;
+    }
+    await _session.clear();
+    _settings.unbindResident();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(res.message)));
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const LoginScreen()),
       (_) => false,
@@ -629,6 +666,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     : tr.sessionUntil(_fmtDate(_sessionUntil!)),
                 style: _tileSub),
           ),
+          Divider(height: 1, color: AppColors.border),
+          _navTile(Icons.devices_other_outlined, tr.logoutAllDevices,
+              tr.logoutAllDevicesSub, _logoutAll),
         ],
       ),
     );

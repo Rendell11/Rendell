@@ -18,6 +18,10 @@ dependencies:
   local_auth: ^2.3.0
   flutter_secure_storage: ^9.2.2
   crypto: ^3.0.3
+  flutter_map: ^8.3.2
+  latlong2: ^0.10.1
+  firebase_core: ^4.15.0
+  firebase_messaging: ^16.7.0
 
 dev_dependencies:
   flutter_lints: ^4.0.0

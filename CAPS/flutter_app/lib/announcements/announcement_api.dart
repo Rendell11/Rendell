@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import '../l10n/app_text.dart';
 import '../services/api_service.dart' show ApiResult;
+import '../services/auth_client.dart';
 
 /// A file attached to an announcement (announcement_attachments).
 class AnnouncementFile {
@@ -118,7 +119,7 @@ class Announcement {
 /// HTTP client for `user/backend/announcements.php`.
 class AnnouncementApi {
   AnnouncementApi({http.Client? client, String? baseUrl})
-      : _client = client ?? http.Client(),
+      : _client = client ?? AuthClient(),
         _baseUrl = baseUrl ?? ApiConfig.baseUrl;
 
   final http.Client _client;

@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../config/api_config.dart';
@@ -10,6 +10,7 @@ import '../models/access_request.dart';
 import '../models/barangay_profile.dart';
 import '../models/chat_message.dart';
 import '../models/resident.dart';
+import 'auth_client.dart';
 
 /// Thin HTTP client for the resident access-request flow.
 ///
@@ -18,7 +19,7 @@ import '../models/resident.dart';
 /// which is wrapped in [ApiResult] so screens can react uniformly.
 class ApiService {
   ApiService({http.Client? client, String? baseUrl})
-      : _client = client ?? http.Client(),
+      : _client = client ?? AuthClient(),
         _baseUrl = baseUrl ?? ApiConfig.baseUrl;
 
   final http.Client _client;
@@ -47,18 +48,21 @@ class ApiService {
       // where a picked file's "path" is a blob URL, not a real file).
       if (validIdBytes != null) {
         req.files.add(http.MultipartFile.fromBytes(
-          'valid_id', validIdBytes,
+          'valid_id',
+          validIdBytes,
           filename: validIdName ?? 'valid_id.jpg',
         ));
       }
       if (selfieBytes != null) {
         req.files.add(http.MultipartFile.fromBytes(
-          'selfie', selfieBytes,
+          'selfie',
+          selfieBytes,
           filename: selfieName ?? 'selfie.jpg',
         ));
       }
 
-      final streamed = await req.send().timeout(ApiConfig.timeout);
+      final streamed =
+          await AuthClient.sendOnce(req).timeout(ApiConfig.timeout);
       final res = await http.Response.fromStream(streamed);
       final body = _decode(res);
       if (_ok(res, body)) {
@@ -133,10 +137,17 @@ class ApiService {
       final res = await _client.post(
         _uri('login.php'),
         headers: ApiConfig.headers,
-        body: {'identifier': identifier, 'password': password},
+        body: {
+          'identifier': identifier,
+          'password': password,
+          'platform': kIsWeb ? 'web' : defaultTargetPlatform.name,
+        },
       ).timeout(ApiConfig.timeout);
       final body = _decode(res);
       if (_ok(res, body) && body['data'] != null) {
+        // Login token for every later request (see SessionService).
+        final token = body['data']['token']?.toString();
+        if (token != null && token.isNotEmpty) ApiConfig.authToken = token;
         return ApiResult.success(
           Resident.fromJson(Map<String, dynamic>.from(body['data'])),
         );
@@ -186,8 +197,9 @@ class ApiService {
   /// admin hasn't configured it yet.
   Future<BarangayProfile?> fetchBarangayProfile() async {
     try {
-      final res =
-          await _client.get(_uri('address.php?action=profile'), headers: ApiConfig.headers).timeout(ApiConfig.timeout);
+      final res = await _client
+          .get(_uri('address.php?action=profile'), headers: ApiConfig.headers)
+          .timeout(ApiConfig.timeout);
       final body = _decode(res);
       final data = body['data'];
       if (_ok(res, body) && data is Map) {
@@ -203,7 +215,8 @@ class ApiService {
   Future<List<String>> fetchStreets(String barangayCode) async {
     try {
       final res = await _client
-          .get(_uri('address.php?action=streets&barangay=$barangayCode'), headers: ApiConfig.headers)
+          .get(_uri('address.php?action=streets&barangay=$barangayCode'),
+              headers: ApiConfig.headers)
           .timeout(ApiConfig.timeout);
       final body = _decode(res);
       final data = body['data'];
@@ -218,7 +231,8 @@ class ApiService {
   Future<List<AreaOption>> fetchAreas(String barangayCode) async {
     try {
       final res = await _client
-          .get(_uri('address.php?action=areas&barangay=$barangayCode'), headers: ApiConfig.headers)
+          .get(_uri('address.php?action=areas&barangay=$barangayCode'),
+              headers: ApiConfig.headers)
           .timeout(ApiConfig.timeout);
       final body = _decode(res);
       final data = body['data'];
@@ -254,7 +268,8 @@ class ApiService {
   Future<ApiResult<ChatThread>> chatList(int residentId) async {
     try {
       final res = await _client
-          .get(_uri('chat.php?action=list&resident_id=$residentId'), headers: ApiConfig.headers)
+          .get(_uri('chat.php?action=list&resident_id=$residentId'),
+              headers: ApiConfig.headers)
           .timeout(ApiConfig.timeout);
       final body = _decode(res);
       if (_ok(res, body) && body['data'] is Map) {
@@ -286,7 +301,9 @@ class ApiService {
         },
       ).timeout(ApiConfig.timeout);
       final body = _decode(res);
-      if (_ok(res, body)) return ApiResult.success(null, message: _msg(body, ''));
+      if (_ok(res, body)) {
+        return ApiResult.success(null, message: _msg(body, ''));
+      }
       return ApiResult.failure(_msg(body, tr.chatSendFailed));
     } catch (e) {
       return ApiResult.failure(_friendly(e));
@@ -302,7 +319,9 @@ class ApiService {
         body: {'action': 'end', 'resident_id': '$residentId'},
       ).timeout(ApiConfig.timeout);
       final body = _decode(res);
-      if (_ok(res, body)) return ApiResult.success(null, message: _msg(body, ''));
+      if (_ok(res, body)) {
+        return ApiResult.success(null, message: _msg(body, ''));
+      }
       return ApiResult.failure(_msg(body, tr.chatEndFailed));
     } catch (e) {
       return ApiResult.failure(_friendly(e));

@@ -1,0 +1,4 @@
+
+# Firebase key for push notifications (never commit)
+CAPS/user/backend/private/*.json
+CAPS/user/backend/private/push_last_run
