@@ -158,8 +158,9 @@ class ApiService {
     }
   }
 
-  /// Request a password-reset email (SOE resident_forgot_password.php).
-  /// Always resolves without revealing whether the email exists.
+  /// Forgot password, step 1: email a 6-digit code. Succeeds without
+  /// revealing whether the email is registered; fails only on a bad email or
+  /// when the barangay's email sending is not set up / not working.
   Future<ApiResult<void>> forgotPassword(String email) async {
     try {
       final res = await _client.post(
@@ -168,7 +169,37 @@ class ApiService {
         body: {'email': email},
       ).timeout(ApiConfig.timeout);
       final body = _decode(res);
-      return ApiResult.success(null, message: _msg(body, ''));
+      if (_ok(res, body)) {
+        return ApiResult.success(null, message: _msg(body, ''));
+      }
+      return ApiResult.failure(_msg(body, tr.errBadResponse));
+    } catch (e) {
+      return ApiResult.failure(_friendly(e));
+    }
+  }
+
+  /// Forgot password, step 2: the code from the email + the new password.
+  Future<ApiResult<void>> resetPasswordWithCode({
+    required String email,
+    required String code,
+    required String password,
+  }) async {
+    try {
+      final res = await _client.post(
+        _uri('forgot_password.php'),
+        headers: ApiConfig.headers,
+        body: {
+          'action': 'reset',
+          'email': email,
+          'code': code,
+          'password': password,
+        },
+      ).timeout(ApiConfig.timeout);
+      final body = _decode(res);
+      if (_ok(res, body)) {
+        return ApiResult.success(null, message: _msg(body, tr.passwordSet));
+      }
+      return ApiResult.failure(_msg(body, tr.passwordSetFailed));
     } catch (e) {
       return ApiResult.failure(_friendly(e));
     }

@@ -4,6 +4,7 @@ import '../l10n/app_text.dart';
 import '../models/resident.dart';
 import '../theme/app_theme.dart';
 import '../widgets/brand_header.dart';
+import '../widgets/password_rules.dart';
 import 'settings_api.dart';
 
 /// Settings → Change password (current + new + confirm).
@@ -101,11 +102,13 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                       decoration:
                           AppTheme.field(tr.atLeast8, icon: Icons.lock_reset),
                       validator: (v) {
-                        if (v == null || v.length < 8) return tr.atLeast8Error;
+                        final err = PasswordPolicy.validate(v);
+                        if (err != null) return err;
                         if (v == _current.text) return tr.newPasswordSame;
                         return null;
                       },
                     ),
+                    PasswordRules(controller: _new),
                     const SizedBox(height: 14),
                     FieldLabel(tr.confirmPassword, required: true),
                     TextFormField(

@@ -133,7 +133,7 @@ class AppTextFil extends AppText {
       'Palitan ang password na ginagamit sa pag-login';
   @override
   String get changePasswordIntro =>
-      'Ilagay ang kasalukuyang password, tapos pumili ng bago (hindi bababa sa 8 karakter).';
+      'Ilagay ang kasalukuyang password, tapos pumili ng bagong matibay na password.';
   @override
   String get currentPassword => 'Kasalukuyang password';
   @override
@@ -145,7 +145,7 @@ class AppTextFil extends AppText {
   @override
   String get retypePassword => 'I-type muli ang password';
   @override
-  String get atLeast8 => 'Hindi bababa sa 8 karakter';
+  String get atLeast8 => 'Gumawa ng matibay na password';
   @override
   String get atLeast8Error => 'Gumamit ng hindi bababa sa 8 karakter.';
   @override
@@ -321,14 +321,14 @@ class AppTextFil extends AppText {
   String get forgotPassword => 'Nakalimutan ang Password';
   @override
   String get forgotPasswordSub =>
-      'Ilagay ang nakarehistrong email mo at magpapadala kami ng reset link.';
+      'Ilagay ang nakarehistrong email mo at magpapadala kami ng 6-digit code.';
   @override
   String get enterRegisteredEmail => 'Ilagay ang nakarehistrong email address';
   @override
   String get resetLinkExpiry =>
-      'Mag-e-expire ang reset link sa loob ng 1 oras. Tingnan ang spam folder kung wala sa inbox.';
+      'Mag-e-expire ang code sa loob ng 15 minuto. Tingnan ang spam folder kung wala sa inbox.';
   @override
-  String get sendResetLink => 'Ipadala ang Reset Link';
+  String get sendResetLink => 'Ipadala ang Code';
   @override
   String get checkYourEmail => 'Tingnan ang Email Mo';
   @override
@@ -1329,4 +1329,57 @@ class AppTextFil extends AppText {
   String get testAlertSound => 'Subukan ang tunog';
   @override
   String moreAlerts(int n) => '+$n pang aktibong alerto';
+
+  // ── Password rules
+  @override
+  String get pwRuleLength => 'Hindi bababa sa 8 karakter';
+  @override
+  String get pwRuleUpper => 'Malaking titik (A-Z)';
+  @override
+  String get pwRuleLower => 'Maliit na titik (a-z)';
+  @override
+  String get pwRuleNumber => 'Numero (0-9)';
+  @override
+  String get pwRuleSpecial => 'Special character (hal. ! @ # ? *)';
+  @override
+  String get pwNoSpaces => 'Bawal ang space sa password.';
+  @override
+  String get pwTooLong => 'Hanggang 72 karakter lang.';
+  @override
+  String get pwWeak =>
+      'Hindi pa pasok ang password sa lahat ng patakaran sa ibaba.';
+  @override
+  String get pwStrong => 'Matibay';
+  @override
+  String get pwMedium => 'Malapit na';
+  @override
+  String get pwWeakLabel => 'Mahina';
+
+  // ── Forgot password code
+  @override
+  String get fpEnterCode => 'Ilagay ang Code';
+  @override
+  String fpEnterCodeSub(String email) =>
+      'Nagpadala kami ng 6-digit code sa $email. Ilagay ito sa ibaba kasama ang bagong password.';
+  @override
+  String get fpCode => '6-digit code';
+  @override
+  String get fpCodeInvalid => 'Ilagay ang 6-digit code mula sa email.';
+  @override
+  String get fpResend => 'Ipadala ulit ang code';
+  @override
+  String fpResendIn(int s) => 'Maipapadala ulit sa loob ng ${s}s';
+  @override
+  String get fpResent => 'Nagpadala ng bagong code.';
+  @override
+  String get fpOtherEmail => 'Ibang email ang gamitin';
+  @override
+  String get fpNoEmail =>
+      'Wala pa? Tingnan ang spam, o maghintay ng isang minuto at ipadala ulit.';
+
+  // ── Request access birthdate
+  @override
+  String get raBirthFuture => 'Hindi puwedeng future date ang kapanganakan.';
+  @override
+  String get raBirthTooOld => 'Maglagay ng taon mula 1900.';
 }

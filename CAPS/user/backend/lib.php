@@ -12,6 +12,32 @@
 declare(strict_types=1);
 require_once __DIR__ . '/config.php';
 
+/**
+ * Password rules (set password, change password, forgot password):
+ * 8–72 characters, with an uppercase letter, a lowercase letter, a number and
+ * a special character, no spaces. Returns the error message or null.
+ * The app shows the same rules as a live checklist (widgets/password_rules.dart).
+ */
+function password_policy_error(string $pw): ?string
+{
+    $missing = [];
+    if (strlen($pw) < 8)                  $missing[] = L('8 karakter pataas', 'at least 8 characters');
+    if (!preg_match('/[A-Z]/', $pw))      $missing[] = L('malaking titik (A-Z)', 'an uppercase letter (A-Z)');
+    if (!preg_match('/[a-z]/', $pw))      $missing[] = L('maliit na titik (a-z)', 'a lowercase letter (a-z)');
+    if (!preg_match('/[0-9]/', $pw))      $missing[] = L('numero (0-9)', 'a number (0-9)');
+    if (!preg_match('/[^A-Za-z0-9\s]/', $pw)) $missing[] = L('special character (hal. ! @ # ?)', 'a special character (e.g. ! @ # ?)');
+    if ($missing) {
+        return L('Kulang sa password: ', 'The password needs ') . implode(', ', $missing) . '.';
+    }
+    if (preg_match('/\s/', $pw)) {
+        return L('Bawal ang space sa password.', 'The password cannot contain spaces.');
+    }
+    if (strlen($pw) > 72) {
+        return L('Hanggang 72 karakter lang ang password.', 'The password can have at most 72 characters.');
+    }
+    return null;
+}
+
 /** Save an uploaded image from $_FILES[$field]; return stored relative path or null. */
 function save_upload(string $field, string $prefix): ?string
 {
@@ -179,8 +205,8 @@ function set_resident_password(string $token, string $password): array
     if ($token === '') {
         return ['ok' => false, 'message' => L('Kailangan ang access token.', 'The access token is required.'), 'data' => null];
     }
-    if (strlen($password) < 8) {
-        return ['ok' => false, 'message' => L('Dapat 8 karakter pataas ang password.', 'The password must be at least 8 characters.'), 'data' => null];
+    if (($err = password_policy_error($password)) !== null) {
+        return ['ok' => false, 'message' => $err, 'data' => null];
     }
 
     $pdo  = db();
@@ -418,33 +444,186 @@ function list_puroks(): array
     return ['Purok 1', 'Purok 2', 'Purok 3', 'Purok 4', 'Purok 5'];
 }
 
-/**
- * Forgot password — write a reset token + 1-hour expiry to the resident row.
- * Emailing the link is left to your existing SMTP setup (see note in
- * forgot_password.php); this always returns success to avoid user enumeration.
+/* ── Forgot password: a 6-digit code by email ─────────────────────────────────
+ * The app cannot open a web reset link on the phone (the backend is only
+ * reachable on the barangay Wi-Fi), so the resident gets a CODE by email and
+ * types it in the app together with the new password.
+ *   request_password_reset(email)            → emails the code (15 minutes)
+ *   reset_password_with_code(email, code, pw) → sets the new password
+ * Codes are stored hashed; 5 wrong tries end a code; one code per minute.
  */
+const RESET_CODE_MINUTES = 15;
+const RESET_CODE_TRIES   = 5;
+
+function reset_migrate(PDO $pdo): void
+{
+    static $done = false;
+    if ($done) return;
+    $done = true;
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS resident_password_resets (
+            id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            resident_id INT UNSIGNED NOT NULL,
+            code_hash   CHAR(64) NOT NULL,
+            expires_at  DATETIME NOT NULL,
+            attempts    TINYINT UNSIGNED NOT NULL DEFAULT 0,
+            used_at     DATETIME NULL,
+            ip          VARCHAR(45) NULL,
+            created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY idx_rpr_resident (resident_id, used_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ");
+}
+
+function reset_code_hash(int $residentId, string $code): string
+{
+    return hash('sha256', $residentId . ':' . $code);
+}
+
+function reset_email_html(string $name, string $code): string
+{
+    $name = htmlspecialchars($name !== '' ? $name : 'Resident', ENT_QUOTES, 'UTF-8');
+    $digits = implode('&nbsp;', str_split($code));
+    return "<!DOCTYPE html><html><body style='margin:0;padding:0;background:#eef2fb;font-family:Arial,sans-serif'>
+<table width='100%' cellpadding='0' cellspacing='0' style='background:#eef2fb;padding:28px 12px'><tr><td align='center'>
+<table width='460' cellpadding='0' cellspacing='0' style='max-width:460px;width:100%;background:#fff;border-radius:20px;overflow:hidden'>
+<tr><td style='background:#1a3570;padding:28px;text-align:center'>
+<p style='margin:0 0 4px;font-size:11px;letter-spacing:3px;color:#b8c4e0'>REPUBLIC OF THE PHILIPPINES</p>
+<h1 style='margin:0;font-size:20px;color:#fff'>BARANGAY BIÑANG 2ND</h1>
+<p style='margin:6px 0 0;font-size:11px;color:#b8c4e0'>Resident App</p></td></tr>
+<tr><td style='padding:28px 30px 8px'>
+<p style='margin:0 0 6px;font-size:17px;font-weight:bold;color:#0f172a'>Password reset code</p>
+<p style='margin:0 0 18px;font-size:13px;color:#475569;line-height:1.6'>Hi {$name}, use this code in the app to set a new password.<br>
+<i>Ilagay ang code na ito sa app para makagawa ng bagong password.</i></p>
+<p style='margin:0 0 18px;text-align:center'><span style='display:inline-block;background:#eef2fb;border:1px solid #c7d4f0;border-radius:14px;padding:14px 22px;font-size:30px;font-weight:bold;letter-spacing:4px;color:#1a3570'>{$digits}</span></p>
+<p style='margin:0 0 18px;font-size:13px;color:#334155;line-height:1.6'>The code expires in <b style='color:#f05a00'>" . RESET_CODE_MINUTES . " minutes</b>. / Mag-e-expire ito sa loob ng " . RESET_CODE_MINUTES . " minuto.</p>
+<p style='margin:0 0 22px;font-size:12px;color:#64748b;line-height:1.6'>If you did not ask for this, ignore this email — your password stays the same. Never share this code with anyone, even barangay staff.<br>
+<i>Kung hindi ikaw ang humiling nito, balewalain lang ang email. Huwag ibigay ang code kahit kanino.</i></p>
+</td></tr></table></td></tr></table></body></html>";
+}
+
 function request_password_reset(string $email): array
 {
+    require_once __DIR__ . '/mailer.php';
     $email = strtolower(trim($email));
-    $generic = ['ok' => true,
-        'message' => L('Kung nakarehistro ang email, may reset link na ipapadala. Tingnan ang inbox/spam.', 'If the email is registered, a reset link will be sent. Check your inbox/spam.'),
-        'data' => null];
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         return ['ok' => false, 'message' => L('Hindi wastong email.', 'Invalid email address.'), 'data' => null];
     }
-    $pdo  = db();
-    $stmt = $pdo->prepare('SELECT ResidentID FROM residents WHERE Email = ? LIMIT 1');
+    if (!mailer_ready()) {
+        error_log('[forgot_password] email is not set up (smtp_config.php / CAPS/vendor)');
+        return ['ok' => false, 'message' => L(
+            'Hindi pa naka-set up ang pagpapadala ng email. Pumunta o tumawag muna sa barangay hall.',
+            'Sending email is not set up yet. Please visit or call the barangay hall.'), 'data' => null];
+    }
+    $generic = ['ok' => true,
+        'message' => L('Kung nakarehistro ang email, may 6-digit code na ipinadala. Tingnan ang inbox/spam.',
+                       'If the email is registered, a 6-digit code was sent. Check your inbox/spam.'),
+        'data' => ['expires_minutes' => RESET_CODE_MINUTES]];
+
+    $pdo = db();
+    reset_migrate($pdo);
+    $stmt = $pdo->prepare("SELECT ResidentID, FirstName FROM residents
+                           WHERE LOWER(Email) = ? AND access_status = 'Active'
+                             AND (IsDeceased = 0 OR IsDeceased IS NULL) LIMIT 1");
     $stmt->execute([$email]);
     $row = $stmt->fetch();
-    if ($row) {
-        $token  = bin2hex(random_bytes(32));
-        $expiry = date('Y-m-d H:i:s', strtotime('+1 hour'));
-        $pdo->prepare('UPDATE residents SET ResetToken = ?, TokenExpiry = ? WHERE ResidentID = ?')
-            ->execute([$token, $expiry, $row['ResidentID']]);
-        // TODO: email the link with your SMTP (as in resident_forgot_password.php).
-        // e.g. resident_reset_password.php?token=$token
+    if (!$row) return $generic; // don't reveal which emails are registered
+    $rid = (int) $row['ResidentID'];
+
+    // One code per minute, 5 per hour.
+    $recent = $pdo->prepare("SELECT
+            SUM(created_at > NOW() - INTERVAL 1 MINUTE) AS last_min,
+            COUNT(*) AS last_hour
+        FROM resident_password_resets WHERE resident_id = ? AND created_at > NOW() - INTERVAL 1 HOUR");
+    $recent->execute([$rid]);
+    $rc = $recent->fetch();
+    if ((int) ($rc['last_min'] ?? 0) > 0 || (int) ($rc['last_hour'] ?? 0) >= 5) {
+        return $generic;
+    }
+
+    $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+    $pdo->prepare('UPDATE resident_password_resets SET used_at = NOW() WHERE resident_id = ? AND used_at IS NULL')
+        ->execute([$rid]);
+    $pdo->prepare('INSERT INTO resident_password_resets (resident_id, code_hash, expires_at, ip)
+                   VALUES (?, ?, NOW() + INTERVAL ' . RESET_CODE_MINUTES . ' MINUTE, ?)')
+        ->execute([$rid, reset_code_hash($rid, $code), substr((string) ($_SERVER['REMOTE_ADDR'] ?? ''), 0, 45)]);
+
+    $err = null;
+    if (!send_mail($email, (string) $row['FirstName'], 'Password reset code — Barangay Biñang 2nd',
+                   reset_email_html((string) $row['FirstName'], $code), $err)) {
+        $pdo->prepare('UPDATE resident_password_resets SET used_at = NOW() WHERE resident_id = ? AND used_at IS NULL')
+            ->execute([$rid]);
+        return ['ok' => false, 'message' => L('Hindi naipadala ang email. Subukan ulit mamaya.',
+                                               'The email could not be sent. Please try again later.'), 'data' => null];
     }
     return $generic;
+}
+
+function reset_password_with_code(string $email, string $code, string $password): array
+{
+    $email = strtolower(trim($email));
+    $code  = preg_replace('/\D/', '', $code);
+    $bad = ['ok' => false, 'message' => L('Mali o expired na ang code. Humingi ng bagong code.',
+                                          'The code is wrong or expired. Ask for a new code.'), 'data' => null];
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($code) !== 6) return $bad;
+    if (($perr = password_policy_error($password)) !== null) {
+        return ['ok' => false, 'message' => $perr, 'data' => null];
+    }
+
+    $pdo = db();
+    reset_migrate($pdo);
+    $stmt = $pdo->prepare("SELECT ResidentID, Password FROM residents
+                           WHERE LOWER(Email) = ? AND access_status = 'Active'
+                             AND (IsDeceased = 0 OR IsDeceased IS NULL) LIMIT 1");
+    $stmt->execute([$email]);
+    $res = $stmt->fetch();
+    if (!$res) return $bad;
+    $rid = (int) $res['ResidentID'];
+
+    $q = $pdo->prepare('SELECT id, code_hash, attempts, expires_at < NOW() AS expired
+                        FROM resident_password_resets
+                        WHERE resident_id = ? AND used_at IS NULL ORDER BY id DESC LIMIT 1');
+    $q->execute([$rid]);
+    $row = $q->fetch();
+    if (!$row || (int) $row['expired'] === 1) return $bad;
+
+    if (!hash_equals($row['code_hash'], reset_code_hash($rid, $code))) {
+        $tries = (int) $row['attempts'] + 1;
+        $left  = RESET_CODE_TRIES - $tries;
+        $pdo->prepare('UPDATE resident_password_resets SET attempts = ?' . ($left <= 0 ? ', used_at = NOW()' : '') . ' WHERE id = ?')
+            ->execute([$tries, $row['id']]);
+        if ($left <= 0) {
+            return ['ok' => false, 'message' => L('Sobra na ang maling subok. Humingi ng bagong code.',
+                                                  'Too many wrong tries. Ask for a new code.'), 'data' => null];
+        }
+        return ['ok' => false, 'message' => L("Mali ang code. May $left subok pa.",
+                                              "Wrong code. $left tries left."), 'data' => ['tries_left' => $left]];
+    }
+    if (!empty($res['Password']) && password_verify($password, (string) $res['Password'])) {
+        return ['ok' => false, 'message' => L('Dapat iba sa dating password.', 'Use a password different from your old one.'), 'data' => null];
+    }
+
+    $pdo->beginTransaction();
+    try {
+        $pdo->prepare('UPDATE residents SET Password = ?, ResetToken = NULL, TokenExpiry = NULL WHERE ResidentID = ?')
+            ->execute([password_hash($password, PASSWORD_BCRYPT), $rid]);
+        $pdo->prepare('UPDATE resident_password_resets SET used_at = NOW() WHERE resident_id = ? AND used_at IS NULL')
+            ->execute([$rid]);
+        $pdo->commit();
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        error_log('[reset_password_with_code] ' . $e->getMessage());
+        return ['ok' => false, 'message' => L('Hindi naitakda ang password.', 'The password was not set.'), 'data' => null];
+    }
+    // Log out every device that used the old password.
+    try {
+        auth_migrate($pdo);
+        $pdo->prepare('UPDATE resident_sessions SET revoked_at = NOW() WHERE resident_id = ? AND revoked_at IS NULL')
+            ->execute([$rid]);
+    } catch (Throwable $e) { /* ignore */ }
+    return ['ok' => true, 'message' => L('Napalitan ang password. Mag-login gamit ang bago.',
+                                         'Password changed. Log in with your new password.'), 'data' => null];
 }
 
 /** STEP 4 — verify login against residents.Password; require Active account. */
@@ -481,8 +660,8 @@ function change_resident_password(int $residentId, string $current, string $new)
     if ($residentId <= 0 || $current === '' || $new === '') {
         return ['ok' => false, 'message' => L('Punan ang lahat ng kailangang field.', 'Please fill in all required fields.'), 'data' => null];
     }
-    if (strlen($new) < 8) {
-        return ['ok' => false, 'message' => L('Dapat 8 karakter pataas ang password.', 'The password must be at least 8 characters.'), 'data' => null];
+    if (($err = password_policy_error($new)) !== null) {
+        return ['ok' => false, 'message' => $err, 'data' => null];
     }
     if ($new === $current) {
         return ['ok' => false, 'message' => L('Dapat iba ang bagong password.', 'The new password must be different.'), 'data' => null];

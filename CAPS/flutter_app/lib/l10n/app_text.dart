@@ -567,6 +567,34 @@ abstract class AppText {
   String get alertSoundSub;
   String get testAlertSound;
   String moreAlerts(int n);
+
+  // ── Password rules ──────────────────────────────────────────────
+  String get pwRuleLength;
+  String get pwRuleUpper;
+  String get pwRuleLower;
+  String get pwRuleNumber;
+  String get pwRuleSpecial;
+  String get pwNoSpaces;
+  String get pwTooLong;
+  String get pwWeak;
+  String get pwStrong;
+  String get pwMedium;
+  String get pwWeakLabel;
+
+  // ── Forgot password code ────────────────────────────────────────
+  String get fpEnterCode;
+  String fpEnterCodeSub(String email);
+  String get fpCode;
+  String get fpCodeInvalid;
+  String get fpResend;
+  String fpResendIn(int s);
+  String get fpResent;
+  String get fpOtherEmail;
+  String get fpNoEmail;
+
+  // ── Request access birthdate ────────────────────────────────────
+  String get raBirthFuture;
+  String get raBirthTooOld;
 }
 
 /// The strings for the current app language.

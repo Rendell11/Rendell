@@ -131,7 +131,7 @@ class AppTextEn extends AppText {
   String get changePasswordSub => 'Update the password you use to log in';
   @override
   String get changePasswordIntro =>
-      'Enter your current password, then choose a new one (at least 8 characters).';
+      'Enter your current password, then choose a new strong password.';
   @override
   String get currentPassword => 'Current password';
   @override
@@ -143,7 +143,7 @@ class AppTextEn extends AppText {
   @override
   String get retypePassword => 'Re-type the password';
   @override
-  String get atLeast8 => 'At least 8 characters';
+  String get atLeast8 => 'Create a strong password';
   @override
   String get atLeast8Error => 'Use at least 8 characters.';
   @override
@@ -305,14 +305,14 @@ class AppTextEn extends AppText {
   String get forgotPassword => 'Forgot Password';
   @override
   String get forgotPasswordSub =>
-      'Enter your registered email address and we\'ll send you a reset link.';
+      'Enter your registered email address and we\'ll send you a 6-digit code.';
   @override
   String get enterRegisteredEmail => 'Enter your registered email address';
   @override
   String get resetLinkExpiry =>
-      'The reset link will expire in 1 hour. Check your spam folder if you don\'t see the email.';
+      'The code expires in 15 minutes. Check your spam folder if you don\'t see the email.';
   @override
-  String get sendResetLink => 'Send Reset Link';
+  String get sendResetLink => 'Send Code';
   @override
   String get checkYourEmail => 'Check Your Email';
   @override
@@ -1203,4 +1203,56 @@ class AppTextEn extends AppText {
   @override
   String moreAlerts(int n) =>
       n == 1 ? '+1 more active alert' : '+$n more active alerts';
+
+  // ── Password rules
+  @override
+  String get pwRuleLength => 'At least 8 characters';
+  @override
+  String get pwRuleUpper => 'An uppercase letter (A-Z)';
+  @override
+  String get pwRuleLower => 'A lowercase letter (a-z)';
+  @override
+  String get pwRuleNumber => 'A number (0-9)';
+  @override
+  String get pwRuleSpecial => 'A special character (e.g. ! @ # ? *)';
+  @override
+  String get pwNoSpaces => 'The password cannot contain spaces.';
+  @override
+  String get pwTooLong => 'Use at most 72 characters.';
+  @override
+  String get pwWeak => 'The password does not meet all the rules below.';
+  @override
+  String get pwStrong => 'Strong';
+  @override
+  String get pwMedium => 'Almost';
+  @override
+  String get pwWeakLabel => 'Weak';
+
+  // ── Forgot password code
+  @override
+  String get fpEnterCode => 'Enter the Code';
+  @override
+  String fpEnterCodeSub(String email) =>
+      'We sent a 6-digit code to $email. Enter it below with your new password.';
+  @override
+  String get fpCode => '6-digit code';
+  @override
+  String get fpCodeInvalid => 'Enter the 6-digit code from the email.';
+  @override
+  String get fpResend => 'Resend code';
+  @override
+  String fpResendIn(int s) => 'Resend code in ${s}s';
+  @override
+  String get fpResent => 'A new code was sent.';
+  @override
+  String get fpOtherEmail => 'Use a different email';
+  @override
+  String get fpNoEmail =>
+      'Didn\'t get it? Check spam, or wait a minute and resend.';
+
+  // ── Request access birthdate
+  @override
+  String get raBirthFuture => 'The date of birth cannot be in the future.';
+  @override
+  String get raBirthTooOld => 'Enter a year from 1900.';
 }

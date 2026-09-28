@@ -153,6 +153,22 @@ class _RequestAccessScreenState extends State<RequestAccessScreen> {
     return d;
   }
 
+  /// Specific message: wrong format, future date, or a year before 1900.
+  String? _birthError(String? v) {
+    final s = (v ?? '').trim();
+    final m = RegExp(r'^(\d{2})/(\d{2})/(\d{4})$').firstMatch(s);
+    if (m == null) return tr.raUseMmDdYyyy;
+    final mm = int.parse(m.group(1)!), dd = int.parse(m.group(2)!);
+    final yy = int.parse(m.group(3)!);
+    final d = DateTime(yy, mm, dd);
+    if (mm < 1 || mm > 12 || d.month != mm || d.day != dd) {
+      return tr.raUseMmDdYyyy; // e.g. 13/01 or 02/30
+    }
+    if (yy < 1900) return tr.raBirthTooOld;
+    if (d.isAfter(DateTime.now())) return tr.raBirthFuture;
+    return null;
+  }
+
   String _fmtMMDDYYYY(DateTime d) =>
       '${d.month.toString().padLeft(2, '0')}/${d.day.toString().padLeft(2, '0')}/${d.year}';
 
@@ -164,7 +180,7 @@ class _RequestAccessScreenState extends State<RequestAccessScreen> {
     final formOk = _formKey.currentState!.validate();
     _birthdate = _parseMMDDYYYY(_birthCtrl.text);
     if (_birthdate == null) {
-      _snack(tr.raEnterAValidDate);
+      _snack(_birthError(_birthCtrl.text) ?? tr.raEnterAValidDate);
       return;
     }
     if (_profile == null) {
@@ -421,8 +437,8 @@ class _RequestAccessScreenState extends State<RequestAccessScreen> {
                 onPressed: _pickBirthdate,
               ),
             ),
-            validator: (v) =>
-                _parseMMDDYYYY(v ?? '') == null ? tr.raUseMmDdYyyy : null,
+            autovalidateMode: AutovalidateMode.onUserInteraction,
+            validator: _birthError,
           ),
         ],
       ),

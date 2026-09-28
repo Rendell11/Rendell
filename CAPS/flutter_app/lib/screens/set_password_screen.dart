@@ -4,6 +4,7 @@ import '../l10n/app_text.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/brand_header.dart';
+import '../widgets/password_rules.dart';
 import '../widgets/wave_background.dart';
 
 /// Set / reset password using the token issued after approval (or from the
@@ -77,8 +78,7 @@ class _SetPasswordScreenState extends State<SetPasswordScreen> {
                                 fontWeight: FontWeight.w700,
                                 color: AppColors.heading2)),
                         const SizedBox(height: 4),
-                        Text(
-                            tr.setPasswordSub,
+                        Text(tr.setPasswordSub,
                             textAlign: TextAlign.center,
                             style: TextStyle(
                                 fontSize: 13, color: AppColors.slate400)),
@@ -109,10 +109,9 @@ class _SetPasswordScreenState extends State<SetPasswordScreen> {
                                 onPressed: () =>
                                     setState(() => _obscure = !_obscure),
                               )),
-                          validator: (v) => (v == null || v.length < 8)
-                              ? tr.atLeast8Error
-                              : null,
+                          validator: PasswordPolicy.validate,
                         ),
+                        PasswordRules(controller: _password),
                         const SizedBox(height: 14),
                         _label(tr.confirmPassword),
                         TextFormField(
@@ -120,8 +119,9 @@ class _SetPasswordScreenState extends State<SetPasswordScreen> {
                           obscureText: _obscure,
                           decoration: AppTheme.field(tr.retypePassword,
                               icon: Icons.lock_outline),
-                          validator: (v) =>
-                              v != _password.text ? tr.passwordsDontMatch : null,
+                          validator: (v) => v != _password.text
+                              ? tr.passwordsDontMatch
+                              : null,
                         ),
                         const SizedBox(height: 22),
                         PrimaryButton(
