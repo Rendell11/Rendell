@@ -274,7 +274,15 @@ try {
 
 $totalHH = (int)$pdo->query("SELECT COUNT(*) FROM residents WHERE IsHead=1 AND (IsDeceased=0 OR IsDeceased IS NULL)")->fetchColumn();
 $mapped = (int)$pdo->query("SELECT COUNT(*) FROM residents WHERE IsHead=1 AND (IsDeceased=0 OR IsDeceased IS NULL) AND Latitude IS NOT NULL AND Longitude IS NOT NULL AND Latitude<>0 AND Longitude<>0")->fetchColumn();
-$low = (int)$pdo->query("SELECT COUNT(*) FROM residents r WHERE r.IsHead=1 AND (r.IsDeceased=0 OR r.IsDeceased IS NULL) AND " . hh_combined_income_sql('r') . " < 20000")->fetchColumn();
+// Low Income card: households whose Socioeconomic Status is in the Low group
+// (Poor / Low Income (Not Poor)) — same classification as View Household.
+$low = 0;
+$lowRows = $pdo->query("SELECT " . hh_combined_income_sql('r') . " AS inc,
+        1 + (SELECT COUNT(*) FROM residents m WHERE m.FamilyHeadID = r.ResidentID AND (m.IsDeceased = 0 OR m.IsDeceased IS NULL)) AS size
+    FROM residents r WHERE r.IsHead = 1 AND (r.IsDeceased = 0 OR r.IsDeceased IS NULL)")->fetchAll(PDO::FETCH_ASSOC);
+foreach ($lowRows as $x) {
+    if ((hh_socioeconomic_status((float) $x['inc'], (int) $x['size'])['tier'] ?? '') === 'Low') $low++;
+}
 
 $avg = $pdo->query("
     SELECT ROUND(AVG(cnt),1) FROM (

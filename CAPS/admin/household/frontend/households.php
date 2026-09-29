@@ -205,17 +205,6 @@ $error = trim((string) ($_GET['error'] ?? ''));
                                 <span class="material-symbols-outlined text-lg">analytics</span>
                                 Analytics
                             </a>
-                            <?php $hhReportQs = htmlspecialchars(http_build_query(['status' => $statusFilter, 'search' => $search, 'income_class' => $incomeClass]), ENT_QUOTES, 'UTF-8'); ?>
-                            <a href="../backend/household_generate_report.php?mode=pdf&<?= $hhReportQs ?>" target="_blank"
-                                class="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all">
-                                <span class="material-symbols-outlined text-lg">picture_as_pdf</span>
-                                Save PDF
-                            </a>
-                            <a href="../backend/household_generate_report.php?mode=print&<?= $hhReportQs ?>" target="_blank"
-                                class="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all">
-                                <span class="material-symbols-outlined text-lg">print</span>
-                                Print
-                            </a>
                             <a href="new_household.php"
                                 class="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all">
                                 <span class="material-symbols-outlined text-lg">add_home</span>
@@ -322,6 +311,7 @@ $error = trim((string) ($_GET['error'] ?? ''));
                         </div>
                         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Low Income</p>
                         <h3 class="text-2xl font-bold text-slate-800 mt-1"><?= number_format((int) $low) ?></h3>
+                        <p class="text-[10px] text-slate-400 font-semibold mt-1" title="Socioeconomic Status: Poor or Low Income (Not Poor)">By Socioeconomic Status (Low)</p>
                     </div>
 
                     <div class="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
@@ -369,6 +359,16 @@ $error = trim((string) ($_GET['error'] ?? ''));
                                 Household records derived from CAPS Resident relationships.
                             </p>
                         </div>
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="openMasterlistReport('print')"
+                                class="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 text-[10px] font-black uppercase text-slate-500 hover:border-indigo-300 hover:text-indigo-600 transition-all">
+                                <span class="material-symbols-outlined text-sm">print</span> Print
+                            </button>
+                            <button type="button" onclick="openMasterlistReport('pdf')"
+                                class="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 text-[10px] font-black uppercase text-slate-500 hover:border-indigo-300 hover:text-indigo-600 transition-all">
+                                <span class="material-symbols-outlined text-sm">picture_as_pdf</span> Save PDF
+                            </button>
+                        </div>
                     </div>
 
                     <div class="overflow-x-auto">
@@ -381,13 +381,14 @@ $error = trim((string) ($_GET['error'] ?? ''));
                                     <th class="px-6 py-5">Address</th>
                                     <th class="px-6 py-5">Members</th>
                                     <th class="px-6 py-5" title="Sum of the recorded monthly income of the Head and all household members">Combined Income</th>
+                                    <th class="px-6 py-5" title="Income per member compared with the poverty threshold (same as View Household)">Socioeconomic Status</th>
                                     <th class="px-8 py-5 text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-50 text-sm">
                                 <?php if (!$households): ?>
                                     <tr>
-                                        <td colspan="6" class="text-center py-16 text-slate-400">
+                                        <td colspan="7"class="text-center py-16 text-slate-400">
                                             <span
                                                 class="material-symbols-outlined text-4xl block mb-2 text-slate-200">manage_search</span>
                                             No household records found.
@@ -429,6 +430,8 @@ $error = trim((string) ($_GET['error'] ?? ''));
                                         }
                                         // Same Income Status as View Household (hh_income_class on the combined income).
                                         $incLabel = hh_income_class($inc);
+                                        $rowSes = hh_socioeconomic_status($inc, ((int) ($h['MemberCount'] ?? 0)) + 1);
+                                        $sesBadge = ['Low' => 'income-low', 'Middle' => 'income-mid', 'High' => 'income-high'][$rowSes['tier'] ?? 'Middle'];
                                         $initials = strtoupper(
                                             substr((string) ($h['FirstName'] ?? ''), 0, 1) .
                                             substr((string) ($h['LastName'] ?? ''), 0, 1)
@@ -494,6 +497,14 @@ $error = trim((string) ($_GET['error'] ?? ''));
                                                 </span>
                                                 <p class="text-[9px] font-black uppercase tracking-wider text-slate-400 mt-1.5">
                                                     <?= htmlspecialchars($incLabel, ENT_QUOTES, 'UTF-8') ?></p>
+                                            </td>
+
+                                            <td class="px-6 py-5">
+                                                <span class="income-badge px-3 py-1 rounded-lg text-[10px] font-bold uppercase border <?= $sesBadge ?>"
+                                                    title="<?= htmlspecialchars(($rowSes['range'] ?? '') . ' · ₱' . number_format((float) ($rowSes['per_capita'] ?? 0), 2) . ' per member', ENT_QUOTES, 'UTF-8') ?>">
+                                                    <?= htmlspecialchars($rowSes['label'] ?? '—', ENT_QUOTES, 'UTF-8') ?>
+                                                </span>
+                                                <p class="text-[9px] font-black uppercase tracking-wider text-slate-400 mt-1.5"><?= htmlspecialchars(($rowSes['tier'] ?? '') . ' group', ENT_QUOTES, 'UTF-8') ?></p>
                                             </td>
 
                                             <td class="px-8 py-5 text-right">
@@ -836,6 +847,67 @@ $error = trim((string) ($_GET['error'] ?? ''));
                 location.reload();
             } catch (e) { alert(e.message); }
         }
+    </script>
+
+    <!-- Masterlist Save PDF / Print: Socioeconomic Status filter -->
+    <div id="mlReportModal" class="fixed inset-0 z-[999] hidden bg-slate-900/70 items-center justify-center p-4" onclick="if (event.target === this) closeMasterlistReport()">
+        <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-8" role="dialog" aria-modal="true" aria-labelledby="mlTitle">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <h3 id="mlTitle" class="text-2xl font-black text-slate-900 tracking-tight">Save as PDF</h3>
+                    <p class="text-[11px] font-black text-indigo-600 uppercase tracking-widest mt-1">Household Masterlist</p>
+                </div>
+                <button type="button" onclick="closeMasterlistReport()" class="p-1 text-slate-400 hover:text-slate-700" aria-label="Close">
+                    <span class="material-symbols-outlined">close</span></button>
+            </div>
+            <p class="text-sm font-bold text-slate-700 mt-6 mb-1">Socioeconomic Status</p>
+            <p class="text-[11px] font-semibold text-slate-400 mb-3">Choose one or more. Low = Poor / Low Income (Not Poor) · Middle = Lower Middle / Middle / Upper Middle · High = Upper Income / Rich.</p>
+            <div class="grid grid-cols-2 gap-3">
+                <?php foreach (['low' => 'Low', 'middle' => 'Middle', 'high' => 'High', 'all' => 'All'] as $sv => $sl): ?>
+                    <label class="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 cursor-pointer hover:border-indigo-300">
+                        <input type="checkbox" name="mlSes" value="<?= $sv ?>" class="rounded text-indigo-600 focus:ring-indigo-500">
+                        <span class="text-sm font-black text-slate-800"><?= $sl ?></span>
+                    </label>
+                <?php endforeach; ?>
+            </div>
+            <p id="mlError" class="hidden mt-4 text-xs font-bold text-rose-600 bg-rose-50 border border-rose-100 rounded-xl px-3 py-2">Select at least one Socioeconomic Status.</p>
+            <div class="flex justify-end gap-3 mt-8">
+                <button type="button" onclick="closeMasterlistReport()" class="px-6 py-3 rounded-2xl border border-slate-200 text-xs font-black uppercase tracking-wider text-slate-500 hover:text-slate-700">Cancel</button>
+                <button type="button" onclick="continueMasterlistReport()" class="px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black uppercase tracking-wider shadow-lg">Continue</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        const ML_BASE = <?= json_encode(['status' => $statusFilter, 'search' => $search, 'income_class' => $incomeClass]) ?>;
+        let _mlMode = 'pdf';
+        const mlBoxes = () => Array.from(document.querySelectorAll('input[name="mlSes"]'));
+        function openMasterlistReport(mode) {
+            _mlMode = mode;
+            document.getElementById('mlTitle').textContent = mode === 'pdf' ? 'Save as PDF' : 'Print';
+            mlBoxes().forEach(b => b.checked = b.value === 'all');
+            document.getElementById('mlError').classList.add('hidden');
+            const m = document.getElementById('mlReportModal'); m.classList.remove('hidden'); m.classList.add('flex');
+        }
+        function closeMasterlistReport() {
+            const m = document.getElementById('mlReportModal'); m.classList.add('hidden'); m.classList.remove('flex');
+        }
+        // "All" and the single statuses exclude each other; Low + Middle + High = All.
+        mlBoxes().forEach(b => b.addEventListener('change', () => {
+            const all = mlBoxes().find(x => x.value === 'all');
+            if (b.value === 'all' && b.checked) mlBoxes().forEach(x => { if (x !== all) x.checked = false; });
+            if (b.value !== 'all' && b.checked) all.checked = false;
+            const picked = mlBoxes().filter(x => x.value !== 'all' && x.checked);
+            if (picked.length === 3) { picked.forEach(x => x.checked = false); all.checked = true; }
+            document.getElementById('mlError').classList.add('hidden');
+        }));
+        function continueMasterlistReport() {
+            const picked = mlBoxes().filter(x => x.checked).map(x => x.value);
+            if (!picked.length) { document.getElementById('mlError').classList.remove('hidden'); return; }
+            const q = new URLSearchParams(Object.assign({ mode: _mlMode, ses: picked.includes('all') ? 'all' : picked.join(',') }, ML_BASE));
+            closeMasterlistReport();
+            window.open('../backend/household_generate_report.php?' + q.toString(), '_blank');
+        }
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMasterlistReport(); });
     </script>
 </body>
 

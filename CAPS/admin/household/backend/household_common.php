@@ -889,11 +889,26 @@ if (!function_exists('hh_socioeconomic_status')) {
                     'poverty_line' => $line,
                     'members' => $members,
                     'combined' => round($combinedIncome, 2),
+                    'tier' => hh_ses_tier($label),
                 ];
             }
         }
 
         return [];
+    }
+}
+
+if (!function_exists('hh_ses_tier')) {
+    /**
+     * Low / Middle / High group of a Socioeconomic Status (PIDS grouping):
+     * Low = Poor + Low Income (Not Poor); Middle = Lower Middle, Middle, Upper Middle;
+     * High = Upper Income (Not Rich) + Rich.
+     */
+    function hh_ses_tier(string $label): string
+    {
+        if (in_array($label, ['Poor', 'Low Income (Not Poor)'], true)) return 'Low';
+        if (in_array($label, ['Upper Income (Not Rich)', 'Rich'], true)) return 'High';
+        return 'Middle';
     }
 }
 

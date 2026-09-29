@@ -24,6 +24,11 @@ $generatedRole = ($_SESSION['role'] ?? '') === 'admin' ? 'Administrator' : 'Bara
 $incomeLabels = ['low' => 'Below ₱20,000', 'mid' => '₱20,000 – ₱49,999', 'high' => '₱50,000 and above'];
 $statusLabel = $statusFilter === 'inactive' ? 'Inactive Households' : 'Active Households';
 
+// Socioeconomic Status filter chosen in the Save PDF / Print dialog: ses=all or e.g. ses=low,high.
+$sesPick = array_values(array_intersect(['low', 'middle', 'high'], array_map('trim', explode(',', strtolower((string) ($_GET['ses'] ?? 'all'))))));
+if (count($sesPick) === 3) $sesPick = [];
+$sesLabel = $sesPick ? implode(' + ', array_map('ucfirst', $sesPick)) : 'All';
+
 $rows = [];
 $persons = 0;
 $incomeSum = 0.0;
@@ -39,6 +44,7 @@ foreach ($households as $h) {
     $size = (int) ($h['MemberCount'] ?? 0) + 1;
     $inc = (float) ($h['CombinedIncome'] ?? $h['TotalHouseholdIncome'] ?? 0);
     $ses = hh_socioeconomic_status($inc, $size);
+    if ($sesPick && !in_array(strtolower($ses['tier']), $sesPick, true)) continue;
     $persons += $size;
     $incomeSum += $inc;
     $sesCount[$ses['label']] = ($sesCount[$ses['label']] ?? 0) + 1;
@@ -50,7 +56,7 @@ foreach ($households as $h) {
         trim((string) ($h['ContactNumber'] ?? '')) ?: '—',
         '₱' . number_format($inc, 2),
         hh_income_class($inc),
-        $ses['label'],
+        $ses['label'] . ' (' . $ses['tier'] . ')',
         !empty($h['DateCreated']) ? date('M j, Y', strtotime((string) $h['DateCreated'])) : '—',
         $isInactive ? 'Inactive' : 'Active',
     ];
@@ -61,7 +67,7 @@ if ($mode !== '') {
     try {
         require_once __DIR__ . '/../../activity_log_helper.php';
         log_activity('Households', $mode === 'pdf' ? 'Save Household Master List PDF' : 'Print Household Master List',
-            ($mode === 'pdf' ? 'Saved PDF of ' : 'Printed ') . 'household master list · ' . $statusLabel . ' · ' . $count . ' household(s)');
+            ($mode === 'pdf' ? 'Saved PDF of ' : 'Printed ') . 'household master list · ' . $statusLabel . ' · Socioeconomic Status: ' . $sesLabel . ' · ' . $count . ' household(s)');
     } catch (Throwable $e) {
         error_log('[household master list] activity log: ' . $e->getMessage());
     }
@@ -69,7 +75,7 @@ if ($mode !== '') {
 
 $title = 'Household Master List';
 report_head($title, $mode);
-report_toolbar($mode, 'household_master_list_' . $statusFilter . '_' . date('Ymd'), 'landscape');
+report_toolbar($mode, 'household_master_list_' . $statusFilter . '_' . ($sesPick ? implode('_', $sesPick) . '_' : '') . date('Ymd'), 'landscape');
 ?>
 <style>
     .brgy-addr{text-align:center;font-size:11px;color:#64748b;margin:-12px 0 14px}
@@ -85,13 +91,14 @@ report_toolbar($mode, 'household_master_list_' . $statusFilter . '_' . date('Ymd
 <div class="report-page" id="reportRoot">
     <?php report_letterhead($brgy, 'Office of the Punong Barangay · Household Records'); ?>
     <?php if ($bAddr): ?><p class="brgy-addr"><?php echo rh($bAddr); ?></p><?php endif; ?>
-    <?php report_title_block($title, $statusLabel . ' · ' . $count . ' household(s)', 'Household Management'); ?>
+    <?php report_title_block($title, $statusLabel . ' · Socioeconomic Status: ' . $sesLabel . ' · ' . $count . ' household(s)', 'Household Management'); ?>
 
     <?php report_section_open('Report Information'); ?>
     <div class="info-grid">
         <table class="kv"><tbody>
             <tr><th>Status</th><td><?php echo rh($statusLabel); ?></td></tr>
             <tr><th>Search</th><td><?php echo rh($search !== '' ? $search : 'None'); ?></td></tr>
+            <tr><th>Socioeconomic Status</th><td><?php echo rh($sesLabel === 'All' ? 'All' : $sesLabel . ' only'); ?></td></tr>
             <tr><th>Combined income filter</th><td><?php echo rh($incomeLabels[$incomeClass] ?? 'All'); ?></td></tr>
         </tbody></table>
         <table class="kv"><tbody>
@@ -133,7 +140,7 @@ report_toolbar($mode, 'household_master_list_' . $statusFilter . '_' . date('Ymd
         <?php endforeach; ?>
     </tbody></table>
     <?php endif; ?>
-    <p style="margin:8px 0 0;font-size:10px;color:#64748b">Combined Income = monthly income of the Head and all living members. Socioeconomic Status compares income per member with the poverty threshold (PIDS income classes).</p>
+    <p style="margin:8px 0 0;font-size:10px;color:#64748b">Combined Income = monthly income of the Head and all living members. Socioeconomic Status compares income per member with the poverty threshold (PIDS income classes): Low = Poor / Low Income (Not Poor), Middle = Lower Middle / Middle / Upper Middle, High = Upper Income (Not Rich) / Rich.</p>
     <?php report_section_close(); ?>
 
     <?php report_certify_and_signatures($brgy['brgy_name'] ?? 'Barangay', $generatedBy, $generatedRole, $captain); ?>
