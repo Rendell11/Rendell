@@ -199,7 +199,23 @@ $error = trim((string) ($_GET['error'] ?? ''));
                             </p>
                         </div>
 
-                        <div class="flex gap-3 flex-shrink-0">
+                        <div class="flex flex-wrap gap-3 flex-shrink-0">
+                            <a href="analytics_household.php"
+                                class="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all">
+                                <span class="material-symbols-outlined text-lg">analytics</span>
+                                Analytics
+                            </a>
+                            <?php $hhReportQs = htmlspecialchars(http_build_query(['status' => $statusFilter, 'search' => $search, 'income_class' => $incomeClass]), ENT_QUOTES, 'UTF-8'); ?>
+                            <a href="../backend/household_generate_report.php?mode=pdf&<?= $hhReportQs ?>" target="_blank"
+                                class="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all">
+                                <span class="material-symbols-outlined text-lg">picture_as_pdf</span>
+                                Save PDF
+                            </a>
+                            <a href="../backend/household_generate_report.php?mode=print&<?= $hhReportQs ?>" target="_blank"
+                                class="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all">
+                                <span class="material-symbols-outlined text-lg">print</span>
+                                Print
+                            </a>
                             <a href="new_household.php"
                                 class="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all">
                                 <span class="material-symbols-outlined text-lg">add_home</span>
@@ -352,22 +368,6 @@ $error = trim((string) ($_GET['error'] ?? ''));
                             <p class="text-[10px] text-slate-400 font-bold mt-0.5">
                                 Household records derived from CAPS Resident relationships.
                             </p>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <a href="analytics_household.php"
-                                class="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 text-[10px] font-black uppercase text-slate-500 hover:border-indigo-300 hover:text-indigo-600 transition-all">
-                                <span class="material-symbols-outlined text-sm">analytics</span> Analytics
-                            </a>
-                            <a href="../backend/household_generate_report.php?print=1&status=<?= urlencode($statusFilter) ?>&search=<?= urlencode($search) ?>&income_class=<?= urlencode($incomeClass) ?>"
-                                target="_blank"
-                                class="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 text-[10px] font-black uppercase text-slate-500 hover:border-indigo-300 hover:text-indigo-600 transition-all">
-                                <span class="material-symbols-outlined text-sm">print</span> Print
-                            </a>
-                            <a href="../backend/household_generate_report.php?print=1&status=<?= urlencode($statusFilter) ?>&search=<?= urlencode($search) ?>&income_class=<?= urlencode($incomeClass) ?>"
-                                target="_blank"
-                                class="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 text-[10px] font-black uppercase text-slate-500 hover:border-indigo-300 hover:text-indigo-600 transition-all">
-                                <span class="material-symbols-outlined text-sm">picture_as_pdf</span> Save as PDF
-                            </a>
                         </div>
                     </div>
 

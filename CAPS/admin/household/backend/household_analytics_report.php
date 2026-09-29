@@ -206,9 +206,10 @@ report_head($title, $mode);
     <?php report_section_open('Comparison & Trend Data'); ?>
     <?php if ($a['comparison']): ?>
     <p class="sub">Selected period vs previous period (<?php echo rh($a['comparison']['previous_label']); ?>)</p>
-    <?php har_table(['Indicator', 'Selected period', 'Previous period', 'Change'], array_map(function ($r) use ($n) {
+    <?php har_table(['Indicator', 'Selected period', 'Previous period', 'Change'], array_map(function ($r) use ($n, $peso) {
         $d = $r['current'] - $r['previous'];
-        return [$r['metric'], $n($r['current']), $n($r['previous']), ($d > 0 ? '+' : '') . $n($d)];
+        $f = str_contains($r['metric'], '₱') ? $peso : $n;
+        return [$r['metric'], $f($r['current']), $f($r['previous']), ($d > 0 ? '+' : '') . $f($d)];
     }, $a['comparison']['rows']), '', [1, 2, 3]); ?>
     <?php else: har_note('Set both a Start Date and an End Date to compare with the previous period of the same length.'); endif; ?>
     <p class="sub">Households registered per month</p>

@@ -73,84 +73,8 @@ if (!$hh) {
     exit;
 }
 
-$surveyId = (int) ($hh['SurveyID'] ?? 0);
-$headId = (int) ($hh['ResidentID'] ?? 0);
-
-$hh['HouseholdID'] = hh_normalize_household_id(
-    $hh['HouseholdID'] ?? null,
-    !empty($hh['CreatedAt']) ? (int) date('Y', strtotime((string) $hh['CreatedAt'])) : (int) date('Y'),
-    $surveyId > 0 ? $surveyId : $headId
-);
-
-$memberStmt = $pdo->prepare(
-    'SELECT *
-     FROM residents
-     WHERE FamilyHeadID = ?
-       AND (IsDeceased = 0 OR IsDeceased IS NULL)
-     ORDER BY LastName, FirstName, ResidentID'
-);
-$memberStmt->execute([$headId]);
-$members = $memberStmt->fetchAll(PDO::FETCH_ASSOC);
-
-$isInactive = strtolower((string) ($hh['status'] ?? 'active')) === 'inactive' || (int) ($hh['is_removed'] ?? 0) === 1;
-if ($isInactive && $surveyId > 0) {
-    // Residents were unlinked on deactivation; show members as recorded.
-    $snap = $pdo->prepare('SELECT * FROM household_survey_members WHERE SurveyID = ? ORDER BY MemberNumber');
-    $snap->execute([$surveyId]);
-    $members = [];
-    foreach ($snap->fetchAll(PDO::FETCH_ASSOC) as $row) {
-        $members[] = [
-            'ResidentID' => $row['ResidentID'],
-            'head_name' => $row['full_name'],
-            'address' => (string) ($hh['address'] ?? ''),
-            'ContactNumber' => null,
-            'RelationshipToHead' => $row['relationship'] ?: 'Member',
-            'TotalHouseholdIncome' => $row['monthly_income'] ?? 0,
-        ];
-    }
-}
-
-$history = [];
-
-if ($surveyId > 0) {
-    try {
-        $historyStmt = $pdo->prepare(
-            'SELECT *
-             FROM household_history
-             WHERE SurveyID = ?
-             ORDER BY CreatedAt DESC, HistoryID DESC'
-        );
-        $historyStmt->execute([$surveyId]);
-        $history = $historyStmt->fetchAll(PDO::FETCH_ASSOC);
-    } catch (Throwable $e) {
-        $history = [];
-    }
-}
-
-$name = hh_full_name($hh);
-$address = hh_address($hh);
-if ($isInactive && trim((string) ($hh['address'] ?? '')) !== '') {
-    $address = (string) $hh['address'];
-}
-// Household-level figures use the COMBINED monthly income of the Head and every member.
-$headIncome = (float) ($hh['TotalHouseholdIncome'] ?? 0);
-$memberCount = count($members) + 1; // members + Head
-$income = hh_combined_income($hh, $members);
-$classification = hh_income_class($income);
-$ses = hh_socioeconomic_status($income, $memberCount);
-$withIncome = ($headIncome > 0 ? 1 : 0) + count(array_filter($members, static fn($m) => (float) ($m['TotalHouseholdIncome'] ?? 0) > 0));
-// Saved map pin from Resident Profiling (Head, else first member with a pin).
-$hhLocation = hh_household_location($hh, $members);
-
-$age = '—';
-
-if (!empty($hh['BirthDate'])) {
-    try {
-        $age = (new DateTime($hh['BirthDate']))->diff(new DateTime())->y;
-    } catch (Throwable $e) {
-        $age = '—';
-    }
-}
+// Same data as the Household Record report (household_record_report.php).
+extract(hh_household_view_data($pdo, $hh));
 
 if (!function_exists('hh_view_escape')) {
     function hh_view_escape($value): string
@@ -163,7 +87,6 @@ if (!function_exists('hh_view_escape')) {
     }
 }
 
-$status = $isInactive ? 'inactive' : strtolower((string) ($hh['status'] ?? 'active'));
 
 ?>
 <!doctype html>
@@ -428,11 +351,17 @@ $status = $isInactive ? 'inactive' : strtolower((string) ($hh['status'] ?? 'acti
                                 class="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-indigo-50 text-indigo-700 font-black text-xs uppercase tracking-wider"><span
                                     class="material-symbols-outlined text-lg">assignment</span>View Survey</a>
 
-                            <a href="../backend/print_household.php?<?= $surveyId > 0 ? 'sid=' . $surveyId : 'head_id=' . $headId; ?>" target="_blank"
+                            <button type="button" onclick="openRecordReport('pdf')"
+                                class="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-black text-xs uppercase tracking-wider transition-all">
+                                <span class="material-symbols-outlined text-lg">picture_as_pdf</span>
+                                Save PDF
+                            </button>
+
+                            <button type="button" onclick="openRecordReport('print')"
                                 class="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-black text-xs uppercase tracking-wider transition-all">
                                 <span class="material-symbols-outlined text-lg">print</span>
                                 Print
-                            </a>
+                            </button>
 
                             <?php if ($status === 'active'): ?>
                                 <a href="edit_household.php?id=<?= $headId; ?>"
@@ -697,56 +626,6 @@ $status = $isInactive ? 'inactive' : strtolower((string) ($hh['status'] ?? 'acti
                         <p class="text-[10px] text-slate-400 font-semibold mt-0.5">View-only household survey record
                             currently stored for this household.</p>
                     </div>
-                    <?php
-                    // Resident-app survey answers stored on this household_survey row.
-                    $surveyKeys = [
-                        'educational_background', 'is_indigenous_people', 'is_migrant_family',
-                        'housing_tenure', 'housing_tenure_other', 'has_electricity', 'has_internet',
-                        'waste_disposal', 'waste_disposal_other', 'water_source', 'water_source_other',
-                        'toilet_facilities', 'toilet_other', 'household_gardening', 'gardening_other',
-                        'pets', 'pets_other', 'prone_to_flooding', 'monitors_flood_updates', 'has_cctv',
-                        'avg_sleep_hours', 'sleep_hours_other', 'poor_sleep_reasons', 'poor_sleep_reasons_other',
-                        'avg_meals_per_day', 'nutrition_concerns', 'weekly_food_budget', 'food_types_purchased',
-                        'children_snacks', 'food_storage', 'food_storage_other', 'health_center_visit_reason',
-                        'health_center_visit_other', 'first_consulted', 'first_consulted_other',
-                        'family_skipped_consult', 'skip_consult_reasons', 'skip_consult_reasons_other',
-                        'has_healthcare_access', 'has_health_insurance', 'health_insurance_detail', 'has_illness',
-                        'illness_detail', 'has_pregnant_member', 'pregnancy_age', 'had_prenatal', 'prenatal_provider',
-                        'had_recent_birth', 'delivery_attendant', 'delivery_attendant_other', 'place_of_delivery',
-                        'place_of_delivery_other', 'baby_vaccinated', 'vaccinations_received', 'all_children_enrolled',
-                        'no_enrollment_reasons', 'no_enrollment_other', 'school_aged_children', 'children_enrolled',
-                        'income_sources', 'income_sources_other', 'income_sufficient', 'govt_assistance',
-                        'govt_assistance_other', 'in_community_org', 'community_org_detail', 'has_senior_citizen',
-                        'has_pwd', 'pwd_detail', 'transport_mode', 'transport_mode_other', 'devices_at_home',
-                        'devices_other', 'final_observation', 'name_of_interviewee', 'name_of_interviewer',
-                        'interviewer_position', 'date_of_interview',
-                    ];
-                    $yesNoKeys = [
-                        'is_indigenous_people', 'is_migrant_family', 'has_electricity', 'has_internet',
-                        'prone_to_flooding', 'has_cctv', 'nutrition_concerns', 'family_skipped_consult',
-                        'has_healthcare_access', 'has_health_insurance', 'has_illness', 'has_pregnant_member',
-                        'had_prenatal', 'had_recent_birth', 'baby_vaccinated', 'all_children_enrolled',
-                        'income_sufficient', 'in_community_org', 'has_senior_citizen', 'has_pwd',
-                    ];
-                    $surveyAnswers = [];
-                    foreach ($surveyKeys as $key) {
-                        if (!array_key_exists($key, $hh) || $hh[$key] === null || trim((string) $hh[$key]) === '') {
-                            continue;
-                        }
-                        $value = (string) $hh[$key];
-                        if (in_array($key, $yesNoKeys, true)) {
-                            $value = ((int) $value === 1) ? 'Yes' : 'No';
-                        } elseif ($key === 'weekly_food_budget') {
-                            $value = '₱' . number_format((float) $value, 2);
-                        }
-                        $label = ucwords(str_replace('_', ' ', preg_replace('/_other$/', ' (other)', $key)));
-                        $surveyAnswers[$label] = $value;
-                    }
-                    // These two flags default to 0 on every row, so they alone do not mean a survey was answered.
-                    if (count(array_diff(array_keys($surveyAnswers), ['Is Indigenous People', 'Is Migrant Family'])) === 0) {
-                        $surveyAnswers = [];
-                    }
-                    ?>
                     <?php if (!$surveyAnswers): ?>
                         <div class="p-6 md:p-8">
                             <div class="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-5 py-8 text-center text-xs font-bold text-slate-400">
@@ -771,6 +650,60 @@ $status = $isInactive ? 'inactive' : strtolower((string) ($hh['status'] ?? 'acti
             </main>
         </div>
     </div>
+
+    <!-- Save PDF / Print: include the household survey? -->
+    <div id="reportModal" class="fixed inset-0 z-[999] hidden bg-slate-900/70 items-center justify-center p-4" onclick="if (event.target === this) closeRecordReport()">
+        <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-8" role="dialog" aria-modal="true" aria-labelledby="rmTitle">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <h3 id="rmTitle" class="text-2xl font-black text-slate-900 tracking-tight">Save as PDF</h3>
+                    <p class="text-[11px] font-black text-indigo-600 uppercase tracking-widest mt-1">Household Record</p>
+                    <p class="text-xs font-bold text-slate-400 mt-1"><?= hh_view_escape(($hh['HouseholdID'] ?? '') . ' · ' . $name); ?></p>
+                </div>
+                <button type="button" onclick="closeRecordReport()" class="p-1 text-slate-400 hover:text-slate-700" aria-label="Close">
+                    <span class="material-symbols-outlined">close</span></button>
+            </div>
+            <p class="text-sm font-bold text-slate-700 mt-6 mb-3">Include the household survey in the report?</p>
+            <div class="space-y-3">
+                <label class="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 cursor-pointer hover:border-indigo-300">
+                    <input type="radio" name="rmSurvey" value="0" class="mt-1 text-indigo-600 focus:ring-indigo-500" checked>
+                    <span><span class="block text-sm font-black text-slate-800">No Survey – Household record only</span>
+                        <span class="block text-[11px] font-semibold text-slate-400">Head, household information, socio-economic profile, members, location and timeline.</span></span>
+                </label>
+                <label class="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 cursor-pointer hover:border-indigo-300">
+                    <input type="radio" name="rmSurvey" value="1" class="mt-1 text-indigo-600 focus:ring-indigo-500">
+                    <span><span class="block text-sm font-black text-slate-800">Include Survey – Household record and survey answers</span>
+                        <span class="block text-[11px] font-semibold text-slate-400"><?= $surveyAnswers ? 'Adds the household survey answers.' : 'No survey response recorded yet — the report will say so.'; ?></span></span>
+                </label>
+            </div>
+            <div class="flex justify-end gap-3 mt-8">
+                <button type="button" onclick="closeRecordReport()" class="px-6 py-3 rounded-2xl border border-slate-200 text-xs font-black uppercase tracking-wider text-slate-500 hover:text-slate-700">Cancel</button>
+                <button type="button" onclick="continueRecordReport()" class="px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black uppercase tracking-wider shadow-lg">Continue</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Save PDF / Print — shared CAPS report layout (household_record_report.php).
+        let _recordMode = 'pdf';
+        function openRecordReport(mode) {
+            _recordMode = mode;
+            document.getElementById('rmTitle').textContent = mode === 'pdf' ? 'Save as PDF' : 'Print';
+            document.querySelector('input[name="rmSurvey"][value="0"]').checked = true;
+            const m = document.getElementById('reportModal');
+            m.classList.remove('hidden'); m.classList.add('flex');
+        }
+        function closeRecordReport() {
+            const m = document.getElementById('reportModal');
+            m.classList.add('hidden'); m.classList.remove('flex');
+        }
+        function continueRecordReport() {
+            const survey = document.querySelector('input[name="rmSurvey"]:checked')?.value === '1' ? '1' : '0';
+            const q = new URLSearchParams({ mode: _recordMode, sid: <?= json_encode((string) $surveyId); ?>, survey });
+            closeRecordReport();
+            window.open('../backend/household_record_report.php?' + q.toString(), '_blank');
+        }
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeRecordReport(); });
+    </script>
 
 </body>
 

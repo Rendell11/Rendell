@@ -937,6 +937,152 @@ if (!function_exists('hh_household_location')) {
     }
 }
 
+if (!function_exists('hh_survey_answers')) {
+    /** Household survey answers stored on the household_survey row ([label => value]); [] when not answered. */
+    function hh_survey_answers(array $hh): array
+    {
+        $surveyKeys = [
+            'educational_background', 'is_indigenous_people', 'is_migrant_family',
+            'housing_tenure', 'housing_tenure_other', 'has_electricity', 'has_internet',
+            'waste_disposal', 'waste_disposal_other', 'water_source', 'water_source_other',
+            'toilet_facilities', 'toilet_other', 'household_gardening', 'gardening_other',
+            'pets', 'pets_other', 'prone_to_flooding', 'monitors_flood_updates', 'has_cctv',
+            'avg_sleep_hours', 'sleep_hours_other', 'poor_sleep_reasons', 'poor_sleep_reasons_other',
+            'avg_meals_per_day', 'nutrition_concerns', 'weekly_food_budget', 'food_types_purchased',
+            'children_snacks', 'food_storage', 'food_storage_other', 'health_center_visit_reason',
+            'health_center_visit_other', 'first_consulted', 'first_consulted_other',
+            'family_skipped_consult', 'skip_consult_reasons', 'skip_consult_reasons_other',
+            'has_healthcare_access', 'has_health_insurance', 'health_insurance_detail', 'has_illness',
+            'illness_detail', 'has_pregnant_member', 'pregnancy_age', 'had_prenatal', 'prenatal_provider',
+            'had_recent_birth', 'delivery_attendant', 'delivery_attendant_other', 'place_of_delivery',
+            'place_of_delivery_other', 'baby_vaccinated', 'vaccinations_received', 'all_children_enrolled',
+            'no_enrollment_reasons', 'no_enrollment_other', 'school_aged_children', 'children_enrolled',
+            'income_sources', 'income_sources_other', 'income_sufficient', 'govt_assistance',
+            'govt_assistance_other', 'in_community_org', 'community_org_detail', 'has_senior_citizen',
+            'has_pwd', 'pwd_detail', 'transport_mode', 'transport_mode_other', 'devices_at_home',
+            'devices_other', 'final_observation', 'name_of_interviewee', 'name_of_interviewer',
+            'interviewer_position', 'date_of_interview',
+        ];
+        $yesNoKeys = [
+            'is_indigenous_people', 'is_migrant_family', 'has_electricity', 'has_internet',
+            'prone_to_flooding', 'has_cctv', 'nutrition_concerns', 'family_skipped_consult',
+            'has_healthcare_access', 'has_health_insurance', 'has_illness', 'has_pregnant_member',
+            'had_prenatal', 'had_recent_birth', 'baby_vaccinated', 'all_children_enrolled',
+            'income_sufficient', 'in_community_org', 'has_senior_citizen', 'has_pwd',
+        ];
+        $answers = [];
+        foreach ($surveyKeys as $key) {
+            if (!array_key_exists($key, $hh) || $hh[$key] === null || trim((string) $hh[$key]) === '') {
+                continue;
+            }
+            $value = (string) $hh[$key];
+            if (in_array($key, $yesNoKeys, true)) {
+                $value = ((int) $value === 1) ? 'Yes' : 'No';
+            } elseif ($key === 'weekly_food_budget') {
+                $value = '₱' . number_format((float) $value, 2);
+            }
+            $label = ucwords(str_replace('_', ' ', preg_replace('/_other$/', ' (other)', $key)));
+            $answers[$label] = $value;
+        }
+        // These two flags default to 0 on every row, so they alone do not mean a survey was answered.
+        if (count(array_diff(array_keys($answers), ['Is Indigenous People', 'Is Migrant Family'])) === 0) {
+            return [];
+        }
+
+        return $answers;
+    }
+}
+
+if (!function_exists('hh_household_view_data')) {
+    /**
+     * Everything View Household shows for one household ($hh = household_survey row joined with
+     * its Head's residents row). Shared by view_household.php and household_record_report.php.
+     */
+    function hh_household_view_data(PDO $pdo, array $hh): array
+    {
+        $surveyId = (int) ($hh['SurveyID'] ?? 0);
+        $headId = (int) ($hh['ResidentID'] ?? 0);
+        $hh['HouseholdID'] = hh_normalize_household_id(
+            $hh['HouseholdID'] ?? null,
+            !empty($hh['CreatedAt']) ? (int) date('Y', strtotime((string) $hh['CreatedAt'])) : (int) date('Y'),
+            $surveyId > 0 ? $surveyId : $headId
+        );
+
+        $memberStmt = $pdo->prepare('SELECT * FROM residents WHERE FamilyHeadID = ? AND (IsDeceased = 0 OR IsDeceased IS NULL)
+                                     ORDER BY LastName, FirstName, ResidentID');
+        $memberStmt->execute([$headId]);
+        $members = $memberStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $isInactive = strtolower((string) ($hh['status'] ?? 'active')) === 'inactive' || (int) ($hh['is_removed'] ?? 0) === 1;
+        if ($isInactive && $surveyId > 0) {
+            // Residents were unlinked on deactivation; show members as recorded.
+            $snap = $pdo->prepare('SELECT * FROM household_survey_members WHERE SurveyID = ? ORDER BY MemberNumber');
+            $snap->execute([$surveyId]);
+            $members = [];
+            foreach ($snap->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                $members[] = [
+                    'ResidentID' => $row['ResidentID'],
+                    'head_name' => $row['full_name'],
+                    'address' => (string) ($hh['address'] ?? ''),
+                    'ContactNumber' => null,
+                    'RelationshipToHead' => $row['relationship'] ?: 'Member',
+                    'TotalHouseholdIncome' => $row['monthly_income'] ?? 0,
+                ];
+            }
+        }
+
+        $history = [];
+        if ($surveyId > 0) {
+            try {
+                $historyStmt = $pdo->prepare('SELECT * FROM household_history WHERE SurveyID = ? ORDER BY CreatedAt DESC, HistoryID DESC');
+                $historyStmt->execute([$surveyId]);
+                $history = $historyStmt->fetchAll(PDO::FETCH_ASSOC);
+            } catch (Throwable $e) {
+                $history = [];
+            }
+        }
+
+        $address = hh_address($hh);
+        if ($isInactive && trim((string) ($hh['address'] ?? '')) !== '') {
+            $address = (string) $hh['address'];
+        }
+        // Household-level figures use the COMBINED monthly income of the Head and every member.
+        $memberCount = count($members) + 1;
+        $income = hh_combined_income($hh, $members);
+        $headIncome = (float) ($hh['TotalHouseholdIncome'] ?? 0);
+
+        $age = '—';
+        if (!empty($hh['BirthDate'])) {
+            try {
+                $age = (new DateTime((string) $hh['BirthDate']))->diff(new DateTime())->y;
+            } catch (Throwable $e) {
+                $age = '—';
+            }
+        }
+
+        return [
+            'hh' => $hh,
+            'surveyId' => $surveyId,
+            'headId' => $headId,
+            'members' => $members,
+            'isInactive' => $isInactive,
+            'history' => $history,
+            'name' => hh_full_name($hh),
+            'address' => $address,
+            'headIncome' => $headIncome,
+            'memberCount' => $memberCount,
+            'income' => $income,
+            'classification' => hh_income_class($income),
+            'ses' => hh_socioeconomic_status($income, $memberCount),
+            'withIncome' => ($headIncome > 0 ? 1 : 0) + count(array_filter($members, static fn($m) => (float) ($m['TotalHouseholdIncome'] ?? 0) > 0)),
+            'hhLocation' => hh_household_location($hh, $members),
+            'age' => $age,
+            'status' => $isInactive ? 'inactive' : strtolower((string) ($hh['status'] ?? 'active')),
+            'surveyAnswers' => hh_survey_answers($hh),
+        ];
+    }
+}
+
 
 /* ─────────────────────────────────────────────────────────────────────────
  * Headless households: an active household whose Head moved to another

@@ -89,8 +89,9 @@ if ($action === 'locations') {
     exit;
 }
 
-$perPage = 10;
-$page = max(1, (int)($_GET['page'] ?? 1));
+// HH_LIST_ALL: the Master List report reuses these exact filters without paging.
+$perPage = defined('HH_LIST_ALL') ? 1000000 : 10;
+$page = defined('HH_LIST_ALL') ? 1 : max(1, (int)($_GET['page'] ?? 1));
 $search = trim((string)($_GET['search'] ?? ''));
 $incomeClass = trim((string)($_GET['income_class'] ?? ''));
 $statusFilter = ($_GET['status'] ?? '') === 'inactive' ? 'inactive' : 'active';
