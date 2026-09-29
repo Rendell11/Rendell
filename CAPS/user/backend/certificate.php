@@ -218,7 +218,7 @@ if ($action === 'submit') {
 
     try {
         $type = cert_doc_type($pdo, $docType);
-        if (!cert_type_issuable($type ?: null)) {   // saved, finished, active, not archived
+        if (!cert_type_issuable($type ?: null)) {   // saved, finished, active
             respond(false, L('Hindi available ang dokumentong ito.', 'This document is not available.'), null, 422);
         }
         $res = cert_resident($pdo, $rid);

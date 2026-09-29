@@ -193,10 +193,10 @@ function cert_migrate(PDO $pdo): void {
     cert_ensure_column($pdo, 'custom_document_types', 'description', "VARCHAR(500) NULL");
     cert_ensure_column($pdo, 'custom_document_types', 'is_draft', "TINYINT(1) NOT NULL DEFAULT 0");
     cert_ensure_column($pdo, 'custom_document_types', 'draft_step', "TINYINT NOT NULL DEFAULT 1");
-    // Archived document types stay stored (history / future management) but are never issuable.
-    cert_ensure_column($pdo, 'custom_document_types', 'is_archived', "TINYINT(1) NOT NULL DEFAULT 0");
-    cert_ensure_column($pdo, 'custom_document_types', 'archived_at', "DATETIME NULL");
-    cert_ensure_column($pdo, 'custom_document_types', 'archived_by', "VARCHAR(150) NULL");
+    // The removed "Archived" status: document types archived by the previous build become "Not finished" (kept, not issuable).
+    if (cert_column_exists($pdo, 'custom_document_types', 'is_archived')) {
+        $pdo->exec("UPDATE custom_document_types SET is_draft = 1, draft_step = 5, is_archived = 0 WHERE is_archived = 1");
+    }
 
     $pdo->exec("CREATE TABLE IF NOT EXISTS `certificate_templates` (
         `id` INT NOT NULL AUTO_INCREMENT,
@@ -574,15 +574,15 @@ function cert_canonical_key(string $key): ?string {
 
 /* ───────────────────────── Document types / templates ───────────────────────── */
 
-/** @param bool $issuable true = only saved, finished (non-draft), active and not archived types — for Issue Walk-In and online requests */
+/** @param bool $issuable true = only saved, finished (non-draft) and active types — for Issue Walk-In and online requests */
 function cert_doc_types(PDO $pdo, bool $issuable = true): array {
-    $sql = "SELECT * FROM custom_document_types" . ($issuable ? " WHERE is_active = 1 AND is_draft = 0 AND COALESCE(is_archived, 0) = 0" : "") . " ORDER BY sort_order, doc_type";
+    $sql = "SELECT * FROM custom_document_types" . ($issuable ? " WHERE is_active = 1 AND is_draft = 0" : "") . " ORDER BY sort_order, doc_type";
     return $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
 }
 
-/** Can this document type be chosen / issued? (saved, finished, active, not archived) */
+/** Can this document type be chosen / issued? (saved, finished = not "Not finished", active) */
 function cert_type_issuable(?array $dt): bool {
-    return $dt && (int)$dt['is_active'] === 1 && (int)$dt['is_draft'] === 0 && (int)($dt['is_archived'] ?? 0) === 0;
+    return $dt && (int)$dt['is_active'] === 1 && (int)$dt['is_draft'] === 0;
 }
 
 function cert_doc_type(PDO $pdo, string $docType): ?array {

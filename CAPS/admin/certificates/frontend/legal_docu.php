@@ -202,14 +202,19 @@ $tab = in_array($_GET['tab'] ?? '', ['pending', 'queue', 'released', 'expired', 
         <div id="wiReqs" class="space-y-2"></div>
       </div>
       <div data-wi="4" class="hidden space-y-4" id="wiElig"></div>
+      <!-- Step 5: only the Extra Information fields created in this document's Certificate Template (skipped when it has none). -->
       <div data-wi="5" class="hidden space-y-5">
         <div class="sec-head"><span class="material-symbols-outlined">edit_note</span><h4>Extra Information</h4></div>
-        <div><label class="field-label" for="wiPurpose">Purpose *</label><input id="wiPurpose" class="input" maxlength="500" placeholder="e.g. Employment requirement" list="purposeList">
-          <datalist id="purposeList"><option>Employment</option><option>Local employment</option><option>Scholarship</option><option>Bank requirement</option><option>School requirement</option><option>Business permit</option><option>Travel</option><option>Medical assistance</option><option>Financial assistance</option><option>Legal purposes</option></datalist></div>
         <div id="wiExtra" class="grid sm:grid-cols-2 gap-4"></div>
+      </div>
+      <div data-wi="6" class="hidden space-y-5">
+        <div id="wiSummary"></div>
+        <div id="wiExtra6Box" class="hidden rounded-2xl border border-slate-100 p-4">
+          <div class="sec-head"><span class="material-symbols-outlined">edit_note</span><h4>Extra Information</h4></div>
+          <div id="wiExtra6" class="grid sm:grid-cols-2 gap-4"></div>
+        </div>
         <div><label class="field-label" for="wiPhoto">Applicant photo (optional)</label><input id="wiPhoto" type="file" accept="image/png,image/jpeg,image/webp" class="text-sm font-semibold text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-indigo-50 file:text-indigo-600 file:font-bold file:text-xs"></div>
       </div>
-      <div data-wi="6" class="hidden" id="wiSummary"></div>
     </div>
     <div class="modal-foot">
       <p id="wiMsg" class="text-[11px] font-bold text-rose-600 mr-auto"></p>
@@ -447,7 +452,6 @@ const WalkIn = (function(){
         if (!DOC_TYPES.length) { CERT.toast('Add and finish a document type in Templates first.', 'warning'); return; }
         reset(); initSearch(); ts.clear(); ts.clearOptions();
         document.getElementById('wiResidentCard').innerHTML = '';
-        document.getElementById('wiPurpose').value = '';
         document.getElementById('wiPhoto').value = '';
         drawDocs(); go(1); CERT.open('walkInModal');
         setTimeout(() => ts.focus(), 150);
@@ -462,7 +466,7 @@ const WalkIn = (function(){
         document.getElementById('wiNext').innerHTML = n === 6 ? '<span class="material-symbols-outlined">description</span>Generate Document' : 'Next<span class="material-symbols-outlined">arrow_forward</span>';
         document.getElementById('wiNext').className = 'btn ' + (n === 6 ? 'btn-green' : 'btn-dark');
         msg('');
-        if (n === 6) drawSummary();
+        if (n === 6) { drawSummary(); drawExtra('wiExtra6'); document.getElementById('wiExtra6Box').classList.toggle('hidden', !st.extraDefs.length); }
     }
     function msg(t){ document.getElementById('wiMsg').textContent = t; }
 
@@ -513,10 +517,12 @@ const WalkIn = (function(){
     }
     function checkAll(){ st.reqs.forEach(r => st.checked.add(r)); drawReqs(); }
     function drawElig(){ document.getElementById('wiElig').innerHTML = eligibilityHTML(st.elig); }
-    function drawExtra(){
-        const host = document.getElementById('wiExtra');
+    /** Inputs of the template's Extra Information fields (same labels / types / choices as the template). */
+    function drawExtra(hostId){
+        const host = document.getElementById(hostId || 'wiExtra');
+        const pre = hostId === 'wiExtra6' ? 'wix6_' : 'wix_';
         host.innerHTML = st.extraDefs.map(f => {
-            const v = esc(st.extra[f.field_key] || ''); const id = 'wix_' + f.field_key; const req = f.is_required ? ' *' : '';
+            const v = esc(st.extra[f.field_key] || ''); const id = pre + f.field_key; const req = f.is_required ? ' *' : '';
             let input;
             if (f.input_type === 'textarea') input = '<textarea id="' + id + '" class="input" rows="3" data-k="' + esc(f.field_key) + '">' + v + '</textarea>';
             else if (f.input_type === 'select') input = '<select id="' + id + '" class="input" data-k="' + esc(f.field_key) + '"><option value="">Choose…</option>' + f.options.map(o => '<option' + (st.extra[f.field_key] === o ? ' selected' : '') + '>' + esc(o) + '</option>').join('') + '</select>';
@@ -528,13 +534,21 @@ const WalkIn = (function(){
     }
     function drawSummary(){
         const r = st.resident, el = st.elig;
-        const extraRows = st.extraDefs.map(f => [f.label, st.extra[f.field_key] || '']);
+        st.purpose = purposeFromExtra();
         document.getElementById('wiSummary').innerHTML = '<div class="grid md:grid-cols-2 gap-4">' +
             section('Resident', kv([['Name', r.name], ['Resident ID', r.code], ['Address', r.address]]), 'person') +
-            section('Document', kv([['Document', st.doc], ['Purpose', st.purpose], ['Document No.', 'DOC-' + new Date().getFullYear() + '-#### (assigned on generate)'], ['Issuing officer', <?php echo json_encode(cert_actor_name($pdo)); ?>], ['Date', new Date().toLocaleDateString('en-US', { month:'long', day:'numeric', year:'numeric' })]]), 'description') +
+            section('Document', kv([['Document', st.doc]].concat(st.purpose ? [['Purpose', st.purpose]] : []).concat([['Document No.', 'DOC-' + new Date().getFullYear() + '-#### (assigned on generate)'], ['Issuing officer', <?php echo json_encode(cert_actor_name($pdo)); ?>], ['Date', new Date().toLocaleDateString('en-US', { month:'long', day:'numeric', year:'numeric' })]])), 'description') +
             section('Requirements checked', st.reqs.length ? '<ul class="text-sm space-y-1">' + st.reqs.map(x => '<li class="flex items-center gap-1.5 text-emerald-700 font-semibold"><span class="material-symbols-outlined text-base">check_circle</span>' + esc(x) + '</li>').join('') + '</ul>' : '<p class="text-xs text-slate-400">None required.</p>', 'checklist') +
-            section('Eligibility', kv([['Verified', el.verified ? 'Yes' : 'No'], ['Active', el.active ? 'Yes' : 'No'], ['Blotter', el.blotter.length ? el.blotter.length + ' active case(s) — proceeding (recorded)' : 'No active blotter']]) , 'verified_user') +
-            (extraRows.length ? section('Extra information', kv(extraRows), 'edit_note') : '') + '</div>';
+            section('Eligibility', kv([['Verified', el.verified ? 'Yes' : 'No'], ['Active', el.active ? 'Yes' : 'No'], ['Blotter', el.blotter.length ? el.blotter.length + ' active case(s) — proceeding (recorded)' : 'No active blotter']]) , 'verified_user') + '</div>';
+    }
+    /** A template field labelled "Purpose" also fills the request's Purpose (there is no preset purpose). */
+    function purposeFromExtra(){
+        const f = st.extraDefs.find(x => /purpose/i.test(x.label + ' ' + x.field_key));
+        return f ? (st.extra[f.field_key] || '').trim() : '';
+    }
+    function missingExtra(){
+        for (const f of st.extraDefs) if (f.is_required && !(st.extra[f.field_key] || '').trim()) return f.label + ' is required.';
+        return '';
     }
     async function next(){
         msg('');
@@ -558,17 +572,21 @@ const WalkIn = (function(){
                 if (!ok) return;
                 st.blotterAck = true;
             }
-            drawExtra(); go(5); return;
+            // No Extra Information configured in the template → no Extra Information step.
+            if (!st.extraDefs.length) { go(6); return; }
+            drawExtra('wiExtra'); go(5); return;
         }
         if (step === 5) {
-            st.purpose = document.getElementById('wiPurpose').value.trim();
-            if (!st.purpose) return msg('Enter the purpose.');
-            for (const f of st.extraDefs) if (f.is_required && !(st.extra[f.field_key] || '').trim()) return msg(f.label + ' is required.');
+            const m = missingExtra(); if (m) return msg(m);
             go(6); return;
         }
-        if (step === 6) return generate();
+        if (step === 6) { const m = missingExtra(); if (m) return msg(m); st.purpose = purposeFromExtra(); return generate(); }
     }
-    function back(){ if (step > 1) go(step - 1); }
+    function back(){
+        if (step === 6 && !st.extraDefs.length) { go(4); return; }
+        if (step === 6) drawExtra('wiExtra');   // values typed in step 6 show in step 5 too
+        if (step > 1) go(step - 1);
+    }
     async function generate(){
         const fd = new FormData();
         fd.append('action', 'save_walkin'); fd.append('resident_id', st.resident.id); fd.append('doc_type', st.doc);

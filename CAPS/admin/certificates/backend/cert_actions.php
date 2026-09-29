@@ -252,8 +252,9 @@ if ($action === 'save_walkin') {
     $dt = cert_doc_type($pdo, (string)($_POST['doc_type'] ?? ''));
     if (!cert_type_issuable($dt)) cert_json(['success' => false, 'message' => 'This document is not available for issuing.'], 422);
     $docType = $dt['doc_type'];
-    $purpose = trim((string)($_POST['purpose'] ?? ''));
-    if ($purpose === '' || mb_strlen($purpose) > 500) cert_json(['success' => false, 'message' => 'Enter the purpose (max 500 characters).'], 422);
+    // Walk-in has no preset purpose: only the template's own Extra Information fields are asked.
+    // A field labelled "Purpose" (if the template has one) also fills the request's Purpose.
+    $purpose = mb_substr(trim((string)($_POST['purpose'] ?? '')), 0, 500);
 
     $el = cert_eligibility($pdo, $res);
     if (!$el['active']) cert_json(['success' => false, 'message' => 'Cannot issue: ' . $el['active_note']], 422);
@@ -275,6 +276,7 @@ if ($action === 'save_walkin') {
         if ($v !== '' && $ef['input_type'] === 'select' && !in_array($v, $ef['options'], true)) cert_json(['success' => false, 'message' => 'Choose a valid ' . $ef['label'] . '.'], 422);
         if ($v !== '' && $ef['input_type'] === 'date') $v = date('F j, Y', strtotime($v));
         $extra[$ef['field_key']] = mb_substr($v, 0, 1000);
+        if ($purpose === '' && $v !== '' && preg_match('/purpose/i', $ef['label'] . ' ' . $ef['field_key'])) $purpose = mb_substr($v, 0, 500);
     }
 
     $blotters = count($el['blotter']);

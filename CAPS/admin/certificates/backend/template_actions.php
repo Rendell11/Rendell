@@ -8,8 +8,8 @@
  * POST action=save_type             wizard steps 1–4 (Save Draft / Next) — multipart, optional `template_image` (page 1) +
  *                                   `template_pages[]` (pages 2… of a multi-page PDF / Word template) + page_w / page_h
  * POST action=save_layout           step 5 layout editor; finish=1 marks the document finished (not a draft)
- * POST action=archive               step 5 Archive: saves the current layout and marks the type Archived (kept, never issuable)
- * POST action=unarchive             restore an archived document type
+ * POST action=archive               step 5 Archive: saves the current progress (layout) as "Not finished" — not issuable,
+ *                                   continued later from the Not finished list
  * POST action=convert_doc           old Word (.doc) → PDF on the server (only when LibreOffice is installed)
  * POST action=toggle_active         enable / disable a finished document type
  * POST action=delete_type           delete a document type that was never used (otherwise disable it)
@@ -49,7 +49,6 @@ function tpl_load(PDO $pdo, int $id): ?array {
     return [
         'id' => (int)$t['id'], 'doc_type' => $t['doc_type'], 'doc_code' => $t['doc_code'], 'description' => $t['description'],
         'is_active' => (int)$t['is_active'], 'is_draft' => (int)$t['is_draft'], 'draft_step' => (int)$t['draft_step'],
-        'is_archived' => (int)($t['is_archived'] ?? 0),
         'template_id' => $tpl['id'] ?? null,
         'paper_size' => $paper['key'], 'paper' => $paper,
         'page_w' => isset($tpl['page_w']) ? (int)$tpl['page_w'] : null, 'page_h' => isset($tpl['page_h']) ? (int)$tpl['page_h'] : null,
@@ -95,11 +94,10 @@ if ($action === 'list') {
             (SELECT COUNT(*) FROM certificate_field_positions p WHERE p.template_id = ct.id) AS field_count
         FROM custom_document_types t
         LEFT JOIN certificate_templates ct ON ct.id = (SELECT MAX(id) FROM certificate_templates c2 WHERE c2.doc_type = t.doc_type AND c2.is_active = 1)
-        ORDER BY COALESCE(t.is_archived, 0), t.is_draft DESC, t.sort_order, t.doc_type")->fetchAll(PDO::FETCH_ASSOC);
+        ORDER BY t.is_draft DESC, t.sort_order, t.doc_type")->fetchAll(PDO::FETCH_ASSOC);
     cert_json(['success' => true, 'types' => array_map(fn($r) => [
         'id' => (int)$r['id'], 'doc_type' => $r['doc_type'], 'doc_code' => $r['doc_code'], 'description' => $r['description'],
         'is_active' => (int)$r['is_active'], 'is_draft' => (int)$r['is_draft'], 'draft_step' => (int)$r['draft_step'],
-        'is_archived' => (int)($r['is_archived'] ?? 0),
         'paper_label' => cert_paper((string)($r['paper_size'] ?? 'a4'), $r)['label'],
         'page_count' => max(1, count(cert_template_pages($r))),
         'bg_image' => cert_bg_url($r['background_image_path']),
@@ -319,17 +317,16 @@ if ($action === 'save_layout') {
     cert_json(['success' => true, 'message' => $finish && $t['is_draft'] ? 'Layout saved. "' . $t['doc_type'] . '" is finished and can now be issued.' : 'Layout saved.', 'type' => tpl_load($pdo, $id)]);
 }
 
-if ($action === 'archive' || $action === 'unarchive') {
+if ($action === 'archive') {
+    // Save the current progress and set the document type to "Not finished" (hidden from the document choices).
     cert_require($pdo, 'update');
     $id = (int)($_POST['id'] ?? 0);
     $t = tpl_load($pdo, $id);
     if (!$t) cert_json(['success' => false, 'message' => 'Document type not found.'], 404);
-    $archive = $action === 'archive';
     $pdo->beginTransaction();
     try {
-        // Archive from the layout editor also saves the layout currently on screen (kept for future management).
         $positions = json_decode((string)($_POST['positions'] ?? ''), true);
-        if ($archive && is_array($positions) && $t['template_id']) {
+        if (is_array($positions) && $t['template_id']) {
             $labels = cert_field_labels($pdo, $t['doc_type']);
             $positions = array_values(array_filter($positions, fn($p) => is_array($p) && isset($labels[$p['field_key'] ?? ''])));
             foreach ($positions as &$pp) $pp['page_no'] = min(max(1, (int)($pp['page_no'] ?? 1)), $t['page_count']);
@@ -338,18 +335,15 @@ if ($action === 'archive' || $action === 'unarchive') {
             $pdo->prepare("UPDATE certificate_templates SET layout_json = ? WHERE id = ?")
                 ->execute([json_encode(['selected' => array_values(array_unique(array_column($positions, 'field_key')))]), $t['template_id']]);
         }
-        $pdo->prepare("UPDATE custom_document_types SET is_archived = ?, archived_at = " . ($archive ? 'NOW()' : 'NULL') . ", archived_by = ? WHERE id = ?")
-            ->execute([$archive ? 1 : 0, $archive ? $actor : null, $id]);
+        $pdo->prepare("UPDATE custom_document_types SET is_draft = 1, draft_step = 5 WHERE id = ?")->execute([$id]);
         $pdo->commit();
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
-        error_log('[Certificates] ' . $action . ': ' . $e->getMessage());
-        cert_json(['success' => false, 'message' => 'Could not ' . $action . ' the document type.'], 500);
+        error_log('[Certificates] archive: ' . $e->getMessage());
+        cert_json(['success' => false, 'message' => 'Could not save the progress.'], 500);
     }
-    cert_log_activity($archive ? 'Archive Document Type' : 'Restore Document Type', ($archive ? 'Archived ' : 'Restored ') . $t['doc_type']);
-    cert_json(['success' => true, 'message' => $archive ? '"' . $t['doc_type'] . '" was saved and archived. It no longer appears in the document choices.'
-                                                      : '"' . $t['doc_type'] . '" was restored.' . ($t['is_draft'] ? ' Finish its layout before it can be issued.' : ''),
-               'type' => tpl_load($pdo, $id)]);
+    cert_log_activity('Save Progress (Not Finished)', 'Saved progress of ' . $t['doc_type'] . ' as Not finished');
+    cert_json(['success' => true, 'message' => 'Progress saved. "' . $t['doc_type'] . '" is Not finished — continue it later from the Not finished list.', 'type' => tpl_load($pdo, $id)]);
 }
 
 if ($action === 'convert_doc') {

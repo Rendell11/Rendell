@@ -2,10 +2,11 @@
 /**
  * Template Builder — create / edit certificate document types.
  * Steps: 1 Document info · 2 Template (Word / PDF / image — every page kept, original page size) · 3 Requirements ·
- *        4 Extra information fields · 5 Layout editor (live preview + field panel, AI Auto Detect, Clear, Archive).
+ *        4 Extra information fields · 5 Layout editor (live preview + field panel, AI Auto Detect, Clear,
+ *        Archive = save the progress as "Not finished" to continue later).
  * Fields to print are chosen in the layout editor (or by AI Auto Detect), not in the wizard.
  * "Save Draft" keeps a document "Not finished" (hidden from Issue Walk-In) until its layout is saved.
- * Only saved, finished, active and not archived document types can be issued.
+ * Only saved, finished and active document types can be issued.
  */
 require_once __DIR__ . '/../../db.php';
 $required_module = 'certificates';
@@ -80,7 +81,6 @@ $openId = (int)($_GET['open'] ?? 0);
                         <option value="active">Active</option>
                         <option value="draft">Not finished</option>
                         <option value="disabled">Disabled</option>
-                        <option value="archived">Archived</option>
                     </select>
                 </div>
             </div>
@@ -89,7 +89,7 @@ $openId = (int)($_GET['open'] ?? 0);
                 <div class="flex items-center gap-3 mb-4">
                     <span class="material-symbols-outlined text-white bg-primary p-2 rounded-xl shadow-md">folder_open</span>
                     <div><h2 class="text-base font-black text-slate-800 leading-tight">Document Types</h2>
-                        <p class="text-[10px] text-slate-400 font-bold mt-0.5">Click a document to open its layout. "Not finished", disabled and archived documents are hidden from Issue Walk-In and online requests.</p></div>
+                        <p class="text-[10px] text-slate-400 font-bold mt-0.5">Click a document to open its layout. "Not finished" and disabled documents are hidden from Issue Walk-In and online requests.</p></div>
                 </div>
                 <div id="typeGrid" class="grid sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
                     <p class="text-sm text-slate-400">Loading…</p>
@@ -220,33 +220,30 @@ async function loadTypes(){
         drawTypes();
     } catch (e) { grid.innerHTML = '<p class="text-sm text-rose-600 font-semibold">' + CERT.esc(e.message) + '</p>'; }
 }
-function typeState(t){ return t.is_archived ? 'archived' : (t.is_draft ? 'draft' : (t.is_active ? 'active' : 'disabled')); }
+function typeState(t){ return t.is_draft ? 'draft' : (t.is_active ? 'active' : 'disabled'); }
 function drawTypes(){
     const q = (document.getElementById('typeSearch').value || '').toLowerCase();
     const grid = document.getElementById('typeGrid');
     const st = document.getElementById('typeStatus').value;
-    // Archived documents are kept for history; they show only under the "Archived" filter.
     const list = TYPES.filter(t => (!q || t.doc_type.toLowerCase().includes(q) || (t.doc_code || '').toLowerCase().includes(q))
-        && (st ? typeState(t) === st : !t.is_archived));
+        && (!st || typeState(t) === st));
     if (!list.length) { grid.innerHTML = '<div class="col-span-full text-center py-16 bg-white rounded-[32px] border border-slate-100"><span class="material-symbols-outlined text-4xl block mb-2 text-slate-200">manage_search</span><p class="text-sm text-slate-400">' + (TYPES.length ? 'No document matches your search.' : 'No document types yet. Click <strong>Add Document</strong> to create one.') + '</p></div>'; return; }
     grid.innerHTML = list.map(t => {
         const s = typeState(t);
-        const badge = s === 'archived' ? '<span class="pill bg-slate-100 text-slate-600 border-slate-300"><span class="material-symbols-outlined">archive</span>Archived</span>'
-            : s === 'draft' ? '<span class="pill bg-amber-50 text-amber-700 border-amber-200"><span class="material-symbols-outlined">edit_note</span>Not finished</span>'
+        const badge = s === 'draft' ? '<span class="pill bg-amber-50 text-amber-700 border-amber-200"><span class="material-symbols-outlined">edit_note</span>Not finished</span>'
             : (s === 'active' ? '<span class="pill bg-emerald-50 text-emerald-700 border-emerald-200"><span class="material-symbols-outlined">check_circle</span>Active</span>'
                               : '<span class="pill bg-slate-100 text-slate-500 border-slate-200"><span class="material-symbols-outlined">block</span>Disabled</span>');
         let actions = '';
         if (CAN_UPDATE) {
             actions = '<div class="flex items-center gap-1 mt-auto pt-2 border-t border-slate-50">' +
-                (s === 'archived' ? '<button class="btn btn-dark btn-sm flex-1" onclick="restoreType(' + t.id + ')"><span class="material-symbols-outlined">unarchive</span>Restore</button>'
-                  : (t.is_draft ? '<button class="btn btn-dark btn-sm flex-1" onclick="Wizard.edit(' + t.id + ')"><span class="material-symbols-outlined">play_arrow</span>Continue</button>'
-                                : '<button class="btn btn-dark btn-sm flex-1" onclick="Editor.open(' + t.id + ')"><span class="material-symbols-outlined">dashboard_customize</span>Layout</button>')) +
+                (t.is_draft ? '<button class="btn btn-dark btn-sm flex-1" onclick="Wizard.edit(' + t.id + ')"><span class="material-symbols-outlined">play_arrow</span>Continue</button>'
+                            : '<button class="btn btn-dark btn-sm flex-1" onclick="Editor.open(' + t.id + ')"><span class="material-symbols-outlined">dashboard_customize</span>Layout</button>') +
                 '<button class="icon-btn" title="Edit details" onclick="Wizard.edit(' + t.id + ')"><span class="material-symbols-outlined text-xl">edit_square</span></button>' +
                 (s === 'active' || s === 'disabled' ? '<button class="icon-btn" title="' + (t.is_active ? 'Disable' : 'Enable') + '" onclick="toggleType(' + t.id + ',' + (t.is_active ? 0 : 1) + ')"><span class="material-symbols-outlined text-xl">' + (t.is_active ? 'toggle_on' : 'toggle_off') + '</span></button>' : '') +
                 '<button class="icon-btn danger" title="Delete" onclick="deleteType(' + t.id + ')"><span class="material-symbols-outlined text-xl">delete</span></button>' +
             '</div>';
         }
-        return '<div class="type-card' + (s === 'archived' ? ' opacity-75' : '') + '">' +
+        return '<div class="type-card">' +
             '<button type="button" class="thumb" onclick="openType(' + t.id + ')">' + (t.bg_image ? '<img src="' + CERT.esc(t.bg_image) + '" alt="">' : '<span class="material-symbols-outlined text-5xl text-slate-200">description</span>') + '</button>' +
             '<div class="flex items-start justify-between gap-2 px-1"><div class="min-w-0"><p class="text-sm font-bold text-slate-700 leading-tight truncate">' + CERT.esc(t.doc_type) + '</p>' +
             '<p class="text-[10px] text-slate-400 font-bold uppercase tracking-tighter mt-0.5">' + CERT.esc(t.doc_code || '—') + ' | ' + CERT.esc(t.paper_label) + '</p></div>' + badge + '</div>' +
@@ -267,13 +264,6 @@ function openType(id){
 }
 async function toggleType(id, active){
     const d = await CERT.post(API, { action:'toggle_active', id:id, active:active });
-    CERT.toast(d.message, d.success ? 'success' : 'error'); loadTypes();
-}
-async function restoreType(id){
-    const t = TYPES.find(x => x.id === id);
-    const ok = await CERT.confirm({ title:'Restore "' + t.doc_type + '"?', message: t.is_draft ? 'It returns to the list as "Not finished". Finish its layout before it can be issued.' : 'It will appear again in the document choices (if enabled).', ok:'Restore', icon:'unarchive' });
-    if (!ok) return;
-    const d = await CERT.post(API, { action:'unarchive', id:id });
     CERT.toast(d.message, d.success ? 'success' : 'error'); loadTypes();
 }
 async function deleteType(id){
@@ -513,9 +503,8 @@ const Editor = (function(){
         if (!d.success) { CERT.toast(d.message, 'error'); return; }
         cur = d.type;
         if (!cur.bg_image) { CERT.toast('Upload the template first.', 'warning'); Wizard.edit(id); return; }
-        document.getElementById('edTitle').textContent = cur.doc_type + (cur.is_archived ? ' · Archived' : (cur.is_draft ? ' · Not finished' : ''));
+        document.getElementById('edTitle').textContent = cur.doc_type + (cur.is_draft ? ' · Not finished' : '');
         document.getElementById('edPaper').textContent = cur.paper.label + (cur.page_count > 1 ? ' · ' + cur.page_count + ' pages' : '');
-        document.getElementById('edArchiveBtn').classList.toggle('hidden', !!cur.is_archived);
         document.getElementById('editorOverlay').classList.add('open');
         document.body.style.overflow = 'hidden';
         const values = {};
@@ -532,7 +521,7 @@ const Editor = (function(){
                 const r = await CERT.post(API, { action:'save_layout', id:cur.id, positions:positions, finish:1 });
                 if (!r.success) throw new Error(r.message);
                 CERT.toast(r.message, 'success');
-                cur = r.type; document.getElementById('edTitle').textContent = cur.doc_type + (cur.is_archived ? ' · Archived' : '');
+                cur = r.type; document.getElementById('edTitle').textContent = cur.doc_type;
                 loadTypes();
                 return true;
             },
@@ -548,12 +537,10 @@ const Editor = (function(){
         document.getElementById('editorOverlay').classList.remove('open');
         document.body.style.overflow = '';
     }
-    /** Closing with unsaved changes asks first; "Close Without Saving" discards them (nothing is written to the database). */
+    /** Close asks first; "Close" discards every unsaved change (nothing is written to the database). */
     async function close(){
-        if (ed && ed.isDirty()) {
-            const ok = await CERT.confirm({ title:'Unsaved changes', message:'You have unsaved changes. If you close this page, your changes will not be saved. Do you want to continue?', ok:'Close Without Saving', cancel:'Stay', danger:true, icon:'warning' });
-            if (!ok) return false;
-        }
+        const ok = await CERT.confirm({ title:'Close layout?', message:'Your changes will not be saved and will be deleted. Do you want to close?', ok:'Close', cancel:'Cancel', danger:true, icon:'warning' });
+        if (!ok) return false;
         shut();
         return true;
     }
@@ -562,12 +549,13 @@ const Editor = (function(){
         const ok = await CERT.confirm({ title:'Clear layout?', message:'Are you sure you want to clear the current layout? All unsaved layout changes will be removed.', ok:'Clear', cancel:'Cancel', danger:true, icon:'layers_clear' });
         if (ok) ed.clear();
     }
+    /** Archive = save the current progress as "Not finished" (not issuable); continue it later from the Not finished list. */
     async function archive(){
         if (!ed || !cur) return;
-        const ok = await CERT.confirm({ title:'Archive "' + cur.doc_type + '"?', message:'The document type and its current layout will be saved and marked Archived. It will no longer appear in the document choices, but it stays stored for future management.', ok:'Archive', icon:'archive' });
+        const ok = await CERT.confirm({ title:'Archive "' + cur.doc_type + '"', message:'You can continue working on this document type later. Your current progress will be saved as Not Finished.', ok:'Archive', cancel:'Cancel', icon:'archive' });
         if (!ok) return;
         const r = await CERT.post(API, { action:'archive', id:cur.id, positions:ed.positions() }).catch(e => ({ success:false, message:e.message }));
-        CERT.toast(r.message, r.success ? 'success' : 'error');
+        CERT.toast(r.success ? 'You can continue working on this document type later. Your current progress was saved as Not Finished.' : r.message, r.success ? 'success' : 'error');
         if (!r.success) return;
         shut(); loadTypes();
     }
