@@ -285,6 +285,9 @@ $avg = $pdo->query("
     ) x WHERE HeadID IS NOT NULL
 ")->fetchColumn();
 
+// Active households whose Head moved to another household: they need a new Head.
+$headlessHouseholds = hh_headless_households($pdo);
+
 $googleKey = '';
 require_once __DIR__ . '/../../config.php';
 $googleKey = getenv('GOOGLE_MAPS_BROWSER_KEY') ?: '';

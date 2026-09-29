@@ -222,6 +222,29 @@ $error = trim((string) ($_GET['error'] ?? ''));
                     </div>
                 <?php endif; ?>
 
+                <?php if (!empty($headlessHouseholds)): ?>
+                    <!-- Households without a Head (their Head became the Head of another household) -->
+                    <div class="rounded-2xl border-2 border-amber-200 bg-amber-50 px-6 py-4">
+                        <div class="flex items-start gap-3">
+                            <span class="material-symbols-outlined text-amber-600">warning</span>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-black text-amber-800"><?= count($headlessHouseholds) ?> household<?= count($headlessHouseholds) === 1 ? ' has' : 's have' ?> no Head and need<?= count($headlessHouseholds) === 1 ? 's' : '' ?> a new Head.</p>
+                                <p class="text-xs font-semibold text-amber-700 mt-0.5">Open Edit Household → Change Household Head to assign one. These households were not deleted.</p>
+                                <div class="mt-3 flex flex-wrap gap-2">
+                                    <?php foreach ($headlessHouseholds as $hl): ?>
+                                        <a href="edit_household.php?sid=<?= (int) $hl['SurveyID'] ?>"
+                                            class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-amber-200 text-[11px] font-black text-amber-800 hover:bg-amber-100">
+                                            <span class="font-mono"><?= htmlspecialchars((string) $hl['HouseholdID'], ENT_QUOTES, 'UTF-8') ?></span>
+                                            <span class="font-semibold text-amber-700"><?= (int) $hl['MemberCount'] ?> member<?= (int) $hl['MemberCount'] === 1 ? '' : 's' ?></span>
+                                            <span class="material-symbols-outlined text-sm">edit</span> Assign Head
+                                        </a>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
                 <!-- Search / Filter — same visual proportions as Resident Management -->
                 <form method="GET" action="" id="filterForm" class="grid grid-cols-12 gap-4">
                     <div class="col-span-12 md:col-span-6 relative">

@@ -573,6 +573,18 @@ if (!function_exists('hh_ensure_household_record')) {
                 return (int) $existing['SurveyID'];
             }
 
+            // A headless household at the same address (or that lists this resident)
+            // is adopted instead of creating a duplicate household.
+            $adopt = function_exists('hh_find_headless_survey') ? hh_find_headless_survey($pdo, $head) : null;
+            if ($adopt) {
+                hh_assign_headless_head($pdo, (int) $adopt['SurveyID'], $head, 'Member');
+                if ($ownTransaction) {
+                    $pdo->commit();
+                }
+
+                return (int) $adopt['SurveyID'];
+            }
+
             $classification = hh_income_class((float) ($head['TotalHouseholdIncome'] ?? 0));
             $address = hh_address($head);
 
@@ -882,5 +894,173 @@ if (!function_exists('hh_socioeconomic_status')) {
         }
 
         return [];
+    }
+}
+
+if (!function_exists('hh_valid_gps')) {
+    /** [lat, lng] when the pair is a real map pin (not blank / 0,0 / out of range), else null. */
+    function hh_valid_gps($lat, $lng): ?array
+    {
+        if ($lat === null || $lng === null || $lat === '' || $lng === '' || !is_numeric($lat) || !is_numeric($lng)) {
+            return null;
+        }
+        $lat = (float) $lat;
+        $lng = (float) $lng;
+        if ($lat < -90 || $lat > 90 || $lng < -180 || $lng > 180 || ($lat == 0.0 && $lng == 0.0)) {
+            return null;
+        }
+
+        return [$lat, $lng];
+    }
+}
+
+if (!function_exists('hh_household_location')) {
+    /**
+     * Saved household location from Resident Profiling (residents.Latitude/Longitude):
+     * the Head's pin, or — when the Head has none — the first member's pin.
+     * Returns ['lat','lng','source'] or null.
+     */
+    function hh_household_location(array $head, array $members): ?array
+    {
+        $gps = hh_valid_gps($head['Latitude'] ?? null, $head['Longitude'] ?? null);
+        if ($gps) {
+            return ['lat' => $gps[0], 'lng' => $gps[1], 'source' => 'Household Head'];
+        }
+        foreach ($members as $m) {
+            $gps = hh_valid_gps($m['Latitude'] ?? null, $m['Longitude'] ?? null);
+            if ($gps) {
+                return ['lat' => $gps[0], 'lng' => $gps[1], 'source' => trim(hh_full_name($m)) ?: 'Household member'];
+            }
+        }
+
+        return null;
+    }
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Headless households: an active household whose Head moved to another
+ * household (Change Household Head → New Resident). The household row is kept
+ * (never deleted); its members stay listed in household_survey_members until
+ * a new Head is assigned through Edit Household → Change Household Head.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+if (!function_exists('hh_headless_where_sql')) {
+    /** WHERE condition for active households without a valid living Head (aliases hs, hr). */
+    function hh_headless_where_sql(): string
+    {
+        return "COALESCE(hs.status, 'active') = 'active' AND COALESCE(hs.is_removed, 0) = 0
+                AND (hs.ResidentID IS NULL OR hr.ResidentID IS NULL OR COALESCE(hr.IsHead, 0) <> 1 OR COALESCE(hr.IsDeceased, 0) = 1)";
+    }
+}
+
+if (!function_exists('hh_headless_households')) {
+    /** Active households that currently have no Head. */
+    function hh_headless_households(PDO $pdo): array
+    {
+        try {
+            $rows = $pdo->query(
+                "SELECT hs.SurveyID, hs.HouseholdID, hs.head_name, hs.address, hs.ResidentID,
+                        (SELECT COUNT(*) FROM household_survey_members m WHERE m.SurveyID = hs.SurveyID) AS MemberCount
+                 FROM household_survey hs
+                 LEFT JOIN residents hr ON hr.ResidentID = hs.ResidentID
+                 WHERE " . hh_headless_where_sql() . "
+                 ORDER BY hs.HouseholdID"
+            )->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Throwable $e) {
+            error_log('[CAPS-HOUSEHOLD] headless households: ' . $e->getMessage());
+            return [];
+        }
+
+        return $rows;
+    }
+}
+
+if (!function_exists('hh_headless_members')) {
+    /**
+     * Living residents that belong to headless household $surveyId: residents still
+     * linked to the former Head (e.g. deceased Head) plus the recorded members that
+     * are not linked to any other household.
+     */
+    function hh_headless_members(PDO $pdo, int $surveyId, ?int $formerHeadId = null): array
+    {
+        $out = [];
+        if ($formerHeadId) {
+            $s = $pdo->prepare("SELECT * FROM residents WHERE FamilyHeadID = ? AND ResidentID <> ? AND COALESCE(IsHead,0) = 0
+                                AND (IsDeceased = 0 OR IsDeceased IS NULL) ORDER BY LastName, FirstName, ResidentID");
+            $s->execute([$formerHeadId, $formerHeadId]);
+            foreach ($s->fetchAll(PDO::FETCH_ASSOC) as $r) {
+                $out[(int) $r['ResidentID']] = $r;
+            }
+        }
+        $s = $pdo->prepare("SELECT r.* FROM household_survey_members m JOIN residents r ON r.ResidentID = m.ResidentID
+                            WHERE m.SurveyID = ? AND COALESCE(r.IsHead,0) = 0 AND r.FamilyHeadID IS NULL
+                              AND (r.IsDeceased = 0 OR r.IsDeceased IS NULL)
+                            ORDER BY m.MemberNumber");
+        $s->execute([$surveyId]);
+        foreach ($s->fetchAll(PDO::FETCH_ASSOC) as $r) {
+            $out[(int) $r['ResidentID']] = $r;
+        }
+
+        return array_values($out);
+    }
+}
+
+if (!function_exists('hh_find_headless_survey')) {
+    /** Headless household that lists $head as a member, or whose members live at the Head's House No. + Street. */
+    function hh_find_headless_survey(PDO $pdo, array $head): ?array
+    {
+        $hid = (int) ($head['ResidentID'] ?? 0);
+        $house = hh_norm_address_part($head['HouseNumber'] ?? '');
+        $street = hh_norm_address_part($head['StreetName'] ?? '');
+        foreach (hh_headless_households($pdo) as $hs) {
+            foreach (hh_headless_members($pdo, (int) $hs['SurveyID'], $hs['ResidentID'] ? (int) $hs['ResidentID'] : null) as $m) {
+                if ((int) $m['ResidentID'] === $hid) {
+                    return $hs;
+                }
+                if ($house !== '' && $street !== ''
+                    && hh_norm_address_part($m['HouseNumber'] ?? '') === $house
+                    && hh_norm_address_part($m['StreetName'] ?? '') === $street) {
+                    return $hs;
+                }
+            }
+        }
+
+        return null;
+    }
+}
+
+if (!function_exists('hh_assign_headless_head')) {
+    /**
+     * Make $head the Head of headless household $surveyId (caller holds the transaction).
+     * Every remaining member is linked to the new Head. Addresses are synchronized by the caller.
+     */
+    function hh_assign_headless_head(PDO $pdo, int $surveyId, array $head, string $memberRel = 'Member'): void
+    {
+        $hid = (int) $head['ResidentID'];
+        $st = $pdo->prepare("SELECT * FROM household_survey WHERE SurveyID = ? FOR UPDATE");
+        $st->execute([$surveyId]);
+        $hs = $st->fetch(PDO::FETCH_ASSOC);
+        if (!$hs) {
+            throw new RuntimeException('Household not found.');
+        }
+        $members = hh_headless_members($pdo, $surveyId, $hs['ResidentID'] ? (int) $hs['ResidentID'] : null);
+
+        $pdo->prepare("UPDATE residents SET IsHead = 1, FamilyHeadID = NULL, RelationshipToHead = 'Head of Family' WHERE ResidentID = ?")->execute([$hid]);
+        $upd = $pdo->prepare("UPDATE residents SET FamilyHeadID = ?, IsHead = 0,
+                              RelationshipToHead = COALESCE(NULLIF(RelationshipToHead, ''), ?) WHERE ResidentID = ?");
+        foreach ($members as $m) {
+            if ((int) $m['ResidentID'] !== $hid) {
+                $upd->execute([$hid, $memberRel, (int) $m['ResidentID']]);
+            }
+        }
+
+        $fresh = $pdo->prepare("SELECT * FROM residents WHERE ResidentID = ?");
+        $fresh->execute([$hid]);
+        $h = $fresh->fetch(PDO::FETCH_ASSOC) ?: $head;
+        $pdo->prepare("UPDATE household_survey SET ResidentID = ?, head_name = ?, civil_status = ?, sex = ?, contact_number = ? WHERE SurveyID = ?")
+            ->execute([$hid, hh_full_name($h), $h['CivilStatus'] ?? null, $h['Sex'] ?? null, $h['ContactNumber'] ?? null, $surveyId]);
+        sync_hh_members($pdo, $surveyId, $hid);
+        log_hh_history($pdo, $surveyId, 'HEAD_ASSIGNED', hh_full_name($h) . " is now the Head of {$hs['HouseholdID']}.");
     }
 }
