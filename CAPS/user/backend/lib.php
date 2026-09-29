@@ -308,6 +308,10 @@ function set_resident_password(string $token, string $password): array
         error_log('[set_resident_password] ' . $e->getMessage());
         return ['ok' => false, 'message' => L('Hindi naitakda ang password.', 'The password was not set.'), 'data' => null];
     }
+    // 4) Make sure the resident can log in with what they requested with.
+    //    A profile the admin encoded often has NO email (or contact), so the
+    //    password landed on a record the login could never find.
+    resident_link_request($pdo, (int) $residentId, (int) $req['id'], $req['email'] ?? null, $req['contact_number'] ?? null);
     return ['ok' => true, 'message' => L('Naitakda ang password. Maaari ka nang mag-login.', 'Password set. You can now log in.'), 'data' => null];
 }
 
@@ -444,6 +448,79 @@ function list_puroks(): array
     return ['Purok 1', 'Purok 2', 'Purok 3', 'Purok 4', 'Purok 5'];
 }
 
+/**
+ * Link an access request to its resident and copy the request's email /
+ * contact number onto the resident when the resident has none, so the
+ * resident can log in (and reset the password) with them. Best effort: the
+ * residents table has UNIQUE Email / ContactNumber, so a value already used by
+ * another record is left alone.
+ */
+function resident_link_request(PDO $pdo, int $residentId, int $requestId, ?string $email, ?string $contact): void
+{
+    if ($residentId <= 0) return;
+    try {
+        $pdo->prepare('UPDATE access_requests SET resident_id = ? WHERE id = ? AND (resident_id IS NULL OR resident_id = 0)')
+            ->execute([$residentId, $requestId]);
+    } catch (Throwable $e) { /* ignore */ }
+    $email = strtolower(trim((string) $email));
+    if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        try {
+            $pdo->prepare("UPDATE residents SET Email = ? WHERE ResidentID = ? AND (Email IS NULL OR TRIM(Email) = '')")
+                ->execute([$email, $residentId]);
+        } catch (Throwable $e) { error_log('[resident_link_request] email: ' . $e->getMessage()); }
+    }
+    $contact = trim((string) $contact);
+    if (preg_match('/^09\d{9}$/', $contact)) {
+        try {
+            $pdo->prepare("UPDATE residents SET ContactNumber = ? WHERE ResidentID = ? AND (ContactNumber IS NULL OR TRIM(ContactNumber) = '')")
+                ->execute([$contact, $residentId]);
+        } catch (Throwable $e) { error_log('[resident_link_request] contact: ' . $e->getMessage()); }
+    }
+}
+
+/**
+ * Every resident record an email or contact number can log in to:
+ *   1. residents whose Email / ContactNumber matches, and
+ *   2. residents linked to an APPROVED access request with that email /
+ *      contact (resident_id or matched_resident_id) — covers accounts whose
+ *      profile has a different or empty email.
+ * Best candidates first (Active with a password).
+ */
+function resident_accounts(PDO $pdo, string $identifier): array
+{
+    $identifier = trim($identifier);
+    if ($identifier === '') return [];
+    $isEmail = (bool) filter_var($identifier, FILTER_VALIDATE_EMAIL);
+    $key = $isEmail ? strtolower($identifier) : preg_replace('/[^0-9]/', '', $identifier);
+    if ($key === '') return [];
+    $cols = 'r.ResidentID, r.ResidentCode, r.FirstName, r.MiddleName, r.LastName,
+             r.Email, r.ContactNumber, r.Purok, r.Password, r.access_status';
+    $alive = '(r.IsDeceased = 0 OR r.IsDeceased IS NULL)';
+    $rows = [];
+    if ($isEmail) {
+        $q = $pdo->prepare("SELECT $cols FROM residents r WHERE $alive AND LOWER(TRIM(r.Email)) = ?");
+    } else {
+        $q = $pdo->prepare("SELECT $cols FROM residents r
+                            WHERE $alive AND REPLACE(REPLACE(REPLACE(r.ContactNumber, ' ', ''), '-', ''), '+63', '0') = ?");
+    }
+    $q->execute([$key]);
+    foreach ($q->fetchAll() as $r) $rows[(int) $r['ResidentID']] = $r;
+    try {
+        $q = $pdo->prepare("SELECT $cols FROM access_requests a
+                            JOIN residents r ON r.ResidentID = COALESCE(NULLIF(a.resident_id, 0), a.matched_resident_id)
+                            WHERE $alive AND a.status IN ('Approved','Matched') AND "
+                            . ($isEmail ? 'LOWER(TRIM(a.email)) = ?' : "REPLACE(REPLACE(a.contact_number, ' ', ''), '-', '') = ?")
+                            . ' ORDER BY a.id DESC');
+        $q->execute([$key]);
+        foreach ($q->fetchAll() as $r) $rows[(int) $r['ResidentID']] ??= $r;
+    } catch (Throwable $e) { /* older schema */ }
+    $rows = array_values($rows);
+    usort($rows, fn($a, $b) =>
+        [($b['access_status'] ?? '') === 'Active', !empty($b['Password'])]
+        <=> [($a['access_status'] ?? '') === 'Active', !empty($a['Password'])]);
+    return $rows;
+}
+
 /* ── Forgot password: a 6-digit code by email ─────────────────────────────────
  * The app cannot open a web reset link on the phone (the backend is only
  * reachable on the barangay Wi-Fi), so the resident gets a CODE by email and
@@ -474,6 +551,15 @@ function reset_migrate(PDO $pdo): void
             KEY idx_rpr_resident (resident_id, used_at)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     ");
+}
+
+/** The Active account an email may reset (see resident_accounts()). */
+function reset_account(PDO $pdo, string $email): ?array
+{
+    foreach (resident_accounts($pdo, $email) as $r) {
+        if (($r['access_status'] ?? '') === 'Active') return $r;
+    }
+    return null;
 }
 
 function reset_code_hash(int $residentId, string $code): string
@@ -523,11 +609,7 @@ function request_password_reset(string $email): array
 
     $pdo = db();
     reset_migrate($pdo);
-    $stmt = $pdo->prepare("SELECT ResidentID, FirstName FROM residents
-                           WHERE LOWER(Email) = ? AND access_status = 'Active'
-                             AND (IsDeceased = 0 OR IsDeceased IS NULL) LIMIT 1");
-    $stmt->execute([$email]);
-    $row = $stmt->fetch();
+    $row = reset_account($pdo, $email);
     if (!$row) return $generic; // don't reveal which emails are registered
     $rid = (int) $row['ResidentID'];
 
@@ -573,11 +655,7 @@ function reset_password_with_code(string $email, string $code, string $password)
 
     $pdo = db();
     reset_migrate($pdo);
-    $stmt = $pdo->prepare("SELECT ResidentID, Password FROM residents
-                           WHERE LOWER(Email) = ? AND access_status = 'Active'
-                             AND (IsDeceased = 0 OR IsDeceased IS NULL) LIMIT 1");
-    $stmt->execute([$email]);
-    $res = $stmt->fetch();
+    $res = reset_account($pdo, $email);
     if (!$res) return $bad;
     $rid = (int) $res['ResidentID'];
 
@@ -633,25 +711,26 @@ function resident_login(string $identifier, string $password): array
     if ($identifier === '' || $password === '') {
         return ['ok' => false, 'message' => L('Kailangan ang email/contact at password.', 'Email/contact and password are required.'), 'data' => null];
     }
-    $column = filter_var($identifier, FILTER_VALIDATE_EMAIL) ? 'Email' : 'ContactNumber';
-
-    $pdo  = db();
-    $stmt = $pdo->prepare(
-        "SELECT ResidentID, ResidentCode, FirstName, MiddleName, LastName,
-                Email, ContactNumber, Purok, Password, access_status
-         FROM residents WHERE $column = ? LIMIT 1"
-    );
-    $stmt->execute([$identifier]);
-    $resident = $stmt->fetch();
-
-    if (!$resident || !$resident['Password'] || !password_verify($password, $resident['Password'])) {
-        return ['ok' => false, 'message' => L('Maling email/contact o password.', 'Wrong email/contact or password.'), 'data' => null];
+    $pdo = db();
+    $wrong = ['ok' => false, 'message' => L('Maling email/contact o password.', 'Wrong email/contact or password.'), 'data' => null];
+    $inactive = null;
+    foreach (resident_accounts($pdo, $identifier) as $resident) {
+        if (empty($resident['Password']) || !password_verify($password, (string) $resident['Password'])) continue;
+        if ($resident['access_status'] !== 'Active') {
+            $inactive = ['ok' => false, 'message' => L('Hindi pa aktibo ang account mo.', 'Your account is not active yet.'), 'data' => null];
+            continue;
+        }
+        // Logged in through an approved request: save the email/contact on the
+        // profile so the next login and "forgot password" find it directly.
+        if (filter_var($identifier, FILTER_VALIDATE_EMAIL)) {
+            resident_link_request($pdo, (int) $resident['ResidentID'], 0, $identifier, null);
+        } else {
+            resident_link_request($pdo, (int) $resident['ResidentID'], 0, null, $identifier);
+        }
+        unset($resident['Password']);
+        return ['ok' => true, 'message' => L('Matagumpay ang pag-login.', 'Logged in successfully.'), 'data' => $resident];
     }
-    if ($resident['access_status'] !== 'Active') {
-        return ['ok' => false, 'message' => L('Hindi pa aktibo ang account mo.', 'Your account is not active yet.'), 'data' => null];
-    }
-    unset($resident['Password']);
-    return ['ok' => true, 'message' => L('Matagumpay ang pag-login.', 'Logged in successfully.'), 'data' => $resident];
+    return $inactive ?? $wrong;
 }
 
 /** Settings → change password: verify the current one, then save the new one. */

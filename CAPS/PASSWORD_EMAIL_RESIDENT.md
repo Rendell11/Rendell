@@ -73,6 +73,25 @@ sent something.
 **Never commit or share `smtp_config.php`.**
 `CAPS/user/backend/private/*.php` is in `.gitignore`.
 
+## Fix: "invalid email or password" right after Set Password
+
+This was caused by the admin approving a request **linked to a profile the
+admin had encoded** (`matched_resident_id`) that has **no email / contact
+number**. Set Password saved the password on that profile, but the login
+looks the resident up by email or contact number, so it never found the
+account and said "invalid". Forgot Password couldn't find it either, so it
+said "sent" without sending anything.
+
+Now (`user/backend/lib.php`):
+- Set Password links the request to the resident. If the profile has no
+  email or contact number, it copies the ones from the request.
+- Login and Forgot Password also find the account through the resident's
+  approved request (`resident_accounts()`). Accounts already set up with the
+  old code work without doing anything, and their email is saved on the
+  first login.
+- Duplicate or old records no longer block the login. Every matching record
+  is checked, starting with the Active ones that have a password.
+
 ## Request access — date of birth
 - A future date shows "Hindi puwedeng future date ang kapanganakan" right
   while typing. The calendar also stops at today.
