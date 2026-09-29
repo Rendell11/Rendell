@@ -180,7 +180,7 @@ function do_change_head(PDO $pdo,array $hh,int $newHead,string $oldHeadRel): str
     $oldGps=$oldGpsStmt->fetch(PDO::FETCH_ASSOC) ?: [];
     $pdo->prepare("UPDATE residents SET IsHead=0,FamilyHeadID=?,RelationshipToHead='Member' WHERE FamilyHeadID=? OR ResidentID=?")->execute([$newHead,$oldHead,$oldHead]);
     if($oldHeadRel!=='')$pdo->prepare("UPDATE residents SET RelationshipToHead=? WHERE ResidentID=?")->execute([$oldHeadRel,$oldHead]);
-    $pdo->prepare("UPDATE residents SET IsHead=1,FamilyHeadID=NULL,RelationshipToHead=NULL,Latitude=COALESCE(Latitude,?),Longitude=COALESCE(Longitude,?) WHERE ResidentID=?")->execute([$oldGps['Latitude']??null,$oldGps['Longitude']??null,$newHead]);
+    $pdo->prepare("UPDATE residents SET IsHead=1,FamilyHeadID=NULL,RelationshipToHead='Head of Family',Latitude=COALESCE(Latitude,?),Longitude=COALESCE(Longitude,?) WHERE ResidentID=?")->execute([$oldGps['Latitude']??null,$oldGps['Longitude']??null,$newHead]);
     $newGpsStmt=$pdo->prepare("SELECT Latitude,Longitude FROM residents WHERE ResidentID=? LIMIT 1");
     $newGpsStmt->execute([$newHead]);
     $newGps=$newGpsStmt->fetch(PDO::FETCH_ASSOC) ?: [];

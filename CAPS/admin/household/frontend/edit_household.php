@@ -611,12 +611,12 @@ $relationshipOptions = ['Spouse', 'Son', 'Daughter', 'Stepson', 'Stepdaughter', 
                                 <div class="col-span-12 md:col-span-6 space-y-1.5">
                                     <label for="adHouseNumber" class="text-[10px] font-bold text-slate-400 uppercase ml-1">House/Lot/Unit Number *</label>
                                     <input type="text" id="adHouseNumber" placeholder="e.g. 123, Block 5 Lot 2, Unit 4A"
-                                        value="<?= hh_view_escape($addrCurrent['HouseNumber']) ?>" oninput="adOnEdit(); adScheduleAddressCheck();"
+                                        value="<?= hh_view_escape($addrCurrent['HouseNumber']) ?>" oninput="adOnEdit(); adScheduleAddressCheck(); adScheduleRecalc();"
                                         class="w-full bg-slate-100 border-none rounded-xl py-3 px-4 text-sm font-bold focus:ring-2 focus:ring-primary/20">
                                 </div>
                                 <div class="col-span-12 md:col-span-6 space-y-1.5">
                                     <label for="adBuildingName" class="text-[10px] font-bold text-slate-400 uppercase ml-1">Building Name</label>
-                                    <input type="text" id="adBuildingName" placeholder="Optional" value="<?= hh_view_escape($addrCurrent['BuildingName']) ?>" oninput="adOnEdit()"
+                                    <input type="text" id="adBuildingName" placeholder="Optional" value="<?= hh_view_escape($addrCurrent['BuildingName']) ?>" oninput="adOnEdit(); adScheduleRecalc();"
                                         class="w-full bg-slate-100 border-none rounded-xl py-3 px-4 text-sm font-bold focus:ring-2 focus:ring-primary/20">
                                 </div>
                                 <div class="col-span-12 md:col-span-6 space-y-1.5">
@@ -661,11 +661,16 @@ $relationshipOptions = ['Spouse', 'Son', 'Daughter', 'Stepson', 'Stepdaughter', 
                                         </button>
                                     </div>
                                 </div>
-                                <p class="text-[8px] text-slate-400 font-medium italic">Tap the map, use your current location, or drag the pin to set the exact household location.</p>
+                                <p class="text-[8px] text-slate-400 font-medium italic">The pin follows the address as you type. Tap the map, use your current location, or drag the pin to set the exact household location — the address fields update from the pin.</p>
+                                <div id="adDetected" class="hidden mt-2 rounded-xl bg-slate-50 border border-slate-200 px-3 py-2 text-[9px] font-bold text-slate-600"></div>
                             </div>
-                            <div class="flex items-center justify-end gap-3">
+                            <div class="flex items-center justify-between gap-3">
+                                <span id="adAdjustedBadge" class="hidden text-[9px] font-black text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-3 py-1">Location manually adjusted</span>
+                                <span></span>
+                                <div class="flex items-center gap-3">
                                 <button type="button" onclick="adUseMyLocation()" class="text-[9px] font-black uppercase tracking-wider text-primary hover:text-accent">Use Current Location</button>
                                 <button type="button" onclick="adRecalculateLocation()" class="text-[9px] font-black uppercase tracking-wider text-primary hover:text-accent">Recalculate Location</button>
+                                </div>
                             </div>
                             <div class="grid grid-cols-2 gap-4">
                                 <div class="space-y-1.5">
@@ -736,24 +741,16 @@ $relationshipOptions = ['Spouse', 'Son', 'Daughter', 'Stepson', 'Stepdaughter', 
                                 </div>
                             </div>
 
-                            <?php if (!$isHeadless): ?>
-                                <div id="hdOldRelWrap" class="hidden grid md:grid-cols-2 gap-3">
-                                    <div class="space-y-1.5">
-                                        <label for="hdOldRel" class="text-[10px] font-bold text-slate-400 uppercase ml-1">Relationship of <?= hh_view_escape($name) ?> to the new Head *</label>
-                                        <select id="hdOldRel" class="addr-select" style="background:#f1f5f9" onchange="relOtherToggle('hdOldRel')">
-                                            <option value="">-- Select Relationship --</option>
-                                            <?php foreach ($relationshipOptions as $opt): ?><option value="<?= hh_view_escape($opt) ?>"><?= hh_view_escape($opt) ?></option><?php endforeach; ?>
-                                        </select>
-                                    </div>
-                                    <div class="space-y-1.5 hidden" id="hdOldRelOtherWrap">
-                                        <label for="hdOldRelOther" class="text-[10px] font-bold text-slate-400 uppercase ml-1">Specify Relationship *</label>
-                                        <input type="text" id="hdOldRelOther" maxlength="100" class="w-full bg-slate-100 border-none rounded-xl py-3 px-4 text-sm font-bold">
-                                    </div>
-                                    <p class="md:col-span-2 text-[10px] font-semibold text-slate-400 ml-1">The previous Head stays in this household as a Member.</p>
-                                </div>
-                            <?php endif; ?>
-
                             <div id="hdPendingBox" class="hidden rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-800"></div>
+
+                            <!-- Relationship of EVERY member to the new Head (same dropdown as Resident Profiling) -->
+                            <div id="hdRelEditor" class="hidden rounded-2xl border border-indigo-100 overflow-hidden">
+                                <div class="px-4 py-3 bg-indigo-50/70">
+                                    <p class="text-xs font-black text-indigo-800">Relationship to the new Household Head</p>
+                                    <p class="text-[10px] font-semibold text-indigo-600 mt-0.5">New Head → <strong>Head</strong>. Previous Head and all members → <strong>Member</strong>. Update each member's relationship to the new Head.</p>
+                                </div>
+                                <div id="hdRelRows" class="divide-y divide-slate-100"></div>
+                            </div>
                             <div class="flex justify-end gap-2">
                                 <button type="button" id="hdUndoBtn" onclick="hdUndo()" class="hidden px-5 py-3 rounded-xl bg-slate-100 text-slate-600 font-black text-xs uppercase">Undo Head Change</button>
                                 <button type="button" onclick="hdApply()" class="px-5 py-3 rounded-xl bg-amber-50 text-amber-700 font-black text-xs uppercase">Change Head</button>
@@ -1158,6 +1155,7 @@ $relationshipOptions = ['Spouse', 'Son', 'Daughter', 'Stepson', 'Stepdaughter', 
         const IS_HEADLESS = <?= $isHeadless ? 'true' : 'false' ?>;
         const HOUSEHOLD_ID = <?= json_encode($householdId) ?>;
         const ADDR_ORIG = <?= json_encode($addrCurrent, JSON_UNESCAPED_UNICODE) ?>;
+        const REL_OPTIONS = <?= json_encode($relationshipOptions) ?>;
         const selected = new Map();
         <?php foreach ($currentMembers as $member): ?>
             selected.set('<?= (int) $member['ResidentID'] ?>', {
@@ -1216,6 +1214,7 @@ $relationshipOptions = ['Spouse', 'Son', 'Daughter', 'Stepson', 'Stepdaughter', 
                         </button>
                     </div>
                 </div>`).join('');
+            if (typeof hdRenderRelEditor === 'function' && document.getElementById('hdRelRows')) hdRenderRelEditor();
             updateDirtyUi();
         }
 
@@ -1647,26 +1646,66 @@ $relationshipOptions = ['Spouse', 'Son', 'Daughter', 'Stepson', 'Stepdaughter', 
         }
         function adOnEdit() { updateDirtyUi(); }
         function adIsGoogle() { return !!(window.google && google.maps && adMap instanceof google.maps.Map); }
-        function adSetPin(lat, lng, pan) {
+        // fromUser: map click / drag / current location → address fields follow the pin (reverse geocode).
+        function adSetPin(lat, lng, pan, fromUser) {
             adEl('Latitude').value = Number(lat).toFixed(7);
             adEl('Longitude').value = Number(lng).toFixed(7);
             if (adMap) {
                 if (adIsGoogle()) {
                     if (!adMarker) {
                         adMarker = new google.maps.Marker({ map: adMap, draggable: true, title: 'Household location' });
-                        adMarker.addListener('dragend', e => adSetPin(e.latLng.lat(), e.latLng.lng(), false));
+                        adMarker.addListener('dragend', e => adSetPin(e.latLng.lat(), e.latLng.lng(), false, true));
                     }
                     adMarker.setPosition({ lat: Number(lat), lng: Number(lng) });
                     if (pan) { adMap.panTo({ lat: Number(lat), lng: Number(lng) }); adMap.setZoom(18); }
                 } else if (window.L) {
                     if (!adMarker) {
                         adMarker = L.marker([lat, lng], { draggable: true }).addTo(adMap);
-                        adMarker.on('dragend', e => { const pt = e.target.getLatLng(); adSetPin(pt.lat, pt.lng, false); });
+                        adMarker.on('dragend', e => { const pt = e.target.getLatLng(); adSetPin(pt.lat, pt.lng, false, true); });
                     } else adMarker.setLatLng([lat, lng]);
                     if (pan) adMap.setView([lat, lng], 18);
                 }
             }
+            document.getElementById('adAdjustedBadge').classList.toggle('hidden', !fromUser);
+            if (fromUser) adReverseGeocode(lat, lng);
             adOnEdit();
+        }
+        /* Pin → address (same idea as Resident Profiling reverseGeocodeLocation): fill Street / Area / House No. when Google knows them. */
+        let adReverseRun = 0, adSuppressRecalc = false;
+        function adNorm(v) {
+            return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+                .replace(/\b(street|st|road|rd|avenue|ave|barangay|brgy|purok|subdivision|subd|village)\b\.?/g, ' ')
+                .replace(/[^a-z0-9]+/g, ' ').trim();
+        }
+        function adMatchOption(sel, name) {
+            const t = adNorm(name); if (!t) return null;
+            const opts = [...sel.options].filter(o => o.value);
+            return opts.find(o => adNorm(o.value) === t) || opts.find(o => { const a = adNorm(o.value); return a && (a.includes(t) || t.includes(a)); }) || null;
+        }
+        function adReverseGeocode(lat, lng) {
+            if (!(window.google && google.maps && google.maps.Geocoder)) return;
+            if (!adGeocoder) adGeocoder = new google.maps.Geocoder();
+            const run = ++adReverseRun;
+            adGeocoder.geocode({ location: { lat: parseFloat(lat), lng: parseFloat(lng) }, region: 'PH' }, (results, status) => {
+                if (run !== adReverseRun) return;
+                const box = document.getElementById('adDetected');
+                if (status !== 'OK' || !results || !results.length) { box.textContent = 'Pin location saved. Google could not read the address details for this spot.'; box.classList.remove('hidden'); return; }
+                const values = {};
+                results.forEach(r => (r.address_components || []).forEach(c => (c.types || []).forEach(t => { if (!values[t]) values[t] = c.long_name; })));
+                adSuppressRecalc = true;
+                const changed = [];
+                const st = adMatchOption(adEl('StreetName'), values.route);
+                if (st && adEl('StreetName').value !== st.value) { adEl('StreetName').value = st.value; changed.push('Street'); }
+                const areaName = [values.sublocality_level_2, values.neighborhood, values.sublocality_level_1, values.sublocality].find(v => adMatchOption(adEl('AreaName'), v));
+                const ar = areaName ? adMatchOption(adEl('AreaName'), areaName) : null;
+                if (ar && adEl('AreaName').value !== ar.value) { adEl('AreaName').value = ar.value; changed.push('Subdivision/Purok'); }
+                if (values.street_number && !adEl('HouseNumber').value.trim()) { adEl('HouseNumber').value = values.street_number; changed.push('House No.'); }
+                adSuppressRecalc = false;
+                box.innerHTML = '<span class="text-slate-400 uppercase tracking-wider">Detected at pin:</span> ' + esc(results[0].formatted_address || '') +
+                    (changed.length ? ' <span class="text-emerald-600">· Updated ' + esc(changed.join(', ')) + '</span>' : (values.route && !st ? ' <span class="text-amber-600">· Street "' + esc(values.route) + '" is not in Manage Area</span>' : ''));
+                box.classList.remove('hidden');
+                if (changed.length) { adScheduleAddressCheck(); adOnEdit(); }
+            });
         }
         function adInitMap(tries = 0) {
             const el = document.getElementById('adMap');
@@ -1676,11 +1715,11 @@ $relationshipOptions = ['Spouse', 'Son', 'Daughter', 'Stepson', 'Stepdaughter', 
             const center = hasPin ? { lat, lng } : trDefaultCenter;
             if (window.google && google.maps) {
                 adMap = new google.maps.Map(el, { center, zoom: hasPin ? 18 : 15, mapTypeControl: true, mapTypeControlOptions: { mapTypeIds: ['roadmap', 'satellite'] }, streetViewControl: false, fullscreenControl: true });
-                adMap.addListener('click', e => adSetPin(e.latLng.lat(), e.latLng.lng(), false));
+                adMap.addListener('click', e => adSetPin(e.latLng.lat(), e.latLng.lng(), false, true));
             } else if (window.L) {
                 adMap = L.map(el).setView([center.lat, center.lng], hasPin ? 18 : 15);
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(adMap);
-                adMap.on('click', e => adSetPin(e.latlng.lat, e.latlng.lng, false));
+                adMap.on('click', e => adSetPin(e.latlng.lat, e.latlng.lng, false, true));
                 setTimeout(() => adMap.invalidateSize(), 50);
             } else if (tries < 40) {
                 return setTimeout(() => adInitMap(tries + 1), 250);   // Google Maps script still loading
@@ -1699,7 +1738,7 @@ $relationshipOptions = ['Spouse', 'Son', 'Daughter', 'Stepson', 'Stepdaughter', 
         function adUseMyLocation() {
             if (!navigator.geolocation) return hhNotice('warning', 'Location Unavailable', 'Location is not supported by this browser. Tap the map to pin the location instead.');
             navigator.geolocation.getCurrentPosition(
-                pos => { adInitMap(); adSetPin(pos.coords.latitude, pos.coords.longitude, true); },
+                pos => { adInitMap(); adSetPin(pos.coords.latitude, pos.coords.longitude, true, true); },
                 () => hhNotice('warning', 'Location Unavailable', 'Unable to get your current location. Tap the map to pin the location instead.'),
                 { enableHighAccuracy: true, timeout: 10000 }
             );
@@ -1710,11 +1749,16 @@ $relationshipOptions = ['Spouse', 'Son', 'Daughter', 'Stepson', 'Stepdaughter', 
             const f = adFields();
             const q = [f.HouseNumber, f.BuildingName, f.StreetName, f.AreaName, f.BarangayName, f.CityMunicipalityName, f.ProvinceName, f.RegionName, 'Philippines'].filter(Boolean).join(', ');
             adGeocoder.geocode({ address: q, region: 'PH' }, (results, status) => {
-                if (status === 'OK' && results && results[0]) { const loc = results[0].geometry.location; adSetPin(loc.lat(), loc.lng(), true); }
+                if (status === 'OK' && results && results[0]) { const loc = results[0].geometry.location; adSetPin(loc.lat(), loc.lng(), true, false); document.getElementById('adDetected').classList.add('hidden'); }
                 else if (!silent) hhNotice('warning', 'Location Not Found', 'Google could not locate this address. Try selecting a street or picking the exact spot on the map.');
             });
         }
-        function adScheduleRecalc() { clearTimeout(adRecalcTimer); if (adIsGoogle()) adRecalcTimer = setTimeout(() => adRecalculateLocation(true), 700); }
+        // Address → pin: re-locate the pin whenever the address changes (not while the pin is filling the address).
+        function adScheduleRecalc() {
+            clearTimeout(adRecalcTimer);
+            if (adSuppressRecalc || !adIsGoogle() || !adEl('StreetName').value) return;
+            adRecalcTimer = setTimeout(() => adRecalculateLocation(true), 800);
+        }
         async function adLoadLocal(action, barangayCode, selId, placeholder, current) {
             const el = document.getElementById(selId);
             el.disabled = true; el.innerHTML = '<option value="">Loading...</option>';
@@ -1817,7 +1861,6 @@ $relationshipOptions = ['Spouse', 'Son', 'Daughter', 'Stepson', 'Stepdaughter', 
             const m = hdMode();
             document.getElementById('hdMemberWrap').classList.toggle('hidden', m !== 'member');
             document.getElementById('hdResidentWrap').classList.toggle('hidden', m !== 'resident');
-            document.getElementById('hdOldRelWrap')?.classList.toggle('hidden', !m);
         }
         function hdFromAnotherHousehold(x) { return !!(Number(x.isHead) === 1 || x.familyHeadId || x.householdId); }
         function hdRenderPicked() {
@@ -1866,9 +1909,41 @@ $relationshipOptions = ['Spouse', 'Son', 'Daughter', 'Stepson', 'Stepdaughter', 
             document.getElementById('hdUndoBtn').classList.toggle('hidden', !pendingHead);
             if (pendingHead) {
                 box.innerHTML = `<strong>New Household Head:</strong> ${esc(pendingHead.name)}` + (pendingHead.detail ? ` <span class="text-amber-700">(${esc(pendingHead.detail)})</span>` : '') +
-                    (IS_HEADLESS ? '' : `<br>${esc(CURRENT_HEAD_NAME)} becomes a Member (${esc(pendingHead.oldRel)}).`) + '<br>Applied when you click <strong>Save Changes</strong>.';
+                    (IS_HEADLESS ? '' : `<br>${esc(CURRENT_HEAD_NAME)} becomes a Member.`) + '<br>Set each member\'s relationship below. Applied when you click <strong>Save Changes</strong>.';
             }
             renderMembers();
+        }
+        function relSelectHtml(id, value) {
+            const known = value && REL_OPTIONS.includes(value) && value !== 'Other';
+            const sel = known ? value : (value ? 'Other' : '');
+            return `<select class="addr-select" style="background:#f1f5f9" data-rel-id="${esc(id)}" onchange="hdRelChanged(this)">
+                    <option value="">-- Select Relationship --</option>${REL_OPTIONS.map(o => `<option value="${esc(o)}"${o === sel ? ' selected' : ''}>${esc(o)}</option>`).join('')}</select>
+                <input type="text" maxlength="100" data-rel-other="${esc(id)}" placeholder="Specify Relationship" value="${sel === 'Other' ? esc(value) : ''}"
+                    oninput="hdRelChanged(this)" class="${sel === 'Other' ? '' : 'hidden '}mt-2 w-full bg-slate-100 border-none rounded-xl py-3 px-4 text-sm font-bold">`;
+        }
+        function hdRelChanged(el) {
+            const id = el.dataset.relId || el.dataset.relOther;
+            const sel = document.querySelector(`select[data-rel-id="${CSS.escape(id)}"]`);
+            const other = document.querySelector(`input[data-rel-other="${CSS.escape(id)}"]`);
+            other.classList.toggle('hidden', sel.value !== 'Other');
+            pendingHead.rels[id] = sel.value === 'Other' ? other.value.trim() : sel.value;
+            if (sel.value === 'Other' && el === sel) other.focus();
+            updateDirtyUi();
+        }
+        function hdRenderRelEditor() {
+            const box = document.getElementById('hdRelEditor');
+            box.classList.toggle('hidden', !pendingHead);
+            if (!pendingHead) return;
+            const rows = finalMembers();
+            rows.forEach(x => { if (!(String(x.id) in pendingHead.rels)) pendingHead.rels[String(x.id)] = x.relationship || ''; });
+            document.getElementById('hdRelRows').innerHTML = rows.length ? rows.map(x => `
+                <div class="grid md:grid-cols-[1fr_280px] gap-3 items-start px-4 py-3">
+                    <div>
+                        <p class="text-sm font-black text-slate-700">${esc(x.fullName)}</p>
+                        <p class="text-[10px] font-bold text-slate-400">${x.formerHead ? 'Previous Head → Member' : 'Member'}${x.saved ? '' : ' · new'}</p>
+                    </div>
+                    <div>${relSelectHtml(x.id, pendingHead.rels[String(x.id)])}</div>
+                </div>`).join('') : '<p class="px-4 py-4 text-xs font-semibold text-slate-400">No other members.</p>';
         }
         function hdApply() {
             const mode = hdMode();
@@ -1885,12 +1960,14 @@ $relationshipOptions = ['Spouse', 'Son', 'Daughter', 'Stepson', 'Stepdaughter', 
                     detail: hdPicked.householdId ? (Number(hdPicked.isHead) === 1 ? `Head of ${hdPicked.householdId}; that household will have no Head` : `transferred from ${hdPicked.householdId}`) : 'resident not in a household',
                     resident: hdPicked };
             }
-            let oldRel = '';
-            if (!IS_HEADLESS) {
-                oldRel = relValue('hdOldRel');
-                if (!oldRel) return hhNotice('warning', 'Relationship Required', `Select the relationship of ${CURRENT_HEAD_NAME} to the new Head` + (document.getElementById('hdOldRel').value === 'Other' ? ' and specify it.' : '.'));
-            }
-            const stage = () => { pendingHead = Object.assign(target, { mode, oldRel }); hdRenderPending(); };
+            const stage = () => {
+                // Relationships start from the current values; the previous Head must be chosen.
+                const rels = {};
+                [...selected.values()].forEach(x => { if (String(x.id) !== String(target.id)) rels[String(x.id)] = x.relationship || ''; });
+                if (!IS_HEADLESS) rels[String(currentHeadId)] = '';
+                pendingHead = Object.assign(target, { mode, rels });
+                hdRenderPending();
+            };
             if (mode === 'resident' && target.other) {
                 showConfirmDialog({
                     title: 'Resident From Another Household',
@@ -1968,20 +2045,30 @@ $relationshipOptions = ['Spouse', 'Son', 'Daughter', 'Stepson', 'Stepdaughter', 
         /* ================= Save Changes → Confirm Changes summary → save ================= */
         function finalMembers() {
             // Members after the pending Head change: new Head leaves the list, previous Head joins it.
-            const list = [...selected.values()].filter(x => !(pendingHead && String(pendingHead.id) === String(x.id)));
-            if (pendingHead && !IS_HEADLESS) list.push({ id: currentHeadId, fullName: CURRENT_HEAD_NAME, relationship: pendingHead.oldRel, saved: true, formerHead: true });
+            const list = [...selected.values()].filter(x => !(pendingHead && String(pendingHead.id) === String(x.id)))
+                .map(x => Object.assign({}, x, pendingHead && (String(x.id) in pendingHead.rels) ? { relationship: pendingHead.rels[String(x.id)] } : {}));
+            if (pendingHead && !IS_HEADLESS) list.unshift({ id: currentHeadId, fullName: CURRENT_HEAD_NAME, relationship: pendingHead.rels[String(currentHeadId)] || '', saved: true, formerHead: true });
             return list;
         }
         function openSummary() {
             if (adEdited()) return hhNotice('warning', 'Address Not Confirmed', 'You edited the household address. Click Save Address to confirm it, or Undo Address Change.');
             if (IS_HEADLESS && !pendingHead) return hhNotice('warning', 'Household Head Required', 'This household has no Head. Select the new Household Head in Change Household Head first.');
             if (!isDirty()) return hhNotice('warning', 'No Changes', 'There are no changes to save.');
+            if (pendingHead) {
+                const missing = finalMembers().filter(x => !String(x.relationship || '').trim());
+                if (missing.length) {
+                    document.getElementById('hdRelEditor').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    return hhNotice('warning', 'Relationship Required', 'Set the relationship to the new Head for: ' + missing.map(x => x.fullName).join(', ') + '.');
+                }
+            }
             const items = [];
             const li = (label, text) => items.push(`<li class="rounded-xl bg-slate-50 border border-slate-100 px-4 py-3"><span class="block text-[9px] font-black uppercase tracking-widest text-slate-400">${esc(label)}</span><span class="font-bold">${text}</span></li>`);
             if (pendingAddress) li('Household Address', `${esc(ADDR_ORIG.label || '—')} <span class="text-indigo-500">→</span> ${esc(pendingAddress.label)}`);
             if (pendingHead) {
                 li('Household Head', `${esc(CURRENT_HEAD_NAME)} <span class="text-indigo-500">→</span> ${esc(pendingHead.name)}` + (pendingHead.detail ? ` <span class="text-slate-400">(${esc(pendingHead.detail)})</span>` : ''));
-                if (!IS_HEADLESS) li('Previous Head', `${esc(CURRENT_HEAD_NAME)} becomes a Member (${esc(pendingHead.oldRel)})`);
+                if (!IS_HEADLESS) li('Previous Head', `${esc(CURRENT_HEAD_NAME)} → Member (${esc(pendingHead.rels[String(currentHeadId)])})`);
+                const relLines = finalMembers().filter(x => !x.formerHead).map(x => `${esc(x.fullName)}: ${esc(x.relationship)}`);
+                if (relLines.length) li('Relationship to New Head', relLines.join('<br>'));
             }
             [...selected.values()].filter(x => !x.saved).forEach(x => li('Member Added', `${esc(x.fullName)} (${esc(x.relationship)})`));
             [...savedMemberIds].filter(id => !selected.has(id)).forEach(id => li('Member Removed', 'Resident #' + esc(id)));
@@ -1995,7 +2082,7 @@ $relationshipOptions = ['Spouse', 'Son', 'Daughter', 'Stepson', 'Stepdaughter', 
             const fd = new FormData();
             fd.append('csrf_token', CSRF); fd.append('action', 'save_all'); fd.append('survey_id', SURVEY_ID);
             fd.append('expected_head_id', currentHeadId || 0);
-            if (pendingHead) { fd.append('head_mode', pendingHead.mode); fd.append('new_head_id', pendingHead.id); fd.append('old_head_relationship', pendingHead.oldRel || ''); }
+            if (pendingHead) { fd.append('head_mode', pendingHead.mode); fd.append('new_head_id', pendingHead.id); fd.append('old_head_relationship', pendingHead.rels[String(currentHeadId)] || ''); }
             if (pendingAddress) {
                 fd.append('address_changed', '1');
                 [...AD_FIELDS, 'AreaType', 'Purok'].forEach(f => fd.append(f, pendingAddress[f] || ''));

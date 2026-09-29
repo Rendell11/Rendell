@@ -354,6 +354,10 @@ $error = trim((string) ($_GET['error'] ?? ''));
                             </p>
                         </div>
                         <div class="flex items-center gap-2">
+                            <a href="analytics_household.php"
+                                class="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 text-[10px] font-black uppercase text-slate-500 hover:border-indigo-300 hover:text-indigo-600 transition-all">
+                                <span class="material-symbols-outlined text-sm">analytics</span> Analytics
+                            </a>
                             <a href="../backend/household_generate_report.php?print=1&status=<?= urlencode($statusFilter) ?>&search=<?= urlencode($search) ?>&income_class=<?= urlencode($incomeClass) ?>"
                                 target="_blank"
                                 class="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 text-[10px] font-black uppercase text-slate-500 hover:border-indigo-300 hover:text-indigo-600 transition-all">
