@@ -47,7 +47,8 @@ if (!$canPrint) cert_log_activity('View Document', ($req['doc_number'] ?: '#' . 
         /* One sheet per template page (multi-page PDF / Word templates keep their pages). */
         .print-pages .cert-page { break-after: page; page-break-after: always; }
         .print-pages .cert-page:last-child { break-after: auto; page-break-after: auto; }
-        #host > div { width: auto !important; height: auto !important; }
+        /* Only the scaling wrappers of the view-only preview — never the pages themselves (they keep their real size). */
+        #host > div:not(.cert-page) { width: auto !important; height: auto !important; }
         <?php if (!$canPrint): ?>
         #host { display: none; }
         body::before { content: "Printing is disabled for this document (view only)."; display: block; padding: 40px; font: 16px Arial; }

@@ -213,7 +213,6 @@ $tab = in_array($_GET['tab'] ?? '', ['pending', 'queue', 'released', 'expired', 
           <div class="sec-head"><span class="material-symbols-outlined">edit_note</span><h4>Extra Information</h4></div>
           <div id="wiExtra6" class="grid sm:grid-cols-2 gap-4"></div>
         </div>
-        <div><label class="field-label" for="wiPhoto">Applicant photo (optional)</label><input id="wiPhoto" type="file" accept="image/png,image/jpeg,image/webp" class="text-sm font-semibold text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-indigo-50 file:text-indigo-600 file:font-bold file:text-xs"></div>
       </div>
     </div>
     <div class="modal-foot">
@@ -452,7 +451,6 @@ const WalkIn = (function(){
         if (!DOC_TYPES.length) { CERT.toast('Add and finish a document type in Templates first.', 'warning'); return; }
         reset(); initSearch(); ts.clear(); ts.clearOptions();
         document.getElementById('wiResidentCard').innerHTML = '';
-        document.getElementById('wiPhoto').value = '';
         drawDocs(); go(1); CERT.open('walkInModal');
         setTimeout(() => ts.focus(), 150);
     }
@@ -592,7 +590,6 @@ const WalkIn = (function(){
         fd.append('action', 'save_walkin'); fd.append('resident_id', st.resident.id); fd.append('doc_type', st.doc);
         fd.append('purpose', st.purpose); fd.append('requirements', JSON.stringify(Array.from(st.checked)));
         fd.append('extra', JSON.stringify(st.extra)); fd.append('blotter_ack', st.blotterAck ? '1' : '0');
-        const photo = document.getElementById('wiPhoto').files[0]; if (photo) fd.append('photo', photo);
         const btn = document.getElementById('wiNext'); btn.disabled = true; btn.innerHTML = 'Generating…';
         try {
             const d = await CERT.post(API, fd);
