@@ -21,7 +21,8 @@ try {
 } catch (Throwable $e) { $db_error = 'Database setup failed. Check the PHP error log.'; error_log('[Certificates] ' . $e->getMessage()); $allTypes = []; }
 $canCreate = cert_can($pdo, 'create');
 $canUpdate = cert_can($pdo, 'update');
-$tab = in_array($_GET['tab'] ?? '', ['pending', 'queue', 'released', 'expired', 'walkin', 'all'], true) ? $_GET['tab'] : 'pending';
+// No tab chosen → All requests are shown.
+$tab = in_array($_GET['tab'] ?? '', ['pending', 'queue', 'released', 'expired', 'walkin', 'all'], true) ? $_GET['tab'] : 'all';
 ?>
 <!doctype html>
 <html <?php require_once __DIR__ . '/../../theme_loader.php'; echo $theme_attrs['html'] ?? ''; ?>>
@@ -41,6 +42,10 @@ $tab = in_array($_GET['tab'] ?? '', ['pending', 'queue', 'released', 'expired', 
         .tab:hover { color:var(--accent-600); border-color:#e0e7ff; }
         .tab .cnt { background:#fff; color:#475569; border-radius:.4rem; padding:0 .4rem; font-size:10px; border:1px solid #e2e8f0; }
         .tab.active { background:var(--accent-600); border-color:var(--accent-600); color:#fff; box-shadow:0 10px 15px -3px rgba(99,102,241,.2); } .tab.active .cnt { background:rgba(255,255,255,.2); border-color:transparent; color:#fff; }
+        /* Red notification bubble on tabs that need action (Pending, Online Queue) */
+        .tab { position:relative; }
+        .tab-bubble { position:absolute; top:-9px; right:-7px; min-width:20px; height:20px; padding:0 6px; border-radius:999px; background:#ef4444; color:#fff; font-size:10px; font-weight:900; letter-spacing:0; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 2px #fff, 0 4px 8px rgba(239,68,68,.35); }
+        .tab-bubble.hidden { display:none; }
         .row-new { background:linear-gradient(90deg,rgba(239,68,68,.05),transparent 45%); }
         .check { display:flex; align-items:flex-start; gap:.75rem; padding:.9rem 1rem; border-radius:1.25rem; border:1px solid; }
         .check .material-symbols-outlined { font-size:20px; }
@@ -154,10 +159,10 @@ $tab = in_array($_GET['tab'] ?? '', ['pending', 'queue', 'released', 'expired', 
                         <div><h2 class="text-base font-black text-slate-800 leading-tight">Document Requests</h2>
                             <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5"><span data-count="new_online">0</span> new online · <span data-count="preview">0</span> walk-in waiting to print</p></div>
                     </div>
-                    <div class="flex gap-2 overflow-x-auto pb-1" id="tabs">
-                        <?php foreach (['pending' => ['Pending', 'pending'], 'queue' => ['Online Queue', 'queue'], 'released' => ['Released', 'released'],
-                                        'expired' => ['Expired', 'expired'], 'walkin' => ['Walk-in', 'walkin'], 'all' => ['All', 'total']] as $k => [$lbl, $cnt]): ?>
-                        <button type="button" class="tab<?php echo $tab === $k ? ' active' : ''; ?>" data-tab="<?php echo $k; ?>" onclick="setTab('<?php echo $k; ?>')"><?php echo h($lbl); ?><span class="cnt" data-count="<?php echo $cnt; ?>">0</span></button>
+                    <div class="flex gap-3 overflow-x-auto pb-1" id="tabs" style="padding-top:12px;padding-right:10px">
+                        <?php foreach (['all' => ['All', 'total', false], 'pending' => ['Pending', 'pending', true], 'queue' => ['Online Queue', 'queue', true], 'released' => ['Released', 'released', false],
+                                        'expired' => ['Expired', 'expired', false], 'walkin' => ['Walk-in', 'walkin', false]] as $k => [$lbl, $cnt, $bub]): ?>
+                        <button type="button" class="tab<?php echo $tab === $k ? ' active' : ''; ?>" data-tab="<?php echo $k; ?>" onclick="setTab('<?php echo $k; ?>')"><?php echo h($lbl); ?><?php if ($bub): ?><span class="tab-bubble hidden" data-bubble="<?php echo $cnt; ?>" title="<?php echo h($lbl); ?> requests"></span><?php else: ?><span class="cnt" data-count="<?php echo $cnt; ?>">0</span><?php endif; ?></button>
                         <?php endforeach; ?>
                     </div>
                 </div>
@@ -358,6 +363,8 @@ function setTab(t){
 }
 function paintCounts(c){
     document.querySelectorAll('[data-count]').forEach(el => { const k = el.dataset.count; if (k in c) el.textContent = c[k]; });
+    // Tab bubbles: shown only when there are requests to act on.
+    document.querySelectorAll('[data-bubble]').forEach(el => { const n = Number(c[el.dataset.bubble] || 0); el.textContent = n > 99 ? '99+' : n; el.classList.toggle('hidden', n <= 0); });
     const b = document.getElementById('onlineBubble');
     b.textContent = c.new_online > 99 ? '99+' : c.new_online;
     b.classList.toggle('hidden', !c.new_online);
