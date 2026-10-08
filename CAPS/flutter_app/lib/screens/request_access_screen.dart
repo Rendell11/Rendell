@@ -692,6 +692,15 @@ class _RequestAccessScreenState extends State<RequestAccessScreen> {
             child: Text(tr.raTheBarangayDefaultAddress,
                 style: TextStyle(fontSize: 11.5, color: AppColors.warnText)),
           ),
+          // The admin may set it while this form is open: load it again.
+          TextButton.icon(
+            onPressed: () {
+              setState(() => _loadingAddr = true);
+              _loadAddress();
+            },
+            icon: const Icon(Icons.refresh, size: 16),
+            label: Text(tr.refresh),
+          ),
         ],
       ),
     );

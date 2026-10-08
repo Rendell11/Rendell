@@ -329,7 +329,10 @@ function get_barangay_profile(): ?array
             "SELECT region_name, province_name, municipality_name, barangay_name,
                     psgc_region_code, psgc_province_code, psgc_municipality_code,
                     psgc_barangay_code, zip_code
-             FROM barangay_profile ORDER BY id DESC LIMIT 1"
+             FROM barangay_profile
+             ORDER BY (psgc_barangay_code IS NOT NULL AND psgc_barangay_code <> '') DESC,
+                      (id = 1) DESC, id DESC
+             LIMIT 1"
         )->fetch();
         return $row ?: null;
     } catch (Throwable $e) {
