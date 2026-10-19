@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="DYH">
+  <!-- Placeholder mark. Replace this file with the official DYH logo (same filename). -->
+  <circle cx="60" cy="60" r="56" fill="#0B2E59"/>
+  <circle cx="60" cy="60" r="48" fill="none" stroke="#FFFFFF" stroke-width="2.5" opacity=".9"/>
+  <path d="M50 26h20v24h24v20H70v24H50V70H26V50h24z" fill="#FFFFFF"/>
+  <path d="M30 60h12l5-9 7 18 6-14 4 5h26" fill="none" stroke="#0B2E59" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

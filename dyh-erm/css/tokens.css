@@ -1,0 +1,73 @@
+/* ==========================================================================
+   DYH ERM — Design tokens
+   Brand: navy + white dominant. Accent colors are reserved for status only.
+   ========================================================================== */
+:root {
+  /* Brand */
+  --navy: #0B2E59;
+  --navy-700: #082245;
+  --blue: #174A7E;
+  --blue-100: #D5E4F3;
+  --light-blue: #EAF2FA;
+  --white: #FFFFFF;
+  --gray-50: #F4F6F8;
+  --gray-100: #E8ECF0;
+  --gray-200: #D4DAE1;
+  --gray-400: #8A97A6;
+  --gray-600: #56657A;
+  --text: #243447;
+  --text-muted: #56657A;
+
+  /* Status (always paired with icon + label) */
+  --success: #218653;
+  --success-bg: #E6F4EC;
+  --warning: #E5A000;
+  --warning-ink: #8A5F00;
+  --warning-bg: #FDF4DE;
+  --error: #C93636;
+  --error-bg: #FBEAEA;
+  --info: #174A7E;
+  --info-bg: #EAF2FA;
+
+  /* Priority (senior / PWD / pregnant) */
+  --priority: #6B3FA0;
+  --priority-bg: #F1EBF8;
+
+  /* Surfaces */
+  --bg: #FFFFFF;
+  --surface: #FFFFFF;
+  --surface-2: #F4F6F8;
+  --border: #D4DAE1;
+  --focus: #1F6FD1;
+
+  /* Typography */
+  --font: "Inter", "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --fs-base: 16px;      /* staff default; patient & kiosk shells override */
+  --fs-sm: .875em;
+  --fs-xs: .78em;
+  --fs-lg: 1.125em;
+  --fs-xl: 1.375em;
+  --fs-2xl: 1.75em;
+  --fs-3xl: 2.25em;
+  --lh: 1.5;
+
+  /* Spacing (4px grid) */
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 20px; --s6: 24px; --s8: 32px; --s10: 40px; --s12: 48px;
+
+  /* Shape — modest radii, minimal shadow */
+  --r-sm: 6px;
+  --r: 10px;
+  --r-lg: 14px;
+  --shadow-1: 0 1px 2px rgba(11, 46, 89, .06), 0 1px 1px rgba(11, 46, 89, .04);
+  --shadow-2: 0 8px 28px rgba(11, 46, 89, .16);
+
+  /* Touch targets */
+  --tap: 48px;
+  --tap-lg: 56px;
+
+  --ease: cubic-bezier(.2, .7, .2, 1);
+}
+
+/* Text size preference (patient-facing "A / A+ / A++") */
+html[data-text="lg"] { font-size: 112.5%; }
+html[data-text="xl"] { font-size: 125%; }
